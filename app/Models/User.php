@@ -49,4 +49,11 @@ class User extends Authenticatable
     {
         return $this->hasOne(Participante::class);
     }
+
+    public function eventosAdministrados()
+    {
+        // Define a relação M-M, nome da tabela pivô e inclui a coluna 'role' da pivô
+        return $this->belongsToMany(Evento::class, 'evento_user', 'user_id', 'evento_id')
+            ->withPivot('role');
+    }
 }

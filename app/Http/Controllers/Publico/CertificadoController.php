@@ -57,7 +57,7 @@ class CertificadoController extends Controller
             '{CARGA_HORARIA}'   => $atividade->carga_horaria,
             '{DATA_EVENTO}'     => $atividade->data_inicio->format('d/m/Y'),
             '{DATA_EMISSAO}'    => $frequencia->created_at->format('d/m/Y'),
-            '{TIPO_PARTICIPACAO}' => mb_strtoupper($frequencia->tipo_participacao == 'ouvinte' ? 'participante' : $frequencia->tipo_participacao),
+            '{TIPO_PARTICIPACAO}' => mb_strtoupper($frequencia->tipo_participacao == 'ouvinte' ? 'ouvinte' : $frequencia->tipo_participacao),
         ];
 
         // Realiza a troca das variáveis no texto

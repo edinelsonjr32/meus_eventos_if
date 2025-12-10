@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Evento;
 use App\Models\Assinatura;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class EventoController extends Controller
@@ -93,165 +95,216 @@ class EventoController extends Controller
      */
     public function edit(Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
-
+        // Apenas o evento é carregado para a view. A variável $users foi removida.
         return view('admin.eventos.edit', compact('evento'));
     }
-
     /**
      * Atualiza o evento, layout, textos e assinaturas.
      */
     public function update(Request $request, Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
-
-        // 1. Validação Robusta
-        $request->validate([
-            // Dados Gerais
+        // 1. Validação Apenas dos Dados Primários
+        $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:255',
             'data_inicio' => 'required|date',
-            'data_fim' => 'required|date',
-            'local' => 'required|string',
+            'data_fim' => 'required|date|after_or_equal:data_inicio',
+            'local' => 'required|string|max:255',
+            'descricao' => 'nullable|string',
+            'cor_fundo' => 'nullable|string|size:7|starts_with:#',
 
-            // Arquivos de Layout
-            'imagem_fundo' => 'nullable|image|max:4096', // Max 4MB
-            'imagem_brasao' => 'nullable|image|max:2048',
+            // Geolocalização
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'raio_permitido' => 'nullable|integer|min:50',
 
-            // Textos do Certificado
-            'cert_cabecalho' => 'nullable|string',
-            'cert_corpo' => 'nullable|string',
-            'cert_rodape' => 'nullable|string',
-
-            // Assinaturas (Array)
-            'assinaturas.*.nome' => 'nullable|string',
-            'assinaturas.*.cargo' => 'nullable|string',
-            'assinaturas.*.arquivo' => 'nullable|image|max:2048',
+            // TODOS os campos de Certificado (cert_corpo, imagem_fundo, assinaturas) REMOVIDOS daqui.
         ]);
 
-        // =========================================================
-        // A. REMOÇÃO DE ASSINATURAS (Processar antes de salvar)
-        // =========================================================
-        if ($request->filled('assinaturas_para_remover')) {
-            $idsRaw = explode(',', $request->input('assinaturas_para_remover'));
-            $idsParaRemover = array_filter($idsRaw, 'is_numeric'); // Segurança: remove vazios/inválidos
-
-            if (!empty($idsParaRemover)) {
-                // Remove os arquivos físicos das assinaturas deletadas para limpar storage
-                $assinaturasDeletadas = Assinatura::whereIn('id', $idsParaRemover)->get();
-                foreach($assinaturasDeletadas as $ass) {
-                    if($ass->arquivo_assinatura) Storage::disk('public')->delete($ass->arquivo_assinatura);
-                }
-                Assinatura::destroy($idsParaRemover);
-            }
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
         }
 
-        // =========================================================
-        // B. ATUALIZAÇÃO DE DADOS BÁSICOS E TEXTOS
-        // =========================================================
-        $dadosUpdate = $request->only([
-            'titulo', 'descricao', 'data_inicio', 'data_fim',
-            'local', 'latitude', 'longitude', 'raio_permitido',
-            'cert_cabecalho', 'cert_corpo', 'cert_rodape'
-        ]);
+        $validated = $validator->validated();
 
-        // Atualiza JSON de Configurações
-        $configs = $evento->configuracoes ?? [];
-        $configs['cor_fundo'] = $request->input('cor_fundo', '#10b981');
-        $evento->configuracoes = $configs;
 
-        // =========================================================
-        // C. GESTÃO DE IMAGENS DO LAYOUT (Upload e Remoção)
-        // =========================================================
+        // 2. GESTÃO DE IMAGENS/ASSINATURAS: REMOVIDA
+        // Os caminhos de 'caminho_fundo' e 'caminho_brasao' não são mais manipulados aqui.
 
-        // 1. Fundo
-        if ($request->boolean('remover_fundo')) {
-            if ($evento->caminho_fundo) Storage::disk('public')->delete($evento->caminho_fundo);
-            $dadosUpdate['caminho_fundo'] = null;
-        }
-        if ($request->hasFile('imagem_fundo')) {
-            if ($evento->caminho_fundo && !isset($dadosUpdate['caminho_fundo'])) {
-                Storage::disk('public')->delete($evento->caminho_fundo);
-            }
-            $dadosUpdate['caminho_fundo'] = $request->file('imagem_fundo')->store('eventos/fundos', 'public');
-        }
 
-        // 2. Brasão
-        if ($request->boolean('remover_brasao')) {
-            if ($evento->caminho_brasao) Storage::disk('public')->delete($evento->caminho_brasao);
-            $dadosUpdate['caminho_brasao'] = null;
-        }
-        if ($request->hasFile('imagem_brasao')) {
-            if ($evento->caminho_brasao && !isset($dadosUpdate['caminho_brasao'])) {
-                Storage::disk('public')->delete($evento->caminho_brasao);
-            }
-            $dadosUpdate['caminho_brasao'] = $request->file('imagem_brasao')->store('eventos/brasoes', 'public');
-        }
+        // 3. Atualização de Dados Principais e Configurações
+        $evento->fill($validated);
 
-        // Salva as alterações no evento principal
-        $evento->update($dadosUpdate);
+        // Atualiza configurações de cor
+        $configuracoes = $evento->configuracoes ?? [];
+        $configuracoes['cor_fundo'] = $request->cor_fundo;
+        $evento->configuracoes = $configuracoes;
 
-        // =========================================================
-        // D. PROCESSAMENTO DE ASSINATURAS (Adicionar/Editar)
-        // =========================================================
-        if ($request->has('assinaturas')) {
-            $assinaturasData = $request->input('assinaturas');
+        $evento->save();
 
-            foreach ($assinaturasData as $index => $data) {
-                // Pula entradas vazias
-                if (empty($data['nome'])) continue;
 
-                $pathAssinatura = null;
+        // 4. GESTÃO DE ASSINATURAS: REMOVIDA
 
-                // Upload da imagem da assinatura (se enviada)
-                if ($request->hasFile("assinaturas.{$index}.arquivo")) {
-                    $file = $request->file("assinaturas.{$index}.arquivo");
-                    $pathAssinatura = $file->store('eventos/assinaturas', 'public');
-                }
-
-                if (!empty($data['id'])) {
-                    // --- ATUALIZAR EXISTENTE ---
-                    $ass = Assinatura::find($data['id']);
-                    if ($ass) {
-                        $updateData = [
-                            'nome' => $data['nome'],
-                            'cargo' => $data['cargo']
-                        ];
-
-                        // Se houve novo upload, deleta a antiga e salva a nova
-                        if ($pathAssinatura) {
-                            if($ass->arquivo_assinatura) Storage::disk('public')->delete($ass->arquivo_assinatura);
-                            $updateData['arquivo_assinatura'] = $pathAssinatura;
-                        }
-
-                        $ass->update($updateData);
-                    }
-                } else {
-                    // --- CRIAR NOVA ---
-                    $evento->assinaturas()->create([
-                        'nome' => $data['nome'],
-                        'cargo' => $data['cargo'],
-                        'arquivo_assinatura' => $pathAssinatura
-                    ]);
-                }
-            }
-        }
-
-        return redirect()->route('admin.eventos.index')->with('success', 'Evento e Layout atualizados com sucesso!');
+        return redirect()->route('admin.eventos.show', $evento->id)->with('success', 'Dados do Evento atualizados com sucesso!');
     }
-
     /**
      * Remove o evento.
      */
+
+
+    public function editCertificado(Evento $evento)
+    {
+        // Carrega dados para as assinaturas (Model Assinatura deve estar disponível)
+        $dadosAssinaturas = $evento->assinaturas;
+
+        return view('admin.eventos.certificado.edit', compact('evento', 'dadosAssinaturas'));
+    }
+
+    /**
+     * Atualiza apenas os dados de Layout e Assinaturas do Certificado.
+     */
+    public function updateCertificado(Request $request, Evento $evento)
+    {
+        // 1. Validação (Focada apenas em Certificado)
+        $validator = Validator::make($request->all(), [
+            'cert_cabecalho' => 'nullable|string',
+            'cert_corpo' => 'required|string',
+            'cert_rodape' => 'nullable|string',
+
+            'imagem_fundo' => 'nullable|image|max:5120',
+            'imagem_brasao' => 'nullable|image|max:2048',
+
+            'assinaturas' => 'nullable|array',
+            'assinaturas.*.nome' => 'required|string|max:255',
+            'assinaturas.*.cargo' => 'required|string|max:255',
+            // O upload de arquivo de assinatura também será validado aqui
+            'assinaturas.*.arquivo' => 'nullable|image|max:512',
+            'assinaturas_para_remover' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $validated = $validator->validated();
+
+        // Define o diretório base de destino dentro de storage/app/public
+        $targetDir = 'eventos/certificados';
+
+        // 2. GESTÃO DE IMAGENS DE FUNDO E BRASÃO (USANDO MOVE() E CORRIGINDO O IF/ELSE)
+
+        // --- Imagem de Fundo (caminho_fundo) ---
+        $caminhoFundoAtual = $evento->caminho_fundo;
+
+        // CORREÇÃO: Verifica se 'remover_fundo' está presente E se o valor é estritamente '1'
+        if ($request->input('remover_fundo') == '1') {
+            // Bloco de Remoção
+            if ($caminhoFundoAtual) Storage::disk('public')->delete($caminhoFundoAtual);
+            $evento->caminho_fundo = null;
+        } elseif ($request->hasFile('imagem_fundo')) {
+            // Bloco de Upload
+            $file = $request->file('imagem_fundo');
+
+            // 1. Deleta o antigo (se houver)
+            if ($caminhoFundoAtual) Storage::disk('public')->delete($caminhoFundoAtual);
+
+            // 2. Cria nome único e move o arquivo (estratégia move)
+            $fileName = time() . '_fundo.' . $file->getClientOriginalExtension();
+            $file->move(storage_path('app/public/' . $targetDir), $fileName);
+
+            // 3. Salva o novo caminho (relativo a storage/app/public)
+            $evento->caminho_fundo = $targetDir . '/' . $fileName;
+        }
+
+        // --- Imagem do Brasão (caminho_brasao) ---
+        $caminhoBrasaoAtual = $evento->caminho_brasao;
+
+        // CORREÇÃO: Verifica se 'remover_brasao' está presente E se o valor é estritamente '1'
+        if ($request->input('remover_brasao') == '1') {
+            // Bloco de Remoção
+            if ($caminhoBrasaoAtual) Storage::disk('public')->delete($caminhoBrasaoAtual);
+            $evento->caminho_brasao = null;
+        } elseif ($request->hasFile('imagem_brasao')) {
+            // Bloco de Upload
+            $file = $request->file('imagem_brasao');
+
+            // 1. Deleta o antigo (se houver)
+            if ($caminhoBrasaoAtual) Storage::disk('public')->delete($caminhoBrasaoAtual);
+
+            // 2. Cria nome único e move o arquivo (estratégia move)
+            $fileName = time() . '_brasao.' . $file->getClientOriginalExtension();
+            $file->move(storage_path('app/public/' . $targetDir), $fileName);
+
+            // 3. Salva o novo caminho
+            $evento->caminho_brasao = $targetDir . '/' . $fileName;
+        }
+
+
+        // 3. Atualização de Dados Principais do Certificado (Textos)
+
+        // Remove as chaves de arquivo para evitar preencher o modelo com elas
+        unset($validated['imagem_fundo'], $validated['imagem_brasao']);
+
+        $evento->cert_cabecalho = $validated['cert_cabecalho'];
+        $evento->cert_corpo = $validated['cert_corpo'];
+        $evento->cert_rodape = $validated['cert_rodape'];
+
+        $evento->save();
+
+
+        // 4. Gestão de Assinaturas (Criação, Atualização e Remoção)
+        $assinaturasData = $request->input('assinaturas', []);
+        $idsParaRemover = array_filter(explode(',', $request->input('assinaturas_para_remover', '')));
+
+        // A) REMOÇÃO
+        if (!empty($idsParaRemover)) {
+            $assinaturasParaRemover = $evento->assinaturas()->whereIn('id', $idsParaRemover)->get();
+            foreach ($assinaturasParaRemover as $assinatura) {
+                if ($assinatura->arquivo_assinatura) {
+                    Storage::disk('public')->delete($assinatura->arquivo_assinatura);
+                }
+                $assinatura->delete();
+            }
+        }
+
+        // B) CRIAÇÃO/ATUALIZAÇÃO
+        foreach ($assinaturasData as $index => $data) {
+
+            $assinaturaId = $data['id'];
+
+            if ($assinaturaId) {
+                $assinatura = Assinatura::findOrFail($assinaturaId);
+            } else {
+                $assinatura = new Assinatura(['evento_id' => $evento->id]);
+            }
+
+            $assinatura->nome = $data['nome'];
+            $assinatura->cargo = $data['cargo'];
+
+            $arquivo = $request->file("assinaturas.{$index}.arquivo");
+
+            if ($arquivo && $arquivo->isValid()) {
+                // Manteremos o store() aqui, assumindo que funciona para uploads menores
+                if ($assinatura->arquivo_assinatura) {
+                    Storage::disk('public')->delete($assinatura->arquivo_assinatura);
+                }
+                $assinatura->arquivo_assinatura = $arquivo->store("eventos/{$evento->id}/assinaturas", 'public');
+            }
+
+            $assinatura->save();
+        }
+
+        return redirect()->route('admin.eventos.certificado.edit', $evento->id)->with('success', 'Configurações de Certificado atualizadas com sucesso!');
+    }
     public function destroy(Evento $evento)
     {
         if ($evento->criado_por !== Auth::id()) abort(403);
 
         // Limpeza de arquivos ao deletar evento
-        if($evento->caminho_fundo) Storage::disk('public')->delete($evento->caminho_fundo);
-        if($evento->caminho_brasao) Storage::disk('public')->delete($evento->caminho_brasao);
+        if ($evento->caminho_fundo) Storage::disk('public')->delete($evento->caminho_fundo);
+        if ($evento->caminho_brasao) Storage::disk('public')->delete($evento->caminho_brasao);
 
-        foreach($evento->assinaturas as $ass) {
-            if($ass->arquivo_assinatura) Storage::disk('public')->delete($ass->arquivo_assinatura);
+        foreach ($evento->assinaturas as $ass) {
+            if ($ass->arquivo_assinatura) Storage::disk('public')->delete($ass->arquivo_assinatura);
         }
 
         $evento->delete();
@@ -269,11 +322,11 @@ class EventoController extends Controller
 
         $inscricoes = $evento->inscricoes()
             ->with(['participante.atividadesInscritas'])
-            ->whereHas('participante', function($q) use ($search) {
+            ->whereHas('participante', function ($q) use ($search) {
                 if ($search) {
                     $q->where('nome_completo', 'like', "%{$search}%")
-                      ->orWhere('cpf', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('cpf', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
                 }
             })
             ->paginate(20);
@@ -291,8 +344,8 @@ class EventoController extends Controller
         $nomeArquivo = 'Inscritos-' . Str::slug($evento->titulo) . '.csv';
 
         $inscricoes = $evento->inscricoes()
-                             ->with(['participante.atividadesInscritas', 'participante.turma'])
-                             ->get();
+            ->with(['participante.atividadesInscritas', 'participante.turma'])
+            ->get();
 
         $headers = [
             "Content-type" => "text/csv",
@@ -301,7 +354,7 @@ class EventoController extends Controller
             "Expires" => "0"
         ];
 
-        $callback = function() use ($inscricoes) {
+        $callback = function () use ($inscricoes) {
             $file = fopen('php://output', 'w');
             fputs($file, "\xEF\xBB\xBF"); // BOM para Excel
 

@@ -23,7 +23,7 @@
                     </div>
                 @endif
 
-                <form method="post" action="{{ route('admin.atividades.storeManual', $atividade->id) }}" class="space-y-4">
+                <form method="post" action="{{ route('admin.atividades.participantes.store', $atividade->id) }}" class="space-y-4">
                     @csrf
 
                     <div class="row g-3">

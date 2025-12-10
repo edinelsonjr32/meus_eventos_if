@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Atividade;
 use App\Models\Evento;
 use App\Models\Frequencia;
+use App\Models\Inscricao;
 use App\Models\Turma;
 use App\Models\Participante;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Carbon\Carbon; // Importante para calcular a data
+use Illuminate\Validation\Rule;
 
 class AtividadeController extends Controller
 {
@@ -117,8 +119,9 @@ class AtividadeController extends Controller
     /**
      * Salva o participante e registra a presença manualmente.
      */
-    public function storeManual(\Illuminate\Http\Request $request, \App\Models\Atividade $atividade)
+    public function storeManual(Request $request, Atividade $atividade)
     {
+        // 1. Validações
         $request->validate([
             'nome_completo' => 'required|string',
             'cpf' => 'required|string',
@@ -127,7 +130,7 @@ class AtividadeController extends Controller
 
             // Regras Condicionais:
             'matricula' => [
-                \Illuminate\Validation\Rule::requiredIf(fn() => in_array($request->tipo_vinculo, ['aluno', 'servidor'])),
+                Rule::requiredIf(fn() => in_array($request->tipo_vinculo, ['aluno', 'servidor'])),
                 'nullable',
                 'string',
                 'max:50'
@@ -136,34 +139,67 @@ class AtividadeController extends Controller
             'turma_id' => 'required_if:tipo_vinculo,aluno|nullable|exists:turmas,id',
         ]);
 
-        // 1. Cria ou Atualiza o Participante
-        $participante = \App\Models\Participante::updateOrCreate(
+        // 2. Cria ou Atualiza o Participante
+        // O `updateOrCreate` garante que o registro do participante esteja atualizado ou seja novo.
+        $participante = Participante::updateOrCreate(
             ['cpf' => $request->cpf],
             [
                 'nome_completo' => $request->nome_completo,
                 'email' => $request->email,
                 'tipo_vinculo' => $request->tipo_vinculo,
-                // Salvando campos Condicionais (null se não for aluno/servidor)
                 'matricula' => in_array($request->tipo_vinculo, ['aluno', 'servidor']) ? $request->matricula : null,
                 'turma_id' => $request->tipo_vinculo === 'aluno' ? $request->turma_id : null,
+                // user_id é null aqui, a menos que você queira sincronizar com User.
             ]
         );
 
-        // 2. Registra a Presença (Frequencia)
-        \App\Models\Frequencia::firstOrCreate(
+        // --- NOVA LÓGICA DE EVENTO E INSCRIÇÃO ---
+
+        // 3. Obtém o Evento
+        // Assumimos que a Atividade tem um relacionamento 'evento'
+        $evento = $atividade->evento;
+
+        if (!$evento) {
+            return back()->with('error', 'Erro: A atividade não está vinculada a um evento.')->withInput();
+        }
+
+        // 4. Verifica e Cria Inscrição no Evento
+        $inscricaoExistente = Inscricao::where('participante_id', $participante->id)
+            ->where('evento_id', $evento->id)
+            ->first();
+
+        // Se o participante NÃO estiver inscrito no evento, fazemos a inscrição automática
+        if (!$inscricaoExistente) {
+            Inscricao::create([
+                'evento_id' => $evento->id,
+                'participante_id' => $participante->id,
+                'data_inscricao' => Carbon::now(),
+                // Define o status ou tipo de acordo com a lógica do seu sistema (ex: 'manual', 'confirmada')
+                'status_inscricao' => 'manual',
+            ]);
+            $message = 'Participante inscrito no Evento e Presença confirmada na Atividade!';
+        } else {
+            $message = 'Presença confirmada com sucesso!';
+        }
+
+        // --- FIM DA NOVA LÓGICA ---
+
+        // 5. Registra a Presença (Frequencia)
+        Frequencia::firstOrCreate(
             [
                 'participante_id' => $participante->id,
                 'atividade_id' => $atividade->id
             ],
             [
                 'data_registro' => now(),
-                'hash_validacao' => \Illuminate\Support\Str::uuid(),
+                'hash_validacao' => Str::uuid(),
                 'tipo_participacao' => 'ouvinte'
             ]
         );
 
+        // 6. Redirecionamento com Feedback
         return redirect()->route('admin.atividades.participantes', $atividade->id)
-            ->with('success', 'Presença confirmada com sucesso!');
+            ->with('success', $message);
     }
 
     public function destroyFrequencia($id)

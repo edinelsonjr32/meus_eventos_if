@@ -97,7 +97,6 @@
                                 <div style="height: 60px;"></div>
                             @endif
 
-                            <div class="sig-line"></div>
                             <div class="sig-name">{{ $ass->nome }}</div>
                             <div class="sig-role">{{ $ass->cargo }}</div>
                         </td>

@@ -28,22 +28,16 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // 1. Validações
+        // O e-mail já é verificado como único na tabela 'users'.
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'cpf' => ['required', 'string', 'size:14'], // Formato 000.000.000-00
+            'cpf' => ['required', 'string', 'size:14'], // Apenas validação de formato e obrigatoriedade do CPF
         ]);
 
-        // 2. Verificação de Segurança do CPF
-        // Verifica se já existe um participante com este CPF vinculado a OUTRO usuário
-        $cpfEmUso = Participante::where('cpf', $request->cpf)
-            ->whereNotNull('user_id')
-            ->exists();
-
-        if ($cpfEmUso) {
-            return back()->withErrors(['cpf' => 'Este CPF já está vinculado a uma conta de usuário existente. Faça login.'])->withInput();
-        }
+        // O Passo 2 de verificação de CPF em uso foi removido.
+        // A única verificação de duplicidade é no e-mail (em 'users').
 
         // 3. Criação do Usuário
         $user = User::create([
@@ -56,21 +50,31 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         // 4. LÓGICA DE VÍNCULO (RESGATE DE HISTÓRICO)
-        // Busca se esse CPF já participou de algo no passado (sem ter conta)
-        $participante = Participante::where('cpf', $request->cpf)->first();
+        // BUSCA: Busca se há um Participante que usou o mesmo e-mail,
+        // mas que ainda não possui um user_id vinculado (registro antigo/sem conta).
+        $participante = Participante::where('email', $request->email)
+            ->whereNull('user_id') // Importante: Verifica se não está vinculado a outro User
+            ->first();
+            
+        // A busca por CPF foi removida, usando o e-mail como elo.
+        // O CPF é usado apenas se for necessário vincular certificados
+        // de alguém que usou *outro* e-mail, mas o mesmo CPF,
+        // mas para simplificar, usaremos o e-mail como chave principal.
 
         if ($participante) {
-            // CENÁRIO A: Já participou antes. Atualizamos o registro existente.
+            // CENÁRIO A: Já participou antes (registro existe por e-mail, sem user_id).
+            // Atualizamos o registro existente para VINCULÁ-LO ao novo usuário.
             // Isso faz com que todos os certificados e inscrições antigas apareçam na nova conta.
             $participante->update([
-                'user_id' => $user->id,
-                'nome_completo' => $user->name, // Atualiza nome para garantir sincronia
-                'email' => $user->email,
+                'user_id' => $user->id, // ESTE É O VÍNCULO CHAVE
+                'nome_completo' => $user->name,
+                'cpf' => $request->cpf, // Opcional: Garante que o CPF do participante esteja atualizado
             ]);
         } else {
-            // CENÁRIO B: Nunca participou. Cria perfil novo.
+            // CENÁRIO B: Nunca participou com esse e-mail OU participou com e-mail já vinculado.
+            // Cria perfil novo de Participante VINCULADO imediatamente.
             Participante::create([
-                'user_id' => $user->id,
+                'user_id' => $user->id, // ESTE É O VÍNCULO CHAVE
                 'cpf' => $request->cpf,
                 'nome_completo' => $user->name,
                 'email' => $user->email,

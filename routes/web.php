@@ -106,6 +106,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Gestão de Eventos (CRUD Completo)
     Route::resource('eventos', EventoController::class);
 
+    // NOVIDADE: Rota dedicada para Certificado
+    Route::get('eventos/{evento}/certificado', [App\Http\Controllers\Admin\EventoController::class, 'editCertificado'])->name('eventos.certificado.edit');
+    Route::put('eventos/{evento}/certificado', [App\Http\Controllers\Admin\EventoController::class, 'updateCertificado'])->name('eventos.certificado.update');
+
     // Gestão de Atividades (Aninhada em Eventos)
     // Ex: admin.eventos.atividades.store
     Route::resource('eventos.atividades', AtividadeController::class)->shallow();

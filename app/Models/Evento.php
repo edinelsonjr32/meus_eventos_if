@@ -34,6 +34,13 @@ class Evento extends Model
         return $this->hasMany(Assinatura::class);
     }
 
+
+    public function administradoresSecundarios()
+    {
+        // Define a relação M-M, nome da tabela pivô e inclui a coluna 'role' da pivô
+        return $this->belongsToMany(User::class, 'evento_user', 'evento_id', 'user_id')
+            ->withPivot('role');
+    }
     protected $casts = [
         'data_inicio' => 'datetime',
         'data_fim' => 'datetime',

@@ -51,18 +51,21 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            // O email deve ser único, exceto para o usuário atual.
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:8|confirmed',
-            // Adiciona validação para a role
+            // A role deve ser obrigatória e um dos valores permitidos.
             'role' => ['required', 'string', Rule::in(['admin', 'padrao'])],
+            // A senha é opcional, mas se for preenchida, deve ser confirmada e ter 8 caracteres.
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         $user->name = $request->name;
         $user->email = $request->email;
 
-        // ATUALIZAÇÃO DA ROLE:
+        // Atualiza o nível de acesso (role)
         $user->role = $request->input('role', 'padrao');
 
+        // Atualiza a senha apenas se um novo valor foi fornecido
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
