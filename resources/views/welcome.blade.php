@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'CertificaIF') }} - Portal de Eventos</title>
+    <title>{{ config('app.name', 'MeusEventosIF') }} - Portal de Eventos</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -106,7 +106,7 @@
         <div class="container">
             <a class="navbar-brand fw-bold text-success d-flex align-items-center gap-2" href="#">
                 <i class="fa-solid fa-graduation-cap fs-3"></i>
-                <span class="text-dark">Certifica<span class="text-success">IF</span></span>
+                <span class="text-dark">MeusEventos<span class="text-success">IF</span></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -243,7 +243,7 @@
         <div class="container">
             <div class="row align-items-center g-4">
                 <div class="col-md-6 text-center text-md-start">
-                    <h5 class="fw-bold text-success mb-1">CertificaIF</h5>
+                    <h5 class="fw-bold text-success mb-1">MeusEventosIf</h5>
                     <p class="small text-secondary mb-0">Sistema de Gestão de Eventos e Certificação</p>
                     <p class="small text-secondary mt-2">
                         &copy; {{ date('Y') }} Instituto Federal do Pará - Campus Óbidos.

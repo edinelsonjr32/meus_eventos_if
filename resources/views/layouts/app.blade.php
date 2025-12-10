@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'CertificaIF') }}</title>
+    <title>{{ config('app.name', 'MeusEventosIf') }}</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -139,7 +139,7 @@
                 <i class="fa-solid fa-graduation-cap text-white fs-5"></i>
             </div>
             <div>
-                <h5 class="m-0 fw-bold tracking-tight text-white">CertificaIF</h5>
+                <h5 class="m-0 fw-bold tracking-tight text-white">MeusEventosIF</h5>
                 <small class="text-secondary" style="font-size: 0.7rem;">Campus Óbidos</small>
             </div>
         </div>
@@ -197,7 +197,7 @@
     <main class="main-content">
         <nav class="navbar navbar-light bg-white rounded-3 shadow-sm mb-4 d-md-none p-3 border">
             <div class="container-fluid px-0">
-                <span class="navbar-brand fw-bold text-success mb-0 h1"><i class="fa-solid fa-leaf me-2"></i> CertificaIF</span>
+                <span class="navbar-brand fw-bold text-success mb-0 h1"><i class="fa-solid fa-leaf me-2"></i> MeusEventosIf</span>
                 <button class="btn btn-light border" onclick="document.getElementById('sidebar').classList.toggle('active')">
                     <i class="fa-solid fa-bars"></i>
                 </button>

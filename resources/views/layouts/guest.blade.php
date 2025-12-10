@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'CertificaIF') }}</title>
+    <title>{{ config('app.name', 'MeusEventosIf') }}</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -63,7 +63,7 @@
             <div class="d-inline-flex align-items-center justify-center bg-success bg-opacity-10 rounded-circle p-3 mb-3">
                 <i class="fa-solid fa-graduation-cap text-success fs-2"></i>
             </div>
-            <h4 class="fw-bold text-dark m-0">CertificaIF</h4>
+            <h4 class="fw-bold text-dark m-0">MeusEventosIf</h4>
             <small class="text-secondary">Acesso Administrativo</small>
         </div>
 

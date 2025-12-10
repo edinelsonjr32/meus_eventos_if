@@ -37,7 +37,7 @@
             @else
                 <div class="valid-icon"><i class="fa-regular fa-circle-check"></i></div>
                 <h2 class="fw-bold text-success mb-2">Certificado Autêntico</h2>
-                <p class="text-secondary mb-5">Este documento foi emitido oficialmente pelo sistema CertificaIF.</p>
+                <p class="text-secondary mb-5">Este documento foi emitido oficialmente pelo sistema MeusEventosIF.</p>
 
                 <div class="text-start">
                     <div class="data-row">

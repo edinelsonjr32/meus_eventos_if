@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="mb-5">
         <h2 class="fw-bold text-dark m-0">Visão Geral</h2>
-        <p class="text-secondary small">Bem-vindo ao painel de controle do CertificaIF.</p>
+        <p class="text-secondary small">Bem-vindo ao painel de controle do MeusEventosIf.</p>
     </div>
 
     <div class="row g-4 mb-5">
