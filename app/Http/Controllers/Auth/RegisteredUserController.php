@@ -28,53 +28,48 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // 1. Validações
-        // O e-mail já é verificado como único na tabela 'users'.
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'cpf' => ['required', 'string', 'size:14'], // Apenas validação de formato e obrigatoriedade do CPF
+            'cpf' => ['required', 'string', 'size:14'],
         ]);
 
-        // O Passo 2 de verificação de CPF em uso foi removido.
-        // A única verificação de duplicidade é no e-mail (em 'users').
-
-        // 3. Criação do Usuário
+        // 2. Criação do Usuário (Conta de Acesso)
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'user', // Define papel padrão
+            'role' => 'user',
         ]);
 
         event(new Registered($user));
 
-        // 4. LÓGICA DE VÍNCULO (RESGATE DE HISTÓRICO)
-        // BUSCA: Busca se há um Participante que usou o mesmo e-mail,
-        // mas que ainda não possui um user_id vinculado (registro antigo/sem conta).
-        $participante = Participante::where('email', $request->email)
-            ->whereNull('user_id') // Importante: Verifica se não está vinculado a outro User
-            ->first();
-            
-        // A busca por CPF foi removida, usando o e-mail como elo.
-        // O CPF é usado apenas se for necessário vincular certificados
-        // de alguém que usou *outro* e-mail, mas o mesmo CPF,
-        // mas para simplificar, usaremos o e-mail como chave principal.
+        // 3. LÓGICA DE VÍNCULO (CORRIGIDA PARA EVITAR DUPLICIDADE DE CPF)
+
+        // Tentamos encontrar um participante existente pelo CPF.
+        // O CPF é o identificador mais forte para "quem é a pessoa".
+        $participante = Participante::where('cpf', $request->cpf)->first();
 
         if ($participante) {
-            // CENÁRIO A: Já participou antes (registro existe por e-mail, sem user_id).
-            // Atualizamos o registro existente para VINCULÁ-LO ao novo usuário.
-            // Isso faz com que todos os certificados e inscrições antigas apareçam na nova conta.
+            // CENÁRIO A: O CPF já existe na base de participantes.
+            // Isso significa que a pessoa já participou de eventos antes (com ou sem conta).
+
+            // Atualizamos o registro existente para vinculá-lo ao novo User.
+            // ATENÇÃO: Se o participante já tinha outro user_id, isso irá sobrescrever (vincular à nova conta),
+            // ou você pode adicionar uma verificação `if (!$participante->user_id)` se quiser proteger contas antigas.
+
             $participante->update([
-                'user_id' => $user->id, // ESTE É O VÍNCULO CHAVE
-                'nome_completo' => $user->name,
-                'cpf' => $request->cpf, // Opcional: Garante que o CPF do participante esteja atualizado
+                'user_id' => $user->id,       // Vincula à nova conta criada
+                'nome_completo' => $user->name, // Atualiza nome (opcional)
+                'email' => $user->email,      // Atualiza email para bater com a conta (importante para consistência)
             ]);
         } else {
-            // CENÁRIO B: Nunca participou com esse e-mail OU participou com e-mail já vinculado.
-            // Cria perfil novo de Participante VINCULADO imediatamente.
+            // CENÁRIO B: O CPF nunca foi registrado em eventos.
+            // Podemos criar um novo registro de Participante sem medo de duplicidade.
+
             Participante::create([
-                'user_id' => $user->id, // ESTE É O VÍNCULO CHAVE
+                'user_id' => $user->id,
                 'cpf' => $request->cpf,
                 'nome_completo' => $user->name,
                 'email' => $user->email,
@@ -82,7 +77,7 @@ class RegisteredUserController extends Controller
             ]);
         }
 
-        // 5. Login e Redirecionamento
+        // 4. Login e Redirecionamento
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
