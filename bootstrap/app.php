@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Atrás de proxy/túnel HTTPS (ngrok, nginx, etc.): garante esquema e cookies corretos
+        $middleware->trustProxies(at: '*');
+        $middleware->appendToGroup('web', \App\Http\Middleware\NormalizaCpf::class);
+
         // ADICIONE ESTA LINHA:
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,

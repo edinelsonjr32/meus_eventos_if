@@ -16,7 +16,7 @@ class RelatorioController extends Controller
      */
     public function index()
     {
-        $eventos = Evento::orderBy('data_inicio', 'desc')->get();
+        $eventos = Evento::gerenciaveisPor(auth()->user())->orderBy('data_inicio', 'desc')->get();
         $cursos = Curso::orderBy('nome', 'asc')->get();
 
         return view('admin.relatorios.index', compact('eventos', 'cursos'));
@@ -34,6 +34,13 @@ class RelatorioController extends Controller
         ]);
 
         $filtros = $request->only(['evento_id', 'curso_id']);
+
+        // Somente eventos que o usuário gerencia (com ou sem filtro de evento)
+        $permitidos = Evento::gerenciaveisPor($request->user())->pluck('id')->all();
+        if (!empty($filtros['evento_id']) && !in_array((int) $filtros['evento_id'], $permitidos, true)) {
+            abort(403);
+        }
+        $filtros['eventos_permitidos'] = $permitidos;
 
         $dataHora = now()->format('Ymd_His');
         $nomeArquivo = "Relatorio_Frequencia_Geral_{$dataHora}.xlsx";

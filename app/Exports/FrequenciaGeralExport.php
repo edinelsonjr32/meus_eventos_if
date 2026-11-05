@@ -46,6 +46,13 @@ class FrequenciaGeralExport implements FromCollection, WithHeadings, WithMapping
             });
         }
 
+        // Restringe aos eventos que o usuário pode gerenciar
+        if (isset($this->filtros['eventos_permitidos'])) {
+            $query->whereHas('atividade', function ($q) {
+                $q->whereIn('evento_id', $this->filtros['eventos_permitidos']);
+            });
+        }
+
         // 3. Retorna a Coleção Filtrada
         return $query->get();
     }

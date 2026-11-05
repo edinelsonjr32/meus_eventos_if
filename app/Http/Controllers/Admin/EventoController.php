@@ -19,7 +19,7 @@ class EventoController extends Controller
      */
     public function index()
     {
-        $eventos = Evento::where('criado_por', Auth::id())
+        $eventos = Evento::gerenciaveisPor(Auth::user())
             ->orderBy('data_inicio', 'desc')
             ->paginate(10);
 
@@ -85,7 +85,7 @@ class EventoController extends Controller
      */
     public function show(Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
+        $this->authorize('gerenciar', $evento);
 
         return view('admin.eventos.show', compact('evento'));
     }
@@ -95,6 +95,8 @@ class EventoController extends Controller
      */
     public function edit(Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         // Apenas o evento é carregado para a view. A variável $users foi removida.
         return view('admin.eventos.edit', compact('evento'));
     }
@@ -103,6 +105,8 @@ class EventoController extends Controller
      */
     public function update(Request $request, Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         // 1. Validação Apenas dos Dados Primários
         $validator = Validator::make($request->all(), [
             'titulo' => 'required|string|max:255',
@@ -153,6 +157,8 @@ class EventoController extends Controller
 
     public function editCertificado(Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         // Carrega dados para as assinaturas (Model Assinatura deve estar disponível)
         $dadosAssinaturas = $evento->assinaturas;
 
@@ -164,6 +170,8 @@ class EventoController extends Controller
      */
     public function updateCertificado(Request $request, Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         // 1. Validação (Focada apenas em Certificado)
         $validator = Validator::make($request->all(), [
             'cert_cabecalho' => 'nullable|string',
@@ -297,7 +305,7 @@ class EventoController extends Controller
     }
     public function destroy(Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
+        $this->authorize('gerenciar', $evento);
 
         // Limpeza de arquivos ao deletar evento
         if ($evento->caminho_fundo) Storage::disk('public')->delete($evento->caminho_fundo);
@@ -316,7 +324,7 @@ class EventoController extends Controller
      */
     public function inscritos(Request $request, Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
+        $this->authorize('gerenciar', $evento);
 
         $search = $request->search;
 
@@ -339,7 +347,7 @@ class EventoController extends Controller
      */
     public function exportarInscritos(Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
+        $this->authorize('gerenciar', $evento);
 
         $nomeArquivo = 'Inscritos-' . Str::slug($evento->titulo) . '.csv';
 

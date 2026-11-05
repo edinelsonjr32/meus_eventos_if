@@ -10,6 +10,11 @@ class Evento extends Model
 {
     use SoftDeletes;
 
+    // Papéis na tabela pivô evento_user
+    public const PAPEL_EDITOR = 'editor';
+    public const PAPEL_GESTOR_TRABALHOS = 'gestor_trabalhos';
+    public const PAPEL_AVALIADOR = 'avaliador';
+
     protected $fillable = [
         'titulo',
         'slug',
@@ -28,6 +33,18 @@ class Evento extends Model
         'cert_corpo',
         'cert_rodape'
     ];
+
+    /**
+     * Eventos que o usuário pode gerenciar (dono ou co-administrador).
+     */
+    public function scopeGerenciaveisPor($query, User $user)
+    {
+        return $query->where(function ($q) use ($user) {
+            $q->where('criado_por', $user->id)
+                ->orWhereHas('administradoresSecundarios', fn ($u) => $u->where('users.id', $user->id)
+                    ->where('evento_user.role', self::PAPEL_EDITOR));
+        });
+    }
 
     public function assinaturas()
     {

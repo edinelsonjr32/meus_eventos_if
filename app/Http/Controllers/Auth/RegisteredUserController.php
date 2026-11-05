@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Rules\Cpf;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Participante; // Importante
@@ -32,7 +33,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'cpf' => ['required', 'string', 'size:14'],
+            'cpf' => ['required', 'string', 'size:14', new Cpf],
         ]);
 
         // 2. Criação do Usuário (Conta de Acesso)

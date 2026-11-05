@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Publico;
 
+use App\Rules\Cpf;
 use App\Http\Controllers\Controller;
 use App\Models\Atividade;
 use App\Models\Evento;
@@ -35,6 +36,27 @@ class FrequenciaController extends Controller
     }
 
     /**
+     * Devolve um token CSRF novo (e renova o cookie de sessão).
+     * Usado pelo front para se recuperar de um 419 sem perder o formulário.
+     */
+    public function csrf($token)
+    {
+        Atividade::where('token_frequencia', $token)->firstOrFail();
+
+        return response()->json(['token' => csrf_token()])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
+    private function falha(Request $request, string $mensagem, int $status)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $mensagem], $status);
+        }
+
+        return back()->with('error', $mensagem)->withInput();
+    }
+
+    /**
      * Processa o registro de presença.
      */
 
@@ -45,13 +67,13 @@ class FrequenciaController extends Controller
         $evento = $atividade->evento;
 
         if (!$evento) {
-            return back()->with('error', 'Evento não encontrado para esta atividade.');
+            return $this->falha($request, 'Evento não encontrado para esta atividade.', 404);
         }
 
         // 2. Validação dos dados recebidos
         $rules = [
             'nome_completo' => ['required', 'string', 'max:255'],
-            'cpf'           => ['required', 'string', 'size:14'],
+            'cpf'           => ['required', 'string', 'size:14', new Cpf],
             'tipo_vinculo'  => ['required', Rule::in(['aluno', 'servidor', 'externo'])],
             'email'         => ['required', 'email'],
 
@@ -67,6 +89,20 @@ class FrequenciaController extends Controller
 
         $request->validate($rules);
 
+        // 2.1 Validação de localização (somente se o evento tiver coordenadas configuradas)
+        if (filled($evento->latitude) && filled($evento->longitude)) {
+            if (!is_numeric($request->user_lat) || !is_numeric($request->user_lng)) {
+                return $this->falha($request, 'Não foi possível obter sua localização. Permita o acesso ao GPS e tente novamente.', 422);
+            }
+
+            $distancia = $this->calcularDistancia($request->user_lat, $request->user_lng, $evento->latitude, $evento->longitude);
+            $raio = (int) ($evento->raio_permitido ?: 300);
+
+            if ($distancia > $raio) {
+                return $this->falha($request, "Você está a {$distancia} m do local do evento (máximo permitido: {$raio} m).", 403);
+            }
+        }
+
         // 3. Verifica colisão de E-mail (Segurança)
         // Impede usar um email que já pertence a OUTRO CPF
         $emailEmUsoPorOutro = Participante::where('email', $request->email)
@@ -74,7 +110,7 @@ class FrequenciaController extends Controller
             ->exists();
 
         if ($emailEmUsoPorOutro) {
-            return back()->with('error', 'Este e-mail já está em uso por outro CPF.');
+            return $this->falha($request, 'Este e-mail já está em uso por outro CPF.', 422);
         }
 
         try {
@@ -130,11 +166,20 @@ class FrequenciaController extends Controller
             DB::commit();
 
             // Redireciona para sucesso
+            if ($request->expectsJson()) {
+                session()->flash('participante', $participante->nome_completo);
+                session()->flash('mensagem_extra', 'Presença confirmada na atividade: ' . $atividade->titulo);
+                return response()->json(['redirect' => route('evento.publico.sucesso', $evento->slug)]);
+            }
+
             return redirect()->route('evento.publico.sucesso', $evento->slug)
                 ->with('participante', $participante->nome_completo)
                 ->with('mensagem_extra', 'Presença confirmada na atividade: ' . $atividade->titulo);
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Erro ao registrar presença: ' . $e->getMessage()], 500);
+            }
             return back()
                 ->with('error', 'Erro ao registrar presença: ' . $e->getMessage())
                 ->withInput();
@@ -157,7 +202,7 @@ class FrequenciaController extends Controller
 
         $theta = $lon1 - $lon2;
         $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
-        $dist = acos($dist);
+        $dist = acos(max(-1, min(1, $dist)));
         $dist = rad2deg($dist);
         $miles = $dist * 60 * 1.1515;
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Rules\Cpf;
 use App\Http\Controllers\Controller;
 use App\Models\Evento;
 use App\Models\Inscricao;
@@ -18,7 +19,7 @@ class CredenciamentoController extends Controller
      */
     public function index(Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
+        $this->authorize('gerenciar', $evento);
 
         $totalInscritos = $evento->inscricoes()->count();
         $totalCredenciados = $evento->inscricoes()->whereNotNull('checkin_at')->count();
@@ -32,7 +33,7 @@ class CredenciamentoController extends Controller
 
     public function create(Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
+        $this->authorize('gerenciar', $evento);
 
         // Carrega todas as turmas e cursos
         $turmas = Turma::with('curso')->get()->sortBy('nome_completo');
@@ -42,10 +43,12 @@ class CredenciamentoController extends Controller
 
     public function storeManual(Request $request, Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         // 1. Validação Completa (Igual à que estava no modal)
         $request->validate([
             'nome_completo' => 'required|string|max:255',
-            'cpf' => 'required|string|max:14',
+            'cpf' => ['required', 'string', 'size:14', new Cpf],
             'email' => 'required|email',
             'tipo_vinculo' => 'required|in:aluno,servidor,externo',
 
@@ -97,14 +100,30 @@ class CredenciamentoController extends Controller
      */
     public function search(Request $request, Evento $evento)
     {
-        $term = $request->get('q');
+        $this->authorize('gerenciar', $evento);
+
+        $term = trim((string) $request->get('q'));
+        // Somente dígitos, para comparar CPF independente de máscara (123.456.789-00 / 12345678900)
+        $digitos = preg_replace('/\D/', '', $term);
+        // Escapa curingas do LIKE digitados pelo usuário
+        $like = '%' . addcslashes($term, '%_\\') . '%';
 
         $resultados = $evento->inscricoes()
             ->with(['participante'])
-            ->whereHas('participante', function ($q) use ($term) {
-                $q->where('nome_completo', 'like', "%{$term}%")
-                    ->orWhere('cpf', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%");
+            ->whereHas('participante', function ($q) use ($like, $digitos) {
+                $q->where(function ($q) use ($like, $digitos) {
+                    $q->where('nome_completo', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('cpf', 'like', $like)
+                        ->orWhere('matricula', 'like', $like);
+
+                    if ($digitos !== '') {
+                        $q->orWhereRaw(
+                            "REPLACE(REPLACE(REPLACE(TRIM(cpf), '.', ''), '-', ''), ' ', '') LIKE ?",
+                            ["%{$digitos}%"]
+                        );
+                    }
+                });
             })
             ->limit(10)
             ->get();
@@ -117,6 +136,8 @@ class CredenciamentoController extends Controller
      */
     public function checkin(Evento $evento, Participante $participante)
     {
+        $this->authorize('gerenciar', $evento);
+
         $inscricao = Inscricao::where('evento_id', $evento->id)
             ->where('participante_id', $participante->id)
             ->firstOrFail();
@@ -138,6 +159,8 @@ class CredenciamentoController extends Controller
      */
     public function etiqueta(Evento $evento, Participante $participante)
     {
+        $this->authorize('gerenciar', $evento);
+
         // Se ainda não fez checkin, faz agora
         $inscricao = Inscricao::where('evento_id', $evento->id)
             ->where('participante_id', $participante->id)
@@ -154,10 +177,12 @@ class CredenciamentoController extends Controller
      */
     public function store(Request $request, Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         // 1. Validação (Adicionando campos e regras condicionais)
         $validated = $request->validate([
             'nome_completo' => 'required|string|max:255',
-            'cpf' => 'required|string|max:14',
+            'cpf' => ['required', 'string', 'size:14', new Cpf],
             'email' => 'required|email',
             'tipo_vinculo' => 'required|in:aluno,servidor,externo',
 

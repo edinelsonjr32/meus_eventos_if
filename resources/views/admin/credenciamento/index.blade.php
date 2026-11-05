@@ -147,8 +147,10 @@
                 async search() {
                     if (this.query.length < 2) { this.results = []; return; }
                     try {
-                        const res = await fetch(`{{ route('admin.eventos.credenciamento.search', $evento->id) }}?q=${this.query}`);
-                        this.results = await res.json();
+                        const res = await fetch(`{{ route('admin.eventos.credenciamento.search', $evento->id) }}?q=${encodeURIComponent(this.query)}`, {
+                            headers: { 'Accept': 'application/json' }, credentials: 'same-origin'
+                        });
+                        this.results = res.ok ? await res.json() : [];
                     } catch (e) { console.error(e); }
                 },
 

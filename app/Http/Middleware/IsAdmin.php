@@ -14,8 +14,8 @@ class IsAdmin
         // Se não estiver logado ou não for admin, aborta ou redireciona
         if (!Auth::check() || Auth::user()->role !== 'admin') {
 
-            // Se for um usuário comum tentando acessar admin, manda para a área dele
-            if (Auth::check() && Auth::user()->role === 'user') {
+            // Qualquer usuário logado que não seja admin vai para a área do inscrito
+            if (Auth::check()) {
                 return redirect()->route('inscrito.dashboard');
             }
 

@@ -50,6 +50,17 @@ class User extends Authenticatable
         return $this->hasOne(Participante::class);
     }
 
+    /**
+     * Verifica se o usuário tem algum dos papéis informados no evento (tabela evento_user).
+     */
+    public function papelNoEvento(Evento $evento, array $papeis): bool
+    {
+        return $this->eventosAdministrados()
+            ->where('eventos.id', $evento->id)
+            ->whereIn('evento_user.role', $papeis)
+            ->exists();
+    }
+
     public function eventosAdministrados()
     {
         // Define a relação M-M, nome da tabela pivô e inclui a coluna 'role' da pivô

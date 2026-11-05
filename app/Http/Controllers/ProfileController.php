@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\Cpf;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Participante;
 use App\Models\User;
@@ -36,7 +37,7 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
             // Validação do CPF: obrigatório e no formato correto
-            'cpf' => ['required', 'string', 'size:14'],
+            'cpf' => ['required', 'string', 'size:14', new Cpf],
         ]);
 
         $user->fill($validated);

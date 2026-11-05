@@ -25,7 +25,7 @@
                     <div class="mb-4">
                         <h6 class="fw-bold text-secondary mb-3">Nível de Acesso</h6>
                         <select name="role" class="form-select @error('role') is-invalid @enderror" required>
-                            <option value="padrao" {{ old('role', $user->role) == 'padrao' ? 'selected' : '' }}>Padrão (Usuário Comum)</option>
+                            <option value="user" {{ old('role', $user->role) == 'user' ? 'selected' : '' }}>Padrão (Usuário Comum)</option>
                             <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Administrador</option>
                         </select>
                         @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror

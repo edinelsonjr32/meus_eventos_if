@@ -20,10 +20,10 @@ class CertificadoController extends Controller
             ->first();
 
         if (!$frequencia) {
-            return view('publico.validacao_erro');
+            return view('publico.validar-certificado', ['frequencia' => null, 'hash' => $hash]);
         }
 
-        return view('publico.validacao_sucesso', compact('frequencia'));
+        return view('publico.validar-certificado', compact('frequencia', 'hash'));
     }
 
     /**

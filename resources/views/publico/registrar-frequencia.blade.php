@@ -122,7 +122,7 @@
                 lat: '', lng: '', isLoading: false, errorMessage: '', errorTitle: '',
 
                 submitForm() {
-                    if (this.lat && this.lng) { document.getElementById('formPresenca').submit(); return; }
+                    if (this.lat && this.lng) { this.sendForm(); return; }
                     this.getLocation();
                 },
 
@@ -133,7 +133,7 @@
                     navigator.geolocation.getCurrentPosition(
                         (p) => {
                             this.lat = p.coords.latitude; this.lng = p.coords.longitude; this.isLoading = false;
-                            setTimeout(() => { document.getElementById('formPresenca').submit(); }, 500);
+                            this.sendForm();
                         },
                         (e) => {
                             this.isLoading = false;
@@ -145,6 +145,45 @@
                         },
                         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
                     );
+                },
+                async sendForm(retry = true) {
+                    const form = document.getElementById('formPresenca');
+                    this.isLoading = true; this.errorMessage = '';
+                    try {
+                        // Coordenadas enviadas direto (os inputs ocultos do x-model atualizam de forma assíncrona)
+                        const body = new FormData(form);
+                        body.set('user_lat', this.lat);
+                        body.set('user_lng', this.lng);
+
+                        const res = await fetch(form.action, {
+                            method: 'POST',
+                            body: body,
+                            credentials: 'same-origin',
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        // 419: sessão/token vencido -> renova o token e tenta de novo (1 vez)
+                        if (res.status === 419 && retry) {
+                            const r = await fetch('{{ route('frequencia.csrf', $atividade->token_frequencia) }}', {
+                                credentials: 'same-origin', headers: { 'Accept': 'application/json' }
+                            });
+                            if (r.ok) {
+                                form.querySelector('input[name=_token]').value = (await r.json()).token;
+                                return this.sendForm(false);
+                            }
+                        }
+
+                        const data = await res.json().catch(() => ({}));
+                        if (res.ok && data.redirect) { window.location.href = data.redirect; return; }
+
+                        let msg = data.message || 'Erro ao registrar presença.';
+                        if (res.status === 419) msg = 'Sua sessão expirou ou o navegador bloqueou cookies. Abra o link no Chrome/Safari e tente novamente.';
+                        if (data.errors) msg = Object.values(data.errors).flat().join(' ');
+                        this.lat = ''; this.lng = '';
+                        this.showError('Não foi possível registrar', msg);
+                    } catch (e) {
+                        this.showError('Falha de conexão', 'Verifique sua internet e tente novamente.');
+                    }
                 },
                 showError(t, m) { this.isLoading = false; this.errorTitle = t; this.errorMessage = m; }
             }

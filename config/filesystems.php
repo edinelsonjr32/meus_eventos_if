@@ -38,6 +38,17 @@ return [
             'report' => false,
         ],
 
+        // Arquivos sensíveis (PDFs de trabalhos, versões, anais compilados).
+        // NUNCA público: o download é feito por controller com autorização.
+        'trabalhos' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/trabalhos'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

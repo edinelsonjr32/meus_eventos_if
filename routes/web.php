@@ -47,6 +47,7 @@ Route::get('/frequencia/sucesso', function () {
 })->name('frequencia.sucesso');
 
 Route::get('/frequencia/{token}', [FrequenciaController::class, 'index'])->name('frequencia.form');
+Route::get('/frequencia/{token}/csrf', [FrequenciaController::class, 'csrf'])->name('frequencia.csrf');
 Route::post('/frequencia/{token}', [FrequenciaController::class, 'store'])->name('frequencia.store');
 
 // Validação e Download de Certificados
@@ -153,6 +154,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::get('/cadastrar', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'create'])->name('create');
         Route::post('/cadastrar', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'storeManual'])->name('storeManual');
     });
+
+    // --- Papéis por evento (co-administrador, gestor de trabalhos, avaliador) ---
+    Route::get('eventos/{evento}/papeis', [\App\Http\Controllers\Admin\EventoPapelController::class, 'index'])->name('eventos.papeis.index');
+    Route::post('eventos/{evento}/papeis', [\App\Http\Controllers\Admin\EventoPapelController::class, 'store'])->name('eventos.papeis.store');
+    Route::delete('eventos/{evento}/papeis/{user}/{papel}', [\App\Http\Controllers\Admin\EventoPapelController::class, 'destroy'])->name('eventos.papeis.destroy');
 
     // Listagem de Inscritos Geral
     Route::get('eventos/{evento}/inscritos', [\App\Http\Controllers\Admin\EventoController::class, 'inscritos'])

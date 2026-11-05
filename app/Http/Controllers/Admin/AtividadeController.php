@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Rules\Cpf;
 use App\Http\Controllers\Controller;
 use App\Models\Atividade;
 use App\Models\Evento;
@@ -26,6 +27,8 @@ class AtividadeController extends Controller
      */
     public function store(Request $request, Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
             'tipo' => 'required|string',
@@ -59,6 +62,8 @@ class AtividadeController extends Controller
      */
     public function participantes(Atividade $atividade)
     {
+        $this->authorize('gerenciar', $atividade->evento);
+
         // 1. Busca quem já tem presença confirmada (Tabela Frequencias)
         $frequencias = $atividade->frequencias()
             ->with('participante.turma')
@@ -111,6 +116,8 @@ class AtividadeController extends Controller
      */
     public function createManual(\App\Models\Atividade $atividade)
     {
+        $this->authorize('gerenciar', $atividade->evento);
+
         // Garante que as turmas estão carregadas junto com o curso para exibição
         $turmas = \App\Models\Turma::with('curso')->get()->sortBy('nome_completo');
         return view('admin.atividades.create-manual', compact('atividade', 'turmas'));
@@ -121,10 +128,12 @@ class AtividadeController extends Controller
      */
     public function storeManual(Request $request, Atividade $atividade)
     {
+        $this->authorize('gerenciar', $atividade->evento);
+
         // 1. Validações
         $request->validate([
             'nome_completo' => 'required|string',
-            'cpf' => 'required|string',
+            'cpf' => ['required', 'string', 'size:14', new Cpf],
             'email' => 'required|email',
             'tipo_vinculo' => 'required',
 
@@ -204,12 +213,16 @@ class AtividadeController extends Controller
 
     public function destroyFrequencia($id)
     {
-        Frequencia::findOrFail($id)->delete();
+        $freq = Frequencia::with('atividade.evento')->findOrFail($id);
+        $this->authorize('gerenciar', $freq->atividade->evento);
+        $freq->delete();
         return back()->with('success', 'Presença removida.');
     }
 
     public function destroy(Atividade $atividade)
     {
+        $this->authorize('gerenciar', $atividade->evento);
+
         // Validação de segurança
         if ($atividade->frequencias()->count() > 0) {
             return back()->with('error', 'Não é possível excluir: Existem alunos com presença registrada nesta atividade.');
@@ -221,13 +234,16 @@ class AtividadeController extends Controller
 
     public function updateRole(Request $request, $id)
     {
-        $freq = Frequencia::findOrFail($id);
+        $freq = Frequencia::with('atividade.evento')->findOrFail($id);
+        $this->authorize('gerenciar', $freq->atividade->evento);
         $freq->update(['tipo_participacao' => $request->role]);
         return back()->with('success', 'Função atualizada.');
     }
 
     public function exportar(Atividade $atividade)
     {
+        $this->authorize('gerenciar', $atividade->evento);
+
         $nomeArquivo = 'Lista-' . Str::slug($atividade->titulo) . '.csv';
         $frequencias = $atividade->frequencias()->with('participante.turma')->get();
 
@@ -267,6 +283,8 @@ class AtividadeController extends Controller
      */
     public function storeCheckin(Atividade $atividade, Participante $participante)
     {
+        $this->authorize('gerenciar', $atividade->evento);
+
         \App\Models\Frequencia::firstOrCreate(
             ['participante_id' => $participante->id, 'atividade_id' => $atividade->id],
             [

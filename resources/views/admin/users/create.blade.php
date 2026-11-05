@@ -26,7 +26,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-secondary">Nível de Acesso</label>
                         <select name="role" class="form-select @error('role') is-invalid @enderror" required>
-                            <option value="padrao" {{ old('role') == 'padrao' ? 'selected' : '' }}>Padrão (Usuário Comum)</option>
+                            <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Padrão (Usuário Comum)</option>
                             <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrador</option>
                         </select>
                         @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Publico;
 
+use App\Rules\Cpf;
 use App\Http\Controllers\Controller;
 use App\Models\Evento;
 use App\Models\Participante;
@@ -61,7 +62,7 @@ class EventoPublicoController extends Controller
         // 1. Definição de Regras de Validação
         $rules = [
             'nome_completo' => ['required', 'string', 'max:255'],
-            'cpf' => ['required', 'string', 'size:14'],
+            'cpf' => ['required', 'string', 'size:14', new Cpf],
             'tipo_vinculo' => ['required', Rule::in('aluno', 'servidor', 'externo')],
 
             // Matrícula é obrigatória se for aluno ou servidor

@@ -17,6 +17,8 @@ class EquipeController extends Controller
      */
     public function index(Evento $evento)
     {
+        $this->authorize('gerenciar', $evento);
+
         $membros = $evento->equipe()->with('participante')->get();
         return view('admin.equipes.index', compact('evento', 'membros'));
     }
@@ -26,7 +28,7 @@ class EquipeController extends Controller
      */
     public function store(Request $request, Evento $evento)
     {
-        if ($evento->criado_por !== Auth::id()) abort(403);
+        $this->authorize('gerenciar', $evento);
 
         $request->validate([
             'cpf_busca' => 'required|string',
@@ -73,6 +75,8 @@ class EquipeController extends Controller
      */
     public function destroy(Equipe $equipe)
     {
+        $this->authorize('gerenciar', $equipe->evento);
+
         $equipe->delete();
         return back()->with('success', 'Membro removido da equipe.');
     }
