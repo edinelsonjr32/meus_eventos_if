@@ -67,23 +67,23 @@
                 </div>
             </form>
 
-            <form id="lote" action="{{ route('gestao.trabalhos.lote', $evento) }}" method="POST" class="glass-card bg-white mb-3" x-data="{ acao: 'triagem' }">
+            <form id="lote" action="{{ route('gestao.trabalhos.lote', $evento) }}" method="POST" class="glass-card bg-white mb-3">
                 @csrf
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
                         <label class="small fw-bold text-secondary">Ação nos selecionados</label>
-                        <select name="acao" class="form-select form-select-sm" x-model="acao">
+                        <select name="acao" class="form-select form-select-sm">
                             <option value="triagem">Iniciar triagem</option>
                             <option value="atribuir">Atribuir avaliadores</option>
                         </select>
                     </div>
-                    <div class="col-md-5" x-show="acao === 'atribuir'" x-cloak>
-                        <label class="small fw-bold text-secondary">Avaliadores</label>
+                    <div class="col-md-5">
+                        <label class="small fw-bold text-secondary">Avaliadores <span class="fw-normal">(somente ao atribuir)</span></label>
                         <select name="avaliadores[]" class="form-select form-select-sm" multiple size="3">
                             @foreach($avaliadores as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2" x-show="acao === 'atribuir'" x-cloak>
+                    <div class="col-md-2">
                         <label class="small fw-bold text-secondary">Prazo</label>
                         <input type="date" name="prazo" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}">
                     </div>

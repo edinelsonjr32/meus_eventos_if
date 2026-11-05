@@ -46,7 +46,8 @@ class Trabalho extends Model
     protected $fillable = [
         'evento_id', 'codigo', 'submetido_por', 'titulo', 'resumo', 'abstract', 'palavras_chave', 'tipo_trabalho',
         'area_tematica_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
-        'status', 'autoriza_publicacao', 'autorizou_em', 'submetido_em',
+        'status', 'nota_final', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
+        'autoriza_publicacao', 'autorizou_em', 'submetido_em',
     ];
 
     protected $casts = [
@@ -54,6 +55,9 @@ class Trabalho extends Model
         'autoriza_publicacao' => 'boolean',
         'autorizou_em' => 'datetime',
         'submetido_em' => 'datetime',
+        'decisao_em' => 'datetime',
+        'prazo_correcao' => 'datetime',
+        'nota_final' => 'float',
     ];
 
     public function evento(): BelongsTo
@@ -94,6 +98,18 @@ class Trabalho extends Model
     public function historico(): HasMany
     {
         return $this->hasMany(TrabalhoHistorico::class)->orderBy('id');
+    }
+
+    /** Rodada de avaliação em andamento (1 até a primeira reavaliação). */
+    public function rodadaAtual(): int
+    {
+        return max(1, (int) $this->avaliacoes()->max('rodada'));
+    }
+
+    /** O autor já pode ver o resultado? (somente após a decisão da gestão) */
+    public function temDecisao(): bool
+    {
+        return $this->decisao !== null && in_array($this->status, ['aprovado', 'reprovado', 'aguardando_correcao', 'resubmetido'], true);
     }
 
     public function statusRotulo(): string

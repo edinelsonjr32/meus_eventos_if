@@ -18,10 +18,33 @@ class TrabalhoAvaliacao extends Model
 
     protected $fillable = [
         'trabalho_id', 'avaliador_id', 'rodada', 'status', 'atribuido_por', 'prazo', 'nota_final', 'parecer',
-        'parecer_confidencial', 'recomendacao', 'concluida_em',
+        'parecer_confidencial', 'recomendacao', 'concluida_em', 'lembrete_enviado_em',
     ];
 
-    protected $casts = ['prazo' => 'datetime', 'concluida_em' => 'datetime', 'nota_final' => 'decimal:2'];
+    protected $casts = [
+        'prazo' => 'datetime', 'concluida_em' => 'datetime', 'lembrete_enviado_em' => 'datetime', 'nota_final' => 'float',
+    ];
+
+    public const RECOMENDACOES = [
+        'aprovar' => 'Aprovar',
+        'aprovar_com_ressalvas' => 'Aprovar com ressalvas',
+        'reprovar' => 'Reprovar',
+    ];
+
+    public function notas()
+    {
+        return $this->hasMany(TrabalhoAvaliacaoNota::class, 'avaliacao_id');
+    }
+
+    public function recomendacaoRotulo(): ?string
+    {
+        return self::RECOMENDACOES[$this->recomendacao] ?? null;
+    }
+
+    public function atrasada(): bool
+    {
+        return $this->prazo && $this->prazo->isPast() && in_array($this->status, ['pendente', 'em_andamento'], true);
+    }
 
     public function trabalho(): BelongsTo
     {

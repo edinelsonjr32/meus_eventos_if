@@ -93,3 +93,120 @@
         <p class="small text-muted mt-2 mb-0">Atribuição disponível apenas em triagem ou avaliação.</p>
     @endif
 </div>
+
+
+{{-- Resultado das avaliações --}}
+@if($trabalho->avaliacoes->isNotEmpty())
+<div class="glass-card bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold text-success m-0"><i class="fa-solid fa-chart-simple me-1"></i> Resultado das avaliações</h6>
+        @if($resultado['rodada'] > 1) <span class="badge bg-info text-dark">Rodada {{ $resultado['rodada'] }}</span> @endif
+    </div>
+
+    <div class="d-flex gap-3 mb-3">
+        <div class="text-center flex-fill border rounded-3 p-2">
+            <div class="small text-muted">Nota média</div>
+            <div class="fs-4 fw-bold {{ $resultado['media'] !== null && $resultado['media'] >= $resultado['notaMinima'] ? 'text-success' : 'text-dark' }}">
+                {{ $resultado['media'] !== null ? number_format($resultado['media'], 2, ',', '.') : '—' }}
+            </div>
+            <div class="small text-muted">mínimo {{ rtrim(rtrim(number_format($resultado['notaMinima'], 2, ',', ''), '0'), ',') }}</div>
+        </div>
+        <div class="text-center flex-fill border rounded-3 p-2">
+            <div class="small text-muted">Concluídas</div>
+            <div class="fs-4 fw-bold">{{ $resultado['concluidas'] }}/{{ $trabalho->avaliacoes->where('rodada', $resultado['rodada'])->where('status', '!=', 'recusada')->count() }}</div>
+        </div>
+    </div>
+
+    @if($resultado['divergenciaAlta'])
+        <div class="alert alert-warning small py-2">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+            Divergência alta entre avaliadores ({{ number_format($resultado['divergencia'], 2, ',', '.') }} pontos).
+            Considere atribuir um terceiro avaliador.
+        </div>
+    @endif
+
+    @foreach($trabalho->avaliacoes->where('rodada', $resultado['rodada']) as $av)
+        <details class="small mb-2 border rounded-3 p-2">
+            <summary class="fw-bold">
+                {{ $av->avaliador->name }}
+                <span class="fw-normal text-muted">
+                    — {{ $av->statusRotulo() }}@if($av->status === 'concluida'), nota {{ number_format($av->nota_final, 2, ',', '.') }}, {{ $av->recomendacaoRotulo() }}@endif
+                </span>
+            </summary>
+            @if($av->status === 'concluida')
+                <table class="table table-sm mt-2 mb-2">
+                    @foreach($av->notas as $n)
+                        <tr><td>{{ $n->criterio->nome }}</td><td class="text-end">{{ rtrim(rtrim(number_format($n->nota, 2, ',', ''), '0'), ',') }}/{{ rtrim(rtrim(number_format($n->criterio->nota_max, 2, ',', ''), '0'), ',') }}</td></tr>
+                        @if($n->comentario) <tr><td colspan="2" class="text-muted">{{ $n->comentario }}</td></tr> @endif
+                    @endforeach
+                </table>
+                <div class="fw-bold">Parecer</div>
+                <p style="white-space: pre-line;">{{ $av->parecer }}</p>
+                @if($av->parecer_confidencial)
+                    <div class="fw-bold text-danger">Confidencial (só gestão)</div>
+                    <p style="white-space: pre-line;">{{ $av->parecer_confidencial }}</p>
+                @endif
+            @elseif($av->status === 'recusada')
+                <p class="mt-2 mb-0"><strong>Motivo da recusa:</strong> {{ $av->parecer_confidencial }}</p>
+            @else
+                <p class="mt-2 mb-0 text-muted">Ainda sem parecer.</p>
+            @endif
+        </details>
+    @endforeach
+
+    <div class="d-grid gap-2 mt-3">
+        @if($resultado['podeEncerrar'])
+            <form action="{{ route('gestao.trabalhos.encerrar', $trabalho) }}" method="POST"
+                  onsubmit="return confirm('Encerrar a avaliação sem aguardar os demais avaliadores?')">
+                @csrf <button class="btn btn-sm btn-outline-secondary w-100 fw-bold">Encerrar avaliação agora</button>
+            </form>
+        @endif
+        @if($resultado['podeReavaliar'])
+            <form action="{{ route('gestao.trabalhos.reavaliar', $trabalho) }}" method="POST">
+                @csrf <button class="btn btn-sm btn-outline-primary w-100 fw-bold">Enviar versão corrigida aos mesmos avaliadores</button>
+            </form>
+        @endif
+    </div>
+</div>
+@endif
+
+{{-- Decisão --}}
+@if($resultado['podeDecidir'])
+<div class="glass-card bg-white mb-4" x-data="{ decisao: '{{ old('decisao', $resultado['media'] !== null && $resultado['media'] >= $resultado['notaMinima'] ? 'aprovado' : 'reprovado') }}' }">
+    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-gavel me-1"></i> Decisão final</h6>
+    @if($resultado['media'] !== null)
+        <p class="small text-muted">Sugestão pela nota: {{ $resultado['media'] >= $resultado['notaMinima'] ? 'aprovar' : 'reprovar' }} (média {{ number_format($resultado['media'], 2, ',', '.') }}). A decisão é sempre sua.</p>
+    @endif
+    <form action="{{ route('gestao.trabalhos.decisao', $trabalho) }}" method="POST">
+        @csrf
+        <select name="decisao" class="form-select form-select-sm mb-2" x-model="decisao">
+            <option value="aprovado">Aprovar</option>
+            <option value="aprovado_com_ressalvas">Aprovar com ressalvas (solicita correção)</option>
+            <option value="reprovado">Reprovar</option>
+        </select>
+        <div class="mb-2">
+            <label class="small fw-bold text-secondary">Prazo para correção <span class="fw-normal">(obrigatório ao aprovar com ressalvas)</span></label>
+            <input type="date" name="prazo_correcao" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}" value="{{ old('prazo_correcao') }}">
+        </div>
+        <label class="small fw-bold text-secondary">Mensagem ao autor <span class="fw-normal">(obrigatória ao reprovar ou aprovar com ressalvas)</span></label>
+        <textarea name="justificativa" rows="4" class="form-control form-control-sm mb-2" placeholder="Orientações, ressalvas ou motivo da decisão">{{ old('justificativa') }}</textarea>
+        <button class="btn btn-sm btn-primary-custom w-100 fw-bold" onclick="return confirm('Registrar a decisão? Os autores serão avisados por e-mail.')">Registrar decisão</button>
+    </form>
+</div>
+@elseif($trabalho->decisao)
+<div class="glass-card bg-white mb-4">
+    <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-gavel me-1"></i> Decisão registrada</h6>
+    <p class="small mb-1"><strong>{{ ['aprovado' => 'Aprovado', 'aprovado_com_ressalvas' => 'Aprovado com ressalvas', 'reprovado' => 'Reprovado'][$trabalho->decisao] }}</strong>
+        em {{ $trabalho->decisao_em?->format('d/m/Y H:i') }}</p>
+    @if($trabalho->decisao_justificativa) <p class="small text-muted" style="white-space: pre-line;">{{ $trabalho->decisao_justificativa }}</p> @endif
+
+    @if($trabalho->status === 'aguardando_correcao')
+        <p class="small mb-2">Prazo de correção: <strong>{{ $trabalho->prazo_correcao?->format('d/m/Y') }}</strong></p>
+        <form action="{{ route('gestao.trabalhos.prorrogar', $trabalho) }}" method="POST" class="d-flex gap-2">
+            @csrf
+            <input type="date" name="prazo_correcao" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}" required>
+            <button class="btn btn-sm btn-outline-secondary fw-bold text-nowrap">Prorrogar</button>
+        </form>
+    @endif
+</div>
+@endif

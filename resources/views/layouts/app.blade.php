@@ -156,6 +156,12 @@
                 <i class="fa-solid fa-file-lines w-25 text-center"></i> Meus Trabalhos
             </a>
 
+            @if(\Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'avaliador')->exists())
+                <a href="{{ route('avaliador.avaliacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-clipboard-check w-25 text-center"></i> Minhas Avaliações
+                </a>
+            @endif
+
             @if(Auth::user()->role !== 'admin' && \App\Models\Evento::gestaoTrabalhosPor(Auth::user())->exists())
                 <a href="{{ route('gestao.trabalhos.eventos') }}" class="nav-link {{ request()->routeIs('gestao.trabalhos.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-inbox w-25 text-center"></i> Gestão de Trabalhos

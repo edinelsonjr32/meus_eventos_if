@@ -39,6 +39,20 @@ services:
             - laravel.test
             - mysql
             - mailpit
+    scheduler:
+        image: 'sail-8.5/app'
+        command: 'php artisan schedule:work'
+        restart: unless-stopped
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - laravel.test
+            - mysql
     mysql:
         image: 'mysql:8.4'
         ports:

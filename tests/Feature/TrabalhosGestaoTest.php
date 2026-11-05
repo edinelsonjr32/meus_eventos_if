@@ -13,45 +13,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
 
-function mkUser(string $role = 'user', ?string $email = null): User
-{
-    $u = User::factory()->create($email ? ['email' => $email] : []);
-    $u->forceFill(['role' => $role])->save();
-
-    return $u;
-}
-
-function mkPapel(User $u, Evento $e, string $papel): void
-{
-    DB::table('evento_user')->insert(['evento_id' => $e->id, 'user_id' => $u->id, 'role' => $papel, 'created_at' => now(), 'updated_at' => now()]);
-}
-
-function mkEvento(User $dono): Evento
-{
-    $e = Evento::create(['titulo' => 'Evento ' . uniqid(), 'slug' => 'e-' . uniqid(), 'data_inicio' => now(), 'data_fim' => now()->addDays(3), 'local' => 'X', 'criado_por' => $dono->id]);
-    TrabalhoConfig::create(['evento_id' => $e->id, 'ativo' => true, 'submissao_inicio' => now()->subDay(), 'submissao_fim' => now()->addDays(5), 'avaliadores_por_trabalho' => 2]);
-
-    return $e;
-}
-
-/** Cria e submete um trabalho pelo serviço (sem passar pelo formulário). */
-function mkTrabalho(Evento $e, User $autor, array $extra = [], string $status = 'submetido'): Trabalho
-{
-    $w = app(TrabalhoWorkflow::class);
-    $t = $w->salvar($e, $autor, array_merge([
-        'titulo' => 'Trabalho ' . uniqid(), 'resumo' => 'Resumo', 'palavras_chave' => 'a, b, c', 'tipo_trabalho' => 'resumo',
-        'modalidade_apresentacao' => 'oral',
-        'autores' => [['nome_completo' => 'Autor ' . uniqid(), 'cpf' => '111.444.777-35', 'email' => $autor->email, 'tipo_autor' => 'autor_principal', 'apresentador' => true]],
-    ], $extra));
-    $w->submeter($t, $autor);
-
-    if ($status !== 'submetido') {
-        $t->update(['status' => $status]);
-    }
-
-    return $t->fresh();
-}
-
 beforeEach(function () {
     Mail::fake();
     $this->dono = mkUser('admin');
@@ -347,7 +308,7 @@ it('neutraliza injeção de fórmulas na exportação', function () {
 
 // ---------- Configuração ----------
 it('valida e salva os novos campos de avaliação da chamada', function () {
-    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo']];
+    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo'], 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
 
     $this->actingAs($this->gestor)->put(route('gestao.trabalhos.config.update', $this->evento), array_merge($base, ['avaliadores_por_trabalho' => 0]))
         ->assertSessionHasErrors('avaliadores_por_trabalho');

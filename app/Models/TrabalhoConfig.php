@@ -16,7 +16,7 @@ class TrabalhoConfig extends Model
     ];
 
     protected $fillable = [
-        'evento_id', 'ativo', 'submissao_inicio', 'submissao_fim', 'avaliacao_fim', 'avaliadores_por_trabalho', 'max_autores', 'max_arquivo_mb',
+        'evento_id', 'ativo', 'submissao_inicio', 'submissao_fim', 'avaliacao_fim', 'avaliadores_por_trabalho', 'nota_minima_aprovacao', 'divergencia_maxima', 'autor_ve_notas', 'autor_ve_pareceres', 'max_autores', 'max_arquivo_mb',
         'resumo_min_palavras', 'resumo_max_palavras', 'max_trabalhos_por_usuario', 'avaliacao_cega',
         'tipos_permitidos', 'regras_texto',
     ];
@@ -24,6 +24,10 @@ class TrabalhoConfig extends Model
     protected $casts = [
         'ativo' => 'boolean',
         'avaliacao_cega' => 'boolean',
+        'autor_ve_notas' => 'boolean',
+        'autor_ve_pareceres' => 'boolean',
+        'nota_minima_aprovacao' => 'float',
+        'divergencia_maxima' => 'float',
         'submissao_inicio' => 'datetime',
         'submissao_fim' => 'datetime',
         'avaliacao_fim' => 'datetime',

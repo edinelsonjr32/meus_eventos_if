@@ -39,7 +39,7 @@ class TrabalhoWorkflow
     ];
 
     /** Status em que ainda é possível atribuir ou remover avaliadores. */
-    public const STATUS_ATRIBUICAO = ['em_triagem', 'em_avaliacao'];
+    public const STATUS_ATRIBUICAO = ['em_triagem', 'em_avaliacao', 'avaliado'];
 
     /** Cria ou atualiza o trabalho (rascunho ou reenvio), seus autores e o PDF. */
     public function salvar(Evento $evento, User $user, array $dados, ?Trabalho $trabalho = null, ?UploadedFile $arquivo = null): Trabalho
@@ -226,6 +226,10 @@ class TrabalhoWorkflow
             throw new \DomainException('Informe a justificativa para esta ação.');
         }
 
+        if ($para === 'em_avaliacao' && $trabalho->evento->criterios()->where('ativo', true)->doesntExist()) {
+            throw new \DomainException('Defina os critérios de avaliação do evento antes de encaminhar trabalhos para avaliação.');
+        }
+
         if ($para === 'em_avaliacao' && $trabalho->avaliacoes()->where('status', '!=', 'recusada')->doesntExist()) {
             throw new \DomainException('Atribua ao menos um avaliador antes de encaminhar para avaliação.');
         }
@@ -300,7 +304,7 @@ class TrabalhoWorkflow
     public function atribuirAvaliador(Trabalho $trabalho, User $avaliador, User $gestor, ?Carbon $prazo = null): TrabalhoAvaliacao
     {
         if (!in_array($trabalho->status, self::STATUS_ATRIBUICAO, true)) {
-            throw new \DomainException('Só é possível atribuir avaliadores a trabalhos em triagem ou em avaliação.');
+            throw new \DomainException('Só é possível atribuir avaliadores a trabalhos em triagem, em avaliação ou já avaliados.');
         }
 
         $designado = DB::table('evento_user')->where([
@@ -328,6 +332,12 @@ class TrabalhoWorkflow
                 'atribuido_por' => $gestor->id, 'prazo' => $prazo,
             ]);
             $this->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, "Avaliador atribuído: {$avaliador->name}");
+
+            // Avaliador adicional após a conclusão (ex.: divergência de notas): volta a "em avaliação"
+            if ($trabalho->status === 'avaliado') {
+                $trabalho->update(['status' => 'em_avaliacao']);
+                $this->registrar($trabalho, $gestor, 'avaliado', 'em_avaliacao', 'Avaliação reaberta para novo avaliador');
+            }
 
             return $avaliacao;
         });

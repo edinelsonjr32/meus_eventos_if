@@ -87,6 +87,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/trabalhos/{trabalho}/arquivo', [\App\Http\Controllers\TrabalhoController::class, 'arquivo'])->name('trabalhos.arquivo');
     Route::post('/trabalhos/{trabalho}/retirar', [\App\Http\Controllers\TrabalhoController::class, 'retirar'])->name('trabalhos.retirar');
 
+    // --- AVALIADOR (somente as próprias avaliações; autorização por Policy) ---
+    Route::prefix('avaliador/avaliacoes')->name('avaliador.avaliacoes.')->group(function () {
+        $c = \App\Http\Controllers\Avaliador\AvaliacaoController::class;
+        Route::get('/', [$c, 'index'])->name('index');
+        Route::get('/{avaliacao}', [$c, 'show'])->name('show');
+        Route::get('/{avaliacao}/arquivo', [$c, 'arquivo'])->name('arquivo');
+        Route::post('/{avaliacao}/salvar', [$c, 'salvar'])->name('salvar');
+        Route::post('/{avaliacao}/concluir', [$c, 'concluir'])->name('concluir');
+        Route::post('/{avaliacao}/recusar', [$c, 'recusar'])->name('recusar');
+    });
+
     // --- GESTÃO DE TRABALHOS (gestor de trabalhos, dono e co-administradores; autorização por Policy) ---
     Route::prefix('gestao/trabalhos')->name('gestao.trabalhos.')->group(function () {
         $c = \App\Http\Controllers\Gestao\TrabalhoGestaoController::class;
@@ -99,6 +110,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{trabalho}', [$c, 'show'])->name('show');
         Route::post('/{trabalho}/triagem', [$c, 'triagem'])->name('triagem');
         Route::post('/{trabalho}/avaliadores', [$c, 'atribuir'])->name('avaliadores.store');
+        Route::post('/{trabalho}/encerrar-avaliacao', [$c, 'encerrarAvaliacao'])->name('encerrar');
+        Route::post('/{trabalho}/decisao', [$c, 'decisao'])->name('decisao');
+        Route::post('/{trabalho}/prorrogar-correcao', [$c, 'prorrogarCorrecao'])->name('prorrogar');
+        Route::post('/{trabalho}/reavaliar', [$c, 'reavaliar'])->name('reavaliar');
         Route::delete('/{trabalho}/avaliadores/{avaliacao}', [$c, 'removerAvaliador'])->name('avaliadores.destroy');
     });
 

@@ -307,7 +307,7 @@ it('dono e gestor configuram a chamada; admin de outro evento não', function ()
     $dados = [
         'ativo' => 1, 'submissao_inicio' => '2026-11-01T08:00', 'submissao_fim' => '2026-12-01T18:00', 'max_autores' => 5,
         'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo', 'poster'],
-        'avaliadores_por_trabalho' => 2, 'areas' => "Área A\nÁrea B\n\nÁrea A", 'regras_texto' => 'Regras',
+        'avaliadores_por_trabalho' => 2, 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3, 'areas' => "Área A\nÁrea B\n\nÁrea A", 'regras_texto' => 'Regras',
     ];
 
     $this->actingAs($this->dono)->put(route('gestao.trabalhos.config.update', $this->evento), $dados)->assertSessionHasNoErrors();

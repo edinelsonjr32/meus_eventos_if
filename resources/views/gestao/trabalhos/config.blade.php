@@ -13,6 +13,7 @@
             </div>
 
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
+            @if(session('warning')) <div class="alert alert-warning">{{ session('warning') }}</div> @endif
             @if($errors->any())
                 <div class="alert alert-danger"><ul class="mb-0 small">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div>
             @endif
@@ -91,6 +92,56 @@
                     </div>
                 </div>
 
+                <div class="glass-card bg-white mb-4" x-data="criteriosForm({{ \Illuminate\Support\Js::from(old('criterios', $criterios->map(fn ($c) => ['id' => $c->id, 'nome' => $c->nome, 'descricao' => $c->descricao, 'peso' => (float) $c->peso, 'nota_max' => (float) $c->nota_max])->values())) }}, {{ \Illuminate\Support\Js::from(collect(\App\Models\CriterioAvaliacao::PADROES)->map(fn ($p) => ['id' => null, 'nome' => $p[0], 'descricao' => $p[1], 'peso' => 1, 'nota_max' => 10])->values()) }}, {{ $criteriosBloqueados ? 'true' : 'false' }})">
+                    <h6 class="fw-bold text-success mb-3">Avaliação</h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-secondary">Nota mínima p/ aprovação (0–10)</label>
+                            <input type="number" step="0.1" min="0" max="10" name="nota_minima_aprovacao" class="form-control" value="{{ old('nota_minima_aprovacao', $config->nota_minima_aprovacao ?? 7) }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-secondary">Divergência máxima entre avaliadores</label>
+                            <input type="number" step="0.1" min="0" max="10" name="divergencia_maxima" class="form-control" value="{{ old('divergencia_maxima', $config->divergencia_maxima ?? 3) }}" required>
+                        </div>
+                        <div class="col-md-6 d-flex flex-column justify-content-end">
+                            <div class="form-check form-switch">
+                                <input type="hidden" name="autor_ve_notas" value="0">
+                                <input class="form-check-input" type="checkbox" name="autor_ve_notas" value="1" id="vnotas" @checked(old('autor_ve_notas', $config->autor_ve_notas ?? true))>
+                                <label class="form-check-label" for="vnotas">Autor vê a nota final</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input type="hidden" name="autor_ve_pareceres" value="0">
+                                <input class="form-check-input" type="checkbox" name="autor_ve_pareceres" value="1" id="vpar" @checked(old('autor_ve_pareceres', $config->autor_ve_pareceres ?? true))>
+                                <label class="form-check-label" for="vpar">Autor vê os pareceres (sempre anônimos)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="small fw-bold text-secondary m-0">Critérios de avaliação (nota ponderada de 0 a 10)</label>
+                        <div class="d-flex gap-2" x-show="!bloqueado">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @click="padroes()">Carregar critérios padrão</button>
+                            <button type="button" class="btn btn-sm btn-outline-success" @click="adicionar()"><i class="fa-solid fa-plus"></i> Critério</button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning small py-2" x-show="bloqueado" x-cloak>Já existem notas lançadas: os critérios estão bloqueados para preservar o histórico.</div>
+                    <div class="alert alert-info small py-2" x-show="!bloqueado && linhas.length === 0" x-cloak>Defina ao menos um critério: sem eles não é possível encaminhar trabalhos para avaliação.</div>
+
+                    <template x-for="(c, i) in linhas" :key="i">
+                        <div class="row g-2 align-items-start mb-2">
+                            <input type="hidden" :name="`criterios[${i}][id]`" :value="c.id ?? ''" :disabled="bloqueado">
+                            <div class="col-md-4"><input type="text" class="form-control form-control-sm" placeholder="Nome" :name="`criterios[${i}][nome]`" x-model="c.nome" :disabled="bloqueado" required></div>
+                            <div class="col-md-4"><input type="text" class="form-control form-control-sm" placeholder="Descrição (opcional)" :name="`criterios[${i}][descricao]`" x-model="c.descricao" :disabled="bloqueado"></div>
+                            <div class="col-md-2"><input type="number" step="0.1" min="0.1" class="form-control form-control-sm" placeholder="Peso" :name="`criterios[${i}][peso]`" x-model="c.peso" :disabled="bloqueado" required></div>
+                            <div class="col-md-1"><input type="number" step="0.1" min="0.1" class="form-control form-control-sm" placeholder="Máx" :name="`criterios[${i}][nota_max]`" x-model="c.nota_max" :disabled="bloqueado" required></div>
+                            <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-light text-danger" @click="remover(i)" x-show="!bloqueado"><i class="fa-solid fa-trash"></i></button></div>
+                        </div>
+                    </template>
+                    <div class="form-text">Colunas: nome, descrição, peso e nota máxima. A nota do avaliador é convertida para a escala 0–10 considerando os pesos.</div>
+                </div>
+
                 <div class="glass-card bg-white mb-4">
                     <h6 class="fw-bold text-success mb-3">Áreas temáticas</h6>
                     <textarea name="areas" rows="6" class="form-control" placeholder="Uma área por linha">{{ old('areas', $areas) }}</textarea>
@@ -108,4 +159,19 @@
             </form>
         </div>
     </div>
+
+    <script>
+        function criteriosForm(iniciais, padroes, bloqueado) {
+            return {
+                linhas: iniciais.map(c => ({ ...c })),
+                bloqueado,
+                adicionar() { this.linhas.push({ id: null, nome: '', descricao: '', peso: 1, nota_max: 10 }); },
+                remover(i) { this.linhas.splice(i, 1); },
+                padroes() {
+                    if (this.linhas.length && !confirm('Substituir os critérios atuais pelos critérios padrão?')) return;
+                    this.linhas = padroes.map(c => ({ ...c }));
+                },
+            };
+        }
+    </script>
 </x-app-layout>

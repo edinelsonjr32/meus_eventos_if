@@ -7,7 +7,9 @@ use App\Models\AreaTematica;
 use App\Models\Evento;
 use App\Models\Trabalho;
 use App\Exports\TrabalhosExport;
+use App\Models\CriterioAvaliacao;
 use App\Models\TrabalhoAvaliacao;
+use App\Services\AvaliacaoService;
 use App\Models\TrabalhoConfig;
 use App\Services\TrabalhoWorkflow;
 use Carbon\Carbon;
@@ -21,7 +23,7 @@ use Illuminate\Validation\Rule;
  */
 class TrabalhoGestaoController extends Controller
 {
-    public function __construct(private TrabalhoWorkflow $workflow)
+    public function __construct(private TrabalhoWorkflow $workflow, private AvaliacaoService $avaliacao)
     {
     }
 
@@ -101,7 +103,21 @@ class TrabalhoGestaoController extends Controller
         $acoesTriagem = collect(TrabalhoWorkflow::TRANSICOES_GESTAO[$trabalho->status] ?? []);
         $podeAtribuir = in_array($trabalho->status, TrabalhoWorkflow::STATUS_ATRIBUICAO, true);
 
-        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir'));
+        $trabalho->load('avaliacoes.notas.criterio');
+        $rodada = $trabalho->rodadaAtual();
+        $resultado = [
+            'rodada' => $rodada,
+            'media' => $this->avaliacao->notaMedia($trabalho),
+            'divergencia' => $this->avaliacao->divergencia($trabalho),
+            'divergenciaAlta' => $this->avaliacao->divergenciaAlta($trabalho),
+            'concluidas' => $this->avaliacao->concluidas($trabalho)->count(),
+            'podeEncerrar' => $trabalho->status === 'em_avaliacao' && $this->avaliacao->concluidas($trabalho)->isNotEmpty(),
+            'podeDecidir' => in_array($trabalho->status, ['avaliado', 'resubmetido'], true),
+            'podeReavaliar' => $trabalho->status === 'resubmetido' && $trabalho->avaliacoes->where('status', '!=', 'recusada')->isNotEmpty(),
+            'notaMinima' => $trabalho->evento->trabalhoConfig?->nota_minima_aprovacao ?? 7,
+        ];
+
+        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado'));
     }
 
     // ------------------------------------------------------------------
@@ -155,6 +171,73 @@ class TrabalhoGestaoController extends Controller
         }
 
         return back()->with('success', 'Avaliador removido do trabalho.');
+    }
+
+    // ------------------------------------------------------------------
+    // Decisão
+    // ------------------------------------------------------------------
+
+    public function encerrarAvaliacao(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        try {
+            $this->avaliacao->encerrar($trabalho, $request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Avaliação encerrada. O trabalho está pronto para decisão.');
+    }
+
+    public function decisao(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        $dados = $request->validate([
+            'decisao' => ['required', Rule::in(array_keys(AvaliacaoService::DECISOES))],
+            'justificativa' => ['nullable', 'string', 'max:5000'],
+            'prazo_correcao' => ['nullable', 'date', 'after:today'],
+        ]);
+
+        try {
+            $this->avaliacao->decidir(
+                $trabalho, $request->user(), $dados['decisao'], $dados['justificativa'] ?? null,
+                !empty($dados['prazo_correcao']) ? Carbon::parse($dados['prazo_correcao'])->endOfDay() : null
+            );
+        } catch (\DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Decisão registrada e autores avisados por e-mail.');
+    }
+
+    public function prorrogarCorrecao(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        $dados = $request->validate(['prazo_correcao' => ['required', 'date', 'after:today']]);
+
+        try {
+            $this->avaliacao->prorrogarCorrecao($trabalho, $request->user(), Carbon::parse($dados['prazo_correcao'])->endOfDay());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Prazo de correção prorrogado.');
+    }
+
+    public function reavaliar(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        try {
+            $this->avaliacao->reavaliar($trabalho, $request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Nova rodada iniciada: os avaliadores foram notificados.');
     }
 
     /** Ação em lote sobre trabalhos selecionados na fila: iniciar triagem ou atribuir avaliadores. */
@@ -237,8 +320,11 @@ class TrabalhoGestaoController extends Controller
 
         $config = $evento->trabalhoConfig ?? new TrabalhoConfig(['evento_id' => $evento->id]);
         $areas = $evento->areasTematicas->pluck('nome')->implode("\n");
+        $criterios = $evento->criterios()->get();
+        // Critérios ficam bloqueados depois da primeira nota lançada (preserva a integridade das notas)
+        $criteriosBloqueados = \App\Models\TrabalhoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->exists();
 
-        return view('gestao.trabalhos.config', compact('evento', 'config', 'areas'));
+        return view('gestao.trabalhos.config', compact('evento', 'config', 'areas', 'criterios', 'criteriosBloqueados'));
     }
 
     public function updateConfig(Request $request, Evento $evento)
@@ -251,6 +337,16 @@ class TrabalhoGestaoController extends Controller
             'submissao_fim' => ['nullable', 'date', 'after_or_equal:submissao_inicio'],
             'avaliacao_fim' => ['nullable', 'date'],
             'avaliadores_por_trabalho' => ['required', 'integer', 'min:1', 'max:10'],
+            'nota_minima_aprovacao' => ['required', 'numeric', 'min:0', 'max:10'],
+            'divergencia_maxima' => ['required', 'numeric', 'min:0', 'max:10'],
+            'autor_ve_notas' => ['nullable', 'boolean'],
+            'autor_ve_pareceres' => ['nullable', 'boolean'],
+            'criterios' => ['nullable', 'array', 'max:15'],
+            'criterios.*.id' => ['nullable', 'integer'],
+            'criterios.*.nome' => ['required', 'string', 'max:255'],
+            'criterios.*.descricao' => ['nullable', 'string', 'max:1000'],
+            'criterios.*.peso' => ['required', 'numeric', 'gt:0', 'max:100'],
+            'criterios.*.nota_max' => ['required', 'numeric', 'gt:0', 'max:100'],
             'max_autores' => ['required', 'integer', 'min:1', 'max:30'],
             'max_arquivo_mb' => ['required', 'integer', 'min:1', 'max:100'],
             'resumo_min_palavras' => ['required', 'integer', 'min:0', 'max:2000'],
@@ -274,6 +370,10 @@ class TrabalhoGestaoController extends Controller
                 'submissao_fim' => $dados['submissao_fim'] ?? null,
                 'avaliacao_fim' => $dados['avaliacao_fim'] ?? null,
                 'avaliadores_por_trabalho' => $dados['avaliadores_por_trabalho'],
+                'nota_minima_aprovacao' => $dados['nota_minima_aprovacao'],
+                'divergencia_maxima' => $dados['divergencia_maxima'],
+                'autor_ve_notas' => (bool) ($dados['autor_ve_notas'] ?? false),
+                'autor_ve_pareceres' => (bool) ($dados['autor_ve_pareceres'] ?? false),
                 'max_autores' => $dados['max_autores'],
                 'max_arquivo_mb' => $dados['max_arquivo_mb'],
                 'resumo_min_palavras' => $dados['resumo_min_palavras'],
@@ -285,9 +385,50 @@ class TrabalhoGestaoController extends Controller
             ]);
 
             $this->sincronizarAreas($evento, $dados['areas'] ?? '');
+            $avisoCriterios = $this->sincronizarCriterios($evento, $dados['criterios'] ?? null);
+            if ($avisoCriterios) {
+                session()->flash('warning', $avisoCriterios);
+            }
         });
 
         return redirect()->route('gestao.trabalhos.config', $evento)->with('success', 'Configuração da chamada salva.');
+    }
+
+    /**
+     * Critérios de avaliação do evento. Depois da primeira nota lançada ficam bloqueados.
+     * `null` (campo ausente) mantém os critérios como estão.
+     */
+    private function sincronizarCriterios(Evento $evento, ?array $linhas): ?string
+    {
+        if ($linhas === null) {
+            return null;
+        }
+
+        $existentes = $evento->criterios()->get()->keyBy('id');
+
+        if (\App\Models\TrabalhoAvaliacaoNota::whereIn('criterio_id', $existentes->keys())->exists()) {
+            return 'Os critérios não foram alterados: já existem notas lançadas.';
+        }
+
+        $mantidos = [];
+        foreach (array_values($linhas) as $ordem => $linha) {
+            $campos = [
+                'nome' => $linha['nome'], 'descricao' => $linha['descricao'] ?? null,
+                'peso' => $linha['peso'], 'nota_max' => $linha['nota_max'], 'ordem' => $ordem, 'ativo' => true,
+            ];
+
+            $criterio = !empty($linha['id']) ? $existentes->get((int) $linha['id']) : null;
+            if ($criterio) {
+                $criterio->update($campos);
+            } else {
+                $criterio = CriterioAvaliacao::create($campos + ['evento_id' => $evento->id]);
+            }
+            $mantidos[] = $criterio->id;
+        }
+
+        $evento->criterios()->whereNotIn('id', $mantidos)->delete();
+
+        return null;
     }
 
     /** Uma área por linha; mantém as existentes (preserva vínculos), cria novas e remove as retiradas. */

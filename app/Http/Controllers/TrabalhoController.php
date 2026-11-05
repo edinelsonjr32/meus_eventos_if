@@ -25,7 +25,16 @@ class TrabalhoController extends Controller
             ->latest()
             ->get();
 
-        return view('trabalhos.index', compact('trabalhos'));
+        // Eventos com chamada de trabalhos ativa (aberta, ainda não iniciada ou encerrada)
+        $eventos = Evento::whereHas('trabalhoConfig', fn ($q) => $q->where('ativo', true))
+            ->with('trabalhoConfig')
+            ->orderBy('data_inicio')
+            ->get();
+
+        // Quantos trabalhos (não retirados) o usuário já tem em cada evento, para aplicar o limite por usuário
+        $meusPorEvento = $trabalhos->where('status', '!=', Trabalho::RETIRADO)->groupBy('evento_id')->map->count();
+
+        return view('trabalhos.index', compact('trabalhos', 'eventos', 'meusPorEvento'));
     }
 
     public function create(Request $request, string $slug)
@@ -80,14 +89,14 @@ class TrabalhoController extends Controller
     {
         $this->authorize('view', $trabalho);
 
-        $trabalho->load(['evento.trabalhoConfig', 'autores', 'arquivos', 'historico.usuario', 'area']);
+        $trabalho->load(['evento.trabalhoConfig', 'autores', 'arquivos', 'historico', 'area', 'avaliacoes' => fn ($q) => $q->select(['id', 'trabalho_id', 'status', 'parecer', 'nota_final', 'rodada'])]);
 
         return view('trabalhos.show', compact('trabalho'));
     }
 
     public function arquivo(Trabalho $trabalho)
     {
-        $this->authorize('view', $trabalho);
+        $this->authorize('baixarArquivo', $trabalho);
 
         $arquivo = $trabalho->arquivoAtual;
         abort_unless($arquivo && Storage::disk('trabalhos')->exists($arquivo->path), 404, 'Arquivo não encontrado.');
@@ -148,7 +157,13 @@ class TrabalhoController extends Controller
     private function bloqueioDeEdicao(Trabalho $trabalho): ?string
     {
         // Devoluções e correções solicitadas pela gestão podem ser enviadas mesmo após o fim da chamada
-        if (in_array($trabalho->status, [Trabalho::AGUARDANDO_CORRECAO, Trabalho::DEVOLVIDO_TRIAGEM], true)) {
+        if ($trabalho->status === Trabalho::AGUARDANDO_CORRECAO) {
+            return $trabalho->prazo_correcao && $trabalho->prazo_correcao->isPast()
+                ? 'O prazo de correção terminou em ' . $trabalho->prazo_correcao->format('d/m/Y H:i') . '. Procure a gestão do evento.'
+                : null;
+        }
+
+        if ($trabalho->status === Trabalho::DEVOLVIDO_TRIAGEM) {
             return null;
         }
 

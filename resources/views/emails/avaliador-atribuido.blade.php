@@ -7,6 +7,6 @@
     @if($avaliacao->prazo)
         <p>Prazo para concluir a avaliação: <strong>{{ $avaliacao->prazo->format('d/m/Y') }}</strong></p>
     @endif
-    <p>Acesse a plataforma para ver os trabalhos atribuídos a você: <a href="{{ route('dashboard') }}">Entrar</a>.</p>
+    <p>Acesse a plataforma para ver os trabalhos atribuídos a você: <a href="{{ route('avaliador.avaliacoes.index') }}">Minhas avaliações</a>.</p>
 </body>
 </html>
