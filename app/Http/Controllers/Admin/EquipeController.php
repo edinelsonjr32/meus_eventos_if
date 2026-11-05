@@ -64,8 +64,7 @@ class EquipeController extends Controller
             'evento_id' => $evento->id,
             'participante_id' => $participante->id,
             'funcao' => $request->funcao,
-            'carga_horaria' => $cargaHoraria, // Usa o valor tratado
-            'hash_certificado' => Str::uuid()
+            'carga_horaria_trabalho' => $cargaHoraria,
         ]);
 
         return back()->with('success', "{$participante->nome_completo} adicionado à equipe com sucesso!");
