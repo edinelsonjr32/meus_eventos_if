@@ -94,7 +94,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/evento/{evento}', [$c, 'index'])->name('index');
         Route::get('/evento/{evento}/config', [$c, 'config'])->name('config');
         Route::put('/evento/{evento}/config', [$c, 'updateConfig'])->name('config.update');
+        Route::get('/evento/{evento}/exportar', [$c, 'exportar'])->name('exportar');
+        Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
         Route::get('/{trabalho}', [$c, 'show'])->name('show');
+        Route::post('/{trabalho}/triagem', [$c, 'triagem'])->name('triagem');
+        Route::post('/{trabalho}/avaliadores', [$c, 'atribuir'])->name('avaliadores.store');
+        Route::delete('/{trabalho}/avaliadores/{avaliacao}', [$c, 'removerAvaliador'])->name('avaliadores.destroy');
     });
 
     // --- PERFIL DO USUÁRIO ---

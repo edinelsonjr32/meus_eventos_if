@@ -86,6 +86,11 @@ class Trabalho extends Model
         return $this->hasOne(TrabalhoArquivo::class)->where('ativo', true)->latestOfMany('versao');
     }
 
+    public function avaliacoes(): HasMany
+    {
+        return $this->hasMany(TrabalhoAvaliacao::class)->orderBy('id');
+    }
+
     public function historico(): HasMany
     {
         return $this->hasMany(TrabalhoHistorico::class)->orderBy('id');

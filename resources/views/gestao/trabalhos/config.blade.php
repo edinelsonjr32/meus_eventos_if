@@ -36,6 +36,14 @@
                             <label class="small fw-bold text-secondary">Fim da submissão</label>
                             <input type="datetime-local" name="submissao_fim" class="form-control" value="{{ old('submissao_fim', $config->submissao_fim?->format('Y-m-d\TH:i')) }}">
                         </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary">Prazo padrão das avaliações</label>
+                            <input type="datetime-local" name="avaliacao_fim" class="form-control" value="{{ old('avaliacao_fim', $config->avaliacao_fim?->format('Y-m-d\TH:i')) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary">Avaliadores por trabalho</label>
+                            <input type="number" min="1" max="10" name="avaliadores_por_trabalho" class="form-control" value="{{ old('avaliadores_por_trabalho', $config->avaliadores_por_trabalho ?? 2) }}" required>
+                        </div>
                     </div>
                 </div>
 

@@ -147,8 +147,8 @@ class TrabalhoController extends Controller
 
     private function bloqueioDeEdicao(Trabalho $trabalho): ?string
     {
-        // Correções solicitadas pela gestão podem ser enviadas mesmo após o fim da chamada
-        if ($trabalho->status === Trabalho::AGUARDANDO_CORRECAO) {
+        // Devoluções e correções solicitadas pela gestão podem ser enviadas mesmo após o fim da chamada
+        if (in_array($trabalho->status, [Trabalho::AGUARDANDO_CORRECAO, Trabalho::DEVOLVIDO_TRIAGEM], true)) {
             return null;
         }
 

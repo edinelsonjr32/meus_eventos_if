@@ -61,6 +61,11 @@ class User extends Authenticatable
             ->exists();
     }
 
+    public function avaliacoesAtribuidas()
+    {
+        return $this->hasMany(TrabalhoAvaliacao::class, 'avaliador_id');
+    }
+
     public function eventosAdministrados()
     {
         // Define a relação M-M, nome da tabela pivô e inclui a coluna 'role' da pivô

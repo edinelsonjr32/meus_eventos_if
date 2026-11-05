@@ -3,14 +3,19 @@
 namespace App\Services;
 
 use App\Http\Requests\SalvarTrabalhoRequest;
+use App\Mail\AvaliadorAtribuidoMail;
+use App\Mail\TrabalhoStatusMail;
 use App\Mail\TrabalhoSubmetidoMail;
 use App\Models\Evento;
 use App\Models\Participante;
 use App\Models\Trabalho;
 use App\Models\TrabalhoArquivo;
+use App\Models\TrabalhoAvaliacao;
 use App\Models\TrabalhoConfig;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -22,6 +27,20 @@ use Illuminate\Validation\ValidationException;
  */
 class TrabalhoWorkflow
 {
+    /** Transições da triagem feitas pela gestão: de => [para => exige justificativa]. */
+    public const TRANSICOES_GESTAO = [
+        Trabalho::SUBMETIDO => ['em_triagem' => false],
+        'resubmetido' => ['em_triagem' => false],
+        'em_triagem' => [
+            Trabalho::DEVOLVIDO_TRIAGEM => true,
+            'rejeitado_triagem' => true,
+            'em_avaliacao' => false,
+        ],
+    ];
+
+    /** Status em que ainda é possível atribuir ou remover avaliadores. */
+    public const STATUS_ATRIBUICAO = ['em_triagem', 'em_avaliacao'];
+
     /** Cria ou atualiza o trabalho (rascunho ou reenvio), seus autores e o PDF. */
     public function salvar(Evento $evento, User $user, array $dados, ?Trabalho $trabalho = null, ?UploadedFile $arquivo = null): Trabalho
     {
@@ -179,5 +198,160 @@ class TrabalhoWorkflow
             'enviado_por' => $user->id,
             'ativo' => true,
         ]);
+    }
+
+    // ------------------------------------------------------------------
+    // Triagem (gestão)
+    // ------------------------------------------------------------------
+
+    public function podeTransicionar(Trabalho $trabalho, string $para): bool
+    {
+        return isset(self::TRANSICOES_GESTAO[$trabalho->status][$para]);
+    }
+
+    /**
+     * Aplica uma transição da triagem, validando a matriz, a justificativa e (para a avaliação)
+     * a existência de avaliadores atribuídos. Avisa os autores nas devoluções e rejeições.
+     *
+     * @throws \DomainException quando a transição não é permitida
+     */
+    public function transicionar(Trabalho $trabalho, User $gestor, string $para, ?string $justificativa = null): Trabalho
+    {
+        if (!$this->podeTransicionar($trabalho, $para)) {
+            throw new \DomainException("Não é possível mudar o status de \"{$trabalho->statusRotulo()}\" para \"" . (Trabalho::STATUS[$para] ?? $para) . '".');
+        }
+
+        $justificativa = trim((string) $justificativa);
+        if (self::TRANSICOES_GESTAO[$trabalho->status][$para] && $justificativa === '') {
+            throw new \DomainException('Informe a justificativa para esta ação.');
+        }
+
+        if ($para === 'em_avaliacao' && $trabalho->avaliacoes()->where('status', '!=', 'recusada')->doesntExist()) {
+            throw new \DomainException('Atribua ao menos um avaliador antes de encaminhar para avaliação.');
+        }
+
+        DB::transaction(function () use ($trabalho, $gestor, $para, $justificativa) {
+            $de = $trabalho->status;
+            $trabalho->update(['status' => $para]);
+            $this->registrar($trabalho, $gestor, $de, $para, $justificativa !== '' ? $justificativa : null);
+        });
+
+        if (in_array($para, [Trabalho::DEVOLVIDO_TRIAGEM, 'rejeitado_triagem'], true)) {
+            $this->avisarAutores($trabalho, $para === Trabalho::DEVOLVIDO_TRIAGEM
+                ? 'Seu trabalho foi devolvido para ajustes'
+                : 'Resultado da triagem do seu trabalho', $justificativa, $para === Trabalho::DEVOLVIDO_TRIAGEM);
+        }
+
+        return $trabalho->fresh();
+    }
+
+    private function avisarAutores(Trabalho $trabalho, string $assunto, string $justificativa, bool $podeEditar): void
+    {
+        $trabalho->loadMissing(['autores', 'evento', 'submetente']);
+
+        $emails = $trabalho->autores->pluck('email')->push($trabalho->submetente->email)
+            ->map(fn ($e) => mb_strtolower($e))->unique();
+
+        foreach ($emails as $email) {
+            Mail::to($email)->queue(new TrabalhoStatusMail($trabalho, $assunto, $justificativa, $podeEditar));
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Avaliadores
+    // ------------------------------------------------------------------
+
+    /** Avaliadores designados ao evento, com a carga atual de avaliações abertas (menor carga primeiro). */
+    public function avaliadoresDoEvento(Evento $evento): Collection
+    {
+        return User::query()
+            ->whereIn('users.id', DB::table('evento_user')->where('evento_id', $evento->id)->where('role', Evento::PAPEL_AVALIADOR)->select('user_id'))
+            ->withCount(['avaliacoesAtribuidas as carga' => fn ($q) => $q->whereIn('status', ['pendente', 'em_andamento'])
+                ->whereHas('trabalho', fn ($t) => $t->where('evento_id', $evento->id))])
+            ->orderBy('carga')->orderBy('name')
+            ->get();
+    }
+
+    /** Descreve o conflito de interesse entre o avaliador e o trabalho, ou null se não houver. */
+    public function conflitoDeInteresse(Trabalho $trabalho, User $avaliador): ?string
+    {
+        $trabalho->loadMissing('autores');
+
+        if ($trabalho->submetido_por === $avaliador->id) {
+            return 'é o responsável pela submissão do trabalho';
+        }
+
+        $emails = $trabalho->autores->pluck('email')->map(fn ($e) => mb_strtolower($e));
+        if ($emails->contains(mb_strtolower($avaliador->email))) {
+            return 'consta como autor do trabalho (e-mail)';
+        }
+
+        $cpf = $avaliador->participante?->cpf;
+        if ($cpf && $trabalho->autores->pluck('cpf')->contains($cpf)) {
+            return 'consta como autor do trabalho (CPF)';
+        }
+
+        return null;
+    }
+
+    /**
+     * @throws \DomainException
+     */
+    public function atribuirAvaliador(Trabalho $trabalho, User $avaliador, User $gestor, ?Carbon $prazo = null): TrabalhoAvaliacao
+    {
+        if (!in_array($trabalho->status, self::STATUS_ATRIBUICAO, true)) {
+            throw new \DomainException('Só é possível atribuir avaliadores a trabalhos em triagem ou em avaliação.');
+        }
+
+        $designado = DB::table('evento_user')->where([
+            'evento_id' => $trabalho->evento_id, 'user_id' => $avaliador->id, 'role' => Evento::PAPEL_AVALIADOR,
+        ])->exists();
+        if (!$designado) {
+            throw new \DomainException("{$avaliador->name} não é avaliador deste evento.");
+        }
+
+        if ($motivo = $this->conflitoDeInteresse($trabalho, $avaliador)) {
+            throw new \DomainException("Conflito de interesse: {$avaliador->name} {$motivo}.");
+        }
+
+        $rodada = max(1, (int) $trabalho->avaliacoes()->max('rodada'));
+
+        if ($trabalho->avaliacoes()->where('avaliador_id', $avaliador->id)->where('rodada', $rodada)->exists()) {
+            throw new \DomainException("{$avaliador->name} já está atribuído a este trabalho.");
+        }
+
+        $prazo ??= $trabalho->evento->trabalhoConfig?->avaliacao_fim ?? now()->addDays(14);
+
+        $avaliacao = DB::transaction(function () use ($trabalho, $avaliador, $gestor, $prazo, $rodada) {
+            $avaliacao = $trabalho->avaliacoes()->create([
+                'avaliador_id' => $avaliador->id, 'rodada' => $rodada, 'status' => 'pendente',
+                'atribuido_por' => $gestor->id, 'prazo' => $prazo,
+            ]);
+            $this->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, "Avaliador atribuído: {$avaliador->name}");
+
+            return $avaliacao;
+        });
+
+        Mail::to($avaliador->email)->queue(new AvaliadorAtribuidoMail($trabalho->loadMissing('evento'), $avaliacao));
+
+        return $avaliacao;
+    }
+
+    /**
+     * @throws \DomainException
+     */
+    public function removerAvaliacao(TrabalhoAvaliacao $avaliacao, User $gestor): void
+    {
+        if ($avaliacao->status !== 'pendente') {
+            throw new \DomainException('Só é possível remover avaliações ainda não iniciadas.');
+        }
+
+        $trabalho = $avaliacao->trabalho;
+        $nome = $avaliacao->avaliador->name;
+
+        DB::transaction(function () use ($avaliacao, $trabalho, $gestor, $nome) {
+            $avaliacao->delete();
+            $this->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, "Avaliador removido: {$nome}");
+        });
     }
 }

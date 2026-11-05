@@ -73,6 +73,10 @@
                 </div>
 
                 <div class="col-lg-4">
+                    @if($gestao)
+                        @include('gestao.trabalhos._painel')
+                    @endif
+
                     <div class="glass-card bg-white mb-4">
                         <h6 class="fw-bold text-success mb-3">Arquivo</h6>
                         @if($trabalho->arquivoAtual)
