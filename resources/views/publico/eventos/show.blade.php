@@ -144,6 +144,12 @@
                     <i class="fa-solid fa-home me-1"></i> Tela Inicial
                 </a>
 
+                @if(optional($evento->trabalhoConfig)->estaAberta())
+                    <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-sm btn-warning fw-bold px-3 shadow-sm text-dark">
+                        <i class="fa-solid fa-file-arrow-up me-1"></i> Submeter Trabalho
+                    </a>
+                @endif
+
                 @auth
                     <a href="{{ route('dashboard') }}" class="btn btn-sm btn-light fw-bold px-3 shadow-sm text-dark">
                         <i class="fa-solid fa-user-circle me-1"></i> Minha Área
@@ -156,6 +162,10 @@
             </div>
         </div>
     </nav>
+
+    @if(session('error'))
+        <div class="container mt-3"><div class="alert alert-warning shadow-sm mb-0">{{ session('error') }}</div></div>
+    @endif
 
     <header class="event-hero">
         <div class="hero-pattern"></div>

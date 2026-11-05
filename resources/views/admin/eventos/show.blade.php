@@ -20,6 +20,10 @@
             <a href="{{ route('admin.eventos.equipe.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
                 <i class="fa-solid fa-people-group me-2"></i> Equipe
             </a>
+            <a href="{{ route('gestao.trabalhos.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
+                <i class="fa-solid fa-inbox me-1"></i> Trabalhos
+            </a>
+
             <a href="{{ route('admin.eventos.papeis.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
                 <i class="fa-solid fa-user-shield me-1"></i> Papéis
             </a>

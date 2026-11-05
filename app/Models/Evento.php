@@ -46,6 +46,35 @@ class Evento extends Model
         });
     }
 
+    /**
+     * Eventos em que o usuário gere trabalhos: dono, co-administrador ou gestor de trabalhos.
+     */
+    public function scopeGestaoTrabalhosPor($query, User $user)
+    {
+        return $query->where(function ($q) use ($user) {
+            $q->where('criado_por', $user->id)
+                ->orWhereHas('administradoresSecundarios', function ($u) use ($user) {
+                    $u->where('users.id', $user->id)
+                        ->whereIn('evento_user.role', [self::PAPEL_EDITOR, self::PAPEL_GESTOR_TRABALHOS]);
+                });
+        });
+    }
+
+    public function trabalhoConfig()
+    {
+        return $this->hasOne(TrabalhoConfig::class);
+    }
+
+    public function areasTematicas()
+    {
+        return $this->hasMany(AreaTematica::class)->orderBy('ordem')->orderBy('nome');
+    }
+
+    public function trabalhos()
+    {
+        return $this->hasMany(Trabalho::class);
+    }
+
     public function assinaturas()
     {
         return $this->hasMany(Assinatura::class);

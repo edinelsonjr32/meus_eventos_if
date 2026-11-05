@@ -26,7 +26,7 @@ services:
             - mailpit
     queue:
         image: 'sail-8.5/app'
-        command: 'php artisan queue:work --tries=3 --sleep=3 --timeout=120'
+        command: 'php artisan queue:listen --tries=3 --sleep=3 --timeout=120'
         restart: unless-stopped
         environment:
             WWWUSER: '${WWWUSER}'

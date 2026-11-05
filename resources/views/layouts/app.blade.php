@@ -152,6 +152,16 @@
                 <i class="fa-solid fa-calendar-check w-25 text-center"></i> Minha Agenda
             </a>
 
+            <a href="{{ route('trabalhos.index') }}" class="nav-link {{ request()->routeIs('trabalhos.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-lines w-25 text-center"></i> Meus Trabalhos
+            </a>
+
+            @if(Auth::user()->role !== 'admin' && \App\Models\Evento::gestaoTrabalhosPor(Auth::user())->exists())
+                <a href="{{ route('gestao.trabalhos.eventos') }}" class="nav-link {{ request()->routeIs('gestao.trabalhos.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-inbox w-25 text-center"></i> Gestão de Trabalhos
+                </a>
+            @endif
+
             @if(Auth::user()->role === 'admin')
                 <div class="mt-4 pt-4 border-top border-secondary border-opacity-25">
                     <small class="text-uppercase text-warning fw-bold mb-2 px-3" style="font-size: 0.7rem; letter-spacing: 1px;">
@@ -164,6 +174,10 @@
 
                     <a href="{{ route('admin.eventos.index') }}" class="nav-link {{ request()->routeIs('admin.eventos*') ? 'active' : '' }}">
                         <i class="fa-solid fa-layer-group w-25 text-center"></i> Meus Eventos
+                    </a>
+
+                    <a href="{{ route('gestao.trabalhos.eventos') }}" class="nav-link {{ request()->routeIs('gestao.trabalhos.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-inbox w-25 text-center"></i> Trabalhos
                     </a>
 
                     <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">

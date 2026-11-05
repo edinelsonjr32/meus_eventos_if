@@ -77,6 +77,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/atividade/{atividade}/toggle', [AgendaController::class, 'toggleAtividade'])->name('atividade.toggle');
     });
 
+    // --- TRABALHOS (autor) ---
+    Route::get('/minha-area/trabalhos', [\App\Http\Controllers\TrabalhoController::class, 'index'])->name('trabalhos.index');
+    Route::get('/e/{slug}/trabalhos/submeter', [\App\Http\Controllers\TrabalhoController::class, 'create'])->name('trabalhos.create');
+    Route::post('/e/{slug}/trabalhos', [\App\Http\Controllers\TrabalhoController::class, 'store'])->name('trabalhos.store');
+    Route::get('/trabalhos/{trabalho}', [\App\Http\Controllers\TrabalhoController::class, 'show'])->name('trabalhos.show');
+    Route::get('/trabalhos/{trabalho}/editar', [\App\Http\Controllers\TrabalhoController::class, 'edit'])->name('trabalhos.edit');
+    Route::put('/trabalhos/{trabalho}', [\App\Http\Controllers\TrabalhoController::class, 'update'])->name('trabalhos.update');
+    Route::get('/trabalhos/{trabalho}/arquivo', [\App\Http\Controllers\TrabalhoController::class, 'arquivo'])->name('trabalhos.arquivo');
+    Route::post('/trabalhos/{trabalho}/retirar', [\App\Http\Controllers\TrabalhoController::class, 'retirar'])->name('trabalhos.retirar');
+
+    // --- GESTÃO DE TRABALHOS (gestor de trabalhos, dono e co-administradores; autorização por Policy) ---
+    Route::prefix('gestao/trabalhos')->name('gestao.trabalhos.')->group(function () {
+        $c = \App\Http\Controllers\Gestao\TrabalhoGestaoController::class;
+        Route::get('/', [$c, 'eventos'])->name('eventos');
+        Route::get('/evento/{evento}', [$c, 'index'])->name('index');
+        Route::get('/evento/{evento}/config', [$c, 'config'])->name('config');
+        Route::put('/evento/{evento}/config', [$c, 'updateConfig'])->name('config.update');
+        Route::get('/{trabalho}', [$c, 'show'])->name('show');
+    });
+
     // --- PERFIL DO USUÁRIO ---
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
