@@ -19,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Presença de um autor apresentador na sessão do trabalho confirma a apresentação
+        \App\Models\Frequencia::created(function (\App\Models\Frequencia $frequencia) {
+            app(\App\Services\ApresentacaoService::class)->sincronizarPorFrequencia($frequencia);
+        });
+
         //
     }
 }

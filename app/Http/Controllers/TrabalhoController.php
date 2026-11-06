@@ -89,7 +89,7 @@ class TrabalhoController extends Controller
     {
         $this->authorize('view', $trabalho);
 
-        $trabalho->load(['evento.trabalhoConfig', 'autores', 'arquivos', 'historico', 'area', 'avaliacoes' => fn ($q) => $q->select(['id', 'trabalho_id', 'status', 'parecer', 'nota_final', 'rodada'])]);
+        $trabalho->load(['evento.trabalhoConfig', 'autores', 'arquivos', 'historico', 'area', 'certificados.autor', 'avaliacoes' => fn ($q) => $q->select(['id', 'trabalho_id', 'status', 'parecer', 'nota_final', 'rodada'])]);
 
         return view('trabalhos.show', compact('trabalho'));
     }

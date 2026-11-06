@@ -14,6 +14,9 @@
                     <a href="{{ route('gestao.trabalhos.exportar', array_merge(['evento' => $evento->id, 'formato' => 'csv'], request()->only(['status', 'tipo', 'area', 'q']))) }}" class="btn btn-outline-secondary fw-bold">
                         <i class="fa-solid fa-file-csv me-1"></i> CSV
                     </a>
+                    <a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}" class="btn btn-outline-success fw-bold">
+                        <i class="fa-solid fa-award me-1"></i> Certificados
+                    </a>
                     <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-outline-secondary fw-bold">
                         <i class="fa-solid fa-sliders me-1"></i> Configurar chamada
                     </a>

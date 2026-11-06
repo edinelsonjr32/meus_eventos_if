@@ -210,3 +210,83 @@
     @endif
 </div>
 @endif
+
+
+{{-- Apresentação e certificados --}}
+@if($trabalho->status === 'aprovado' || $trabalho->certificados->isNotEmpty())
+<div class="glass-card bg-white mb-4">
+    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-person-chalkboard me-1"></i> Apresentação</h6>
+
+    <div class="small mb-2">
+        @if($trabalho->apresentado)
+            <span class="badge bg-success">Apresentado</span>
+            <span class="text-muted">{{ $trabalho->apresentado_em?->format('d/m/Y H:i') }} · {{ $trabalho->apresentacao_origem === 'frequencia' ? 'confirmado pela frequência' : 'registrado pela gestão' }}</span>
+        @else
+            <span class="badge bg-secondary">Não apresentado</span>
+        @endif
+    </div>
+
+    @if($trabalho->status === 'aprovado')
+        <form action="{{ route('gestao.trabalhos.apresentacao', $trabalho) }}" method="POST" class="mb-2">
+            @csrf
+            <label class="small fw-bold text-secondary">Sessão de apresentação</label>
+            <div class="d-flex gap-2">
+                <select name="atividade_id" class="form-select form-select-sm">
+                    <option value="">— sem sessão —</option>
+                    @foreach($certificacao['atividades'] as $at)
+                        <option value="{{ $at->id }}" @selected($trabalho->atividade_id === $at->id)>{{ $at->titulo }} ({{ $at->data_inicio->format('d/m H:i') }})</option>
+                    @endforeach
+                </select>
+                <button name="acao" value="sessao" class="btn btn-sm btn-outline-secondary fw-bold">Salvar</button>
+            </div>
+            <div class="form-text">Com sessão definida, a presença do autor apresentador na atividade confirma a apresentação automaticamente.</div>
+        </form>
+
+        <form action="{{ route('gestao.trabalhos.apresentacao', $trabalho) }}" method="POST">
+            @csrf
+            @if($trabalho->apresentado)
+                <button name="acao" value="desmarcar" class="btn btn-sm btn-light text-danger w-100" onclick="return confirm('Desmarcar a apresentação?')">Desmarcar apresentação</button>
+            @else
+                <button name="acao" value="marcar" class="btn btn-sm btn-success w-100 fw-bold"><i class="fa-solid fa-check me-1"></i> Marcar como apresentado</button>
+            @endif
+        </form>
+    @endif
+</div>
+
+<div class="glass-card bg-white mb-4">
+    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-award me-1"></i> Certificados</h6>
+
+    @forelse($trabalho->certificados as $c)
+        <div class="small mb-2 pb-2 border-bottom">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <div class="fw-bold">{{ $c->autor->nome_completo }}</div>
+                    <div class="text-muted">{{ $c->funcaoRotulo() }} · {{ $c->hash_validacao }} · {{ $c->downloads }} download(s)</div>
+                    @if($c->revogado()) <span class="badge bg-danger">Revogado: {{ $c->revogado_motivo }}</span> @endif
+                </div>
+                @unless($c->revogado())
+                    <a href="{{ route('certificado.trabalho.download', $c->hash_validacao) }}" target="_blank" class="btn btn-sm btn-light" title="Baixar"><i class="fa-solid fa-download"></i></a>
+                @endunless
+            </div>
+            @unless($c->revogado())
+                <form action="{{ route('gestao.trabalhos.certificados.revogar', $c) }}" method="POST" class="d-flex gap-1 mt-1">
+                    @csrf
+                    <input type="text" name="motivo" class="form-control form-control-sm" placeholder="Motivo da revogação" maxlength="250" required>
+                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Revogar este certificado?')">Revogar</button>
+                </form>
+            @endunless
+        </div>
+    @empty
+        <p class="small text-muted">Nenhum certificado emitido.</p>
+    @endforelse
+
+    @if($certificacao['motivo'])
+        <div class="alert alert-light border small py-2 mb-0">Ainda não elegível: {{ $certificacao['motivo'] }}.</div>
+    @elseif($trabalho->certificados->count() < $trabalho->autores->count())
+        <form action="{{ route('gestao.trabalhos.certificados.emitir', $trabalho) }}" method="POST">
+            @csrf
+            <button class="btn btn-sm btn-primary-custom w-100 fw-bold"><i class="fa-solid fa-paper-plane me-1"></i> Emitir certificados e avisar autores</button>
+        </form>
+    @endif
+</div>
+@endif

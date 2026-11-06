@@ -15,8 +15,17 @@ class TrabalhoConfig extends Model
         'poster' => 'Pôster',
     ];
 
+    public const CERT_CABECALHO_PADRAO = "Ministério da Educação\nInstituto Federal do Pará - Campus Óbidos";
+
+    public const CERT_CORPO_PADRAO = 'Certificamos que <b>{AUTOR}</b>, CPF {CPF}, participou como <b>{TIPO_AUTOR}</b> do trabalho "<b>{TITULO_TRABALHO}</b>" ({TIPO_TRABALHO}, código {CODIGO_TRABALHO}), apresentado no evento <b>{EVENTO}</b>, em {DATA_APRESENTACAO}.{COAUTORES}';
+
+    public const CERT_VARIAVEIS = [
+        '{AUTOR}', '{CPF}', '{TIPO_AUTOR}', '{TITULO_TRABALHO}', '{TIPO_TRABALHO}', '{AREA}', '{COAUTORES}',
+        '{EVENTO}', '{DATA_APRESENTACAO}', '{CODIGO_TRABALHO}',
+    ];
+
     protected $fillable = [
-        'evento_id', 'ativo', 'submissao_inicio', 'submissao_fim', 'avaliacao_fim', 'avaliadores_por_trabalho', 'nota_minima_aprovacao', 'divergencia_maxima', 'autor_ve_notas', 'autor_ve_pareceres', 'max_autores', 'max_arquivo_mb',
+        'evento_id', 'ativo', 'submissao_inicio', 'submissao_fim', 'avaliacao_fim', 'avaliadores_por_trabalho', 'nota_minima_aprovacao', 'divergencia_maxima', 'autor_ve_notas', 'autor_ve_pareceres', 'exige_apresentacao_para_certificado', 'cert_trab_cabecalho', 'cert_trab_corpo', 'cert_trab_rodape', 'max_autores', 'max_arquivo_mb',
         'resumo_min_palavras', 'resumo_max_palavras', 'max_trabalhos_por_usuario', 'avaliacao_cega',
         'tipos_permitidos', 'regras_texto',
     ];
@@ -26,6 +35,7 @@ class TrabalhoConfig extends Model
         'avaliacao_cega' => 'boolean',
         'autor_ve_notas' => 'boolean',
         'autor_ve_pareceres' => 'boolean',
+        'exige_apresentacao_para_certificado' => 'boolean',
         'nota_minima_aprovacao' => 'float',
         'divergencia_maxima' => 'float',
         'submissao_inicio' => 'datetime',

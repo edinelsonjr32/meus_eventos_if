@@ -111,6 +111,24 @@
                         @endif
                     @endunless
 
+                    @unless($gestao)
+                        @php $certificadosAutor = $trabalho->certificados->whereNull('revogado_em'); @endphp
+                        @if($certificadosAutor->isNotEmpty())
+                            <div class="glass-card bg-white mb-4">
+                                <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-award me-1"></i> Certificados</h6>
+                                @foreach($certificadosAutor as $c)
+                                    <div class="d-flex justify-content-between align-items-center small mb-2 pb-2 border-bottom">
+                                        <div>
+                                            <div class="fw-bold">{{ $c->autor->nome_completo }}</div>
+                                            <div class="text-muted">{{ $c->funcaoRotulo() }}</div>
+                                        </div>
+                                        <a href="{{ route('certificado.trabalho.download', $c->hash_validacao) }}" target="_blank" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-download me-1"></i> PDF</a>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endunless
+
                     <div class="glass-card bg-white mb-4">
                         <h6 class="fw-bold text-success mb-3">Arquivo</h6>
                         @if($trabalho->arquivoAtual)

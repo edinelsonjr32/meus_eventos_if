@@ -49,16 +49,21 @@ class CertificadoController extends Controller
         $textoRodape = $evento->cert_rodape ?? "";
 
         // Dicionário de Substituição (De -> Para)
+        // Valores vindos de formulários públicos (nome, atividade...) são SEMPRE escapados:
+        // evita injeção de HTML no PDF (incluindo <img> remotas, já que o DomPDF busca recursos externos).
         $tags = [
-            '{PARTICIPANTE}'    => mb_strtoupper($participante->nome_completo),
-            '{CPF}'             => $participante->cpf,
-            '{ATIVIDADE}'       => $atividade->titulo,
-            '{EVENTO}'          => $evento->titulo,
-            '{CARGA_HORARIA}'   => $atividade->carga_horaria,
-            '{DATA_EVENTO}'     => $atividade->data_inicio->format('d/m/Y'),
-            '{DATA_EMISSAO}'    => $frequencia->created_at->format('d/m/Y'),
-            '{TIPO_PARTICIPACAO}' => mb_strtoupper($frequencia->tipo_participacao == 'ouvinte' ? 'ouvinte' : $frequencia->tipo_participacao),
+            '{PARTICIPANTE}'    => e(mb_strtoupper($participante->nome_completo)),
+            '{CPF}'             => e($participante->cpf),
+            '{ATIVIDADE}'       => e($atividade->titulo),
+            '{EVENTO}'          => e($evento->titulo),
+            '{CARGA_HORARIA}'   => e($atividade->carga_horaria),
+            '{DATA_EVENTO}'     => e($atividade->data_inicio->format('d/m/Y')),
+            '{DATA_EMISSAO}'    => e($frequencia->created_at->format('d/m/Y')),
+            '{TIPO_PARTICIPACAO}' => e(mb_strtoupper($frequencia->tipo_participacao == 'ouvinte' ? 'ouvinte' : $frequencia->tipo_participacao)),
         ];
+
+        // O modelo do texto (escrito pela gestão) só aceita formatação básica
+        $textoCorpoRaw = strip_tags($textoCorpoRaw, '<b><strong><i><em><u><br>');
 
         // Realiza a troca das variáveis no texto
         $textoCorpoProcessado = str_replace(array_keys($tags), array_values($tags), $textoCorpoRaw);

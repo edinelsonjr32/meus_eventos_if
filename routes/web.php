@@ -50,6 +50,12 @@ Route::get('/frequencia/{token}', [FrequenciaController::class, 'index'])->name(
 Route::get('/frequencia/{token}/csrf', [FrequenciaController::class, 'csrf'])->name('frequencia.csrf');
 Route::post('/frequencia/{token}', [FrequenciaController::class, 'store'])->name('frequencia.store');
 
+// Certificados de trabalhos (código aleatório; limite de requisições contra enumeração)
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/certificado-trabalho/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'validar'])->name('certificado.trabalho.validar');
+    Route::get('/certificado-trabalho/download/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'download'])->name('certificado.trabalho.download');
+});
+
 // Validação e Download de Certificados
 Route::get('/certificado/validar/{hash}', [CertificadoController::class, 'validar'])->name('certificado.validar');
 Route::get('/certificado/download/{hash}', [CertificadoController::class, 'download'])->name('certificado.download');
@@ -105,6 +111,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/evento/{evento}', [$c, 'index'])->name('index');
         Route::get('/evento/{evento}/config', [$c, 'config'])->name('config');
         Route::put('/evento/{evento}/config', [$c, 'updateConfig'])->name('config.update');
+        $a = \App\Http\Controllers\Gestao\ApresentacaoCertificadoController::class;
+        Route::get('/evento/{evento}/certificados', [$a, 'index'])->name('certificados.index');
+        Route::post('/evento/{evento}/certificados/lote', [$a, 'lote'])->name('certificados.lote');
+        Route::post('/certificados/{certificado}/revogar', [$a, 'revogar'])->name('certificados.revogar');
         Route::get('/evento/{evento}/exportar', [$c, 'exportar'])->name('exportar');
         Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
         Route::get('/{trabalho}', [$c, 'show'])->name('show');
@@ -114,6 +124,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{trabalho}/decisao', [$c, 'decisao'])->name('decisao');
         Route::post('/{trabalho}/prorrogar-correcao', [$c, 'prorrogarCorrecao'])->name('prorrogar');
         Route::post('/{trabalho}/reavaliar', [$c, 'reavaliar'])->name('reavaliar');
+        Route::post('/{trabalho}/apresentacao', [$a, 'apresentacao'])->name('apresentacao');
+        Route::post('/{trabalho}/certificados', [$a, 'emitir'])->name('certificados.emitir');
         Route::delete('/{trabalho}/avaliadores/{avaliacao}', [$c, 'removerAvaliador'])->name('avaliadores.destroy');
     });
 

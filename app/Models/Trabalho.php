@@ -45,8 +45,9 @@ class Trabalho extends Model
 
     protected $fillable = [
         'evento_id', 'codigo', 'submetido_por', 'titulo', 'resumo', 'abstract', 'palavras_chave', 'tipo_trabalho',
-        'area_tematica_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
+        'area_tematica_id', 'atividade_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
         'status', 'nota_final', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
+        'apresentado', 'apresentado_em', 'apresentacao_origem',
         'autoriza_publicacao', 'autorizou_em', 'submetido_em',
     ];
 
@@ -57,6 +58,8 @@ class Trabalho extends Model
         'submetido_em' => 'datetime',
         'decisao_em' => 'datetime',
         'prazo_correcao' => 'datetime',
+        'apresentado' => 'boolean',
+        'apresentado_em' => 'datetime',
         'nota_final' => 'float',
     ];
 
@@ -73,6 +76,17 @@ class Trabalho extends Model
     public function area(): BelongsTo
     {
         return $this->belongsTo(AreaTematica::class, 'area_tematica_id');
+    }
+
+    /** Sessão (atividade) em que o trabalho é apresentado. */
+    public function sessao(): BelongsTo
+    {
+        return $this->belongsTo(Atividade::class, 'atividade_id');
+    }
+
+    public function certificados(): HasMany
+    {
+        return $this->hasMany(CertificadoTrabalho::class);
     }
 
     public function autores(): HasMany

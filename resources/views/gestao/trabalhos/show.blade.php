@@ -1,1 +1,1 @@
-@include('trabalhos.show', ['gestao' => true, 'avaliadores' => $avaliadores, 'acoesTriagem' => $acoesTriagem, 'podeAtribuir' => $podeAtribuir, 'resultado' => $resultado])
+@include('trabalhos.show', ['gestao' => true, 'avaliadores' => $avaliadores, 'acoesTriagem' => $acoesTriagem, 'podeAtribuir' => $podeAtribuir, 'resultado' => $resultado, 'certificacao' => $certificacao])

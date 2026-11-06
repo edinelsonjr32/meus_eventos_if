@@ -143,6 +143,23 @@
                 </div>
 
                 <div class="glass-card bg-white mb-4">
+                    <h6 class="fw-bold text-success mb-3">Certificados dos trabalhos</h6>
+                    <div class="form-check form-switch mb-3">
+                        <input type="hidden" name="exige_apresentacao_para_certificado" value="0">
+                        <input class="form-check-input" type="checkbox" name="exige_apresentacao_para_certificado" value="1" id="exigeApr" @checked(old('exige_apresentacao_para_certificado', $config->exige_apresentacao_para_certificado ?? true))>
+                        <label class="form-check-label" for="exigeApr">Emitir certificado somente para trabalhos <strong>aprovados e apresentados</strong></label>
+                    </div>
+                    <label class="small fw-bold text-secondary">Cabeçalho</label>
+                    <textarea name="cert_trab_cabecalho" rows="2" class="form-control mb-3" placeholder="{{ \App\Models\TrabalhoConfig::CERT_CABECALHO_PADRAO }}">{{ old('cert_trab_cabecalho', $config->cert_trab_cabecalho) }}</textarea>
+                    <label class="small fw-bold text-secondary">Texto do certificado</label>
+                    <textarea name="cert_trab_corpo" rows="5" class="form-control mb-1" placeholder="{{ \App\Models\TrabalhoConfig::CERT_CORPO_PADRAO }}">{{ old('cert_trab_corpo', $config->cert_trab_corpo) }}</textarea>
+                    <div class="form-text mb-3">Variáveis: <code>{{ implode('  ', \App\Models\TrabalhoConfig::CERT_VARIAVEIS) }}</code>. Formatação permitida: &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;br&gt;. Vazio usa o texto padrão.</div>
+                    <label class="small fw-bold text-secondary">Rodapé</label>
+                    <textarea name="cert_trab_rodape" rows="2" class="form-control">{{ old('cert_trab_rodape', $config->cert_trab_rodape) }}</textarea>
+                    <div class="form-text">Fundo, brasão e assinaturas são os mesmos configurados no certificado do evento.</div>
+                </div>
+
+                <div class="glass-card bg-white mb-4">
                     <h6 class="fw-bold text-success mb-3">Áreas temáticas</h6>
                     <textarea name="areas" rows="6" class="form-control" placeholder="Uma área por linha">{{ old('areas', $areas) }}</textarea>
                     <div class="form-text">Uma por linha. Remover uma área desvincula os trabalhos que a usam.</div>

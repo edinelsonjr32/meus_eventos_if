@@ -10,6 +10,7 @@ use App\Exports\TrabalhosExport;
 use App\Models\CriterioAvaliacao;
 use App\Models\TrabalhoAvaliacao;
 use App\Services\AvaliacaoService;
+use App\Services\CertificadoTrabalhoService;
 use App\Models\TrabalhoConfig;
 use App\Services\TrabalhoWorkflow;
 use Carbon\Carbon;
@@ -23,7 +24,7 @@ use Illuminate\Validation\Rule;
  */
 class TrabalhoGestaoController extends Controller
 {
-    public function __construct(private TrabalhoWorkflow $workflow, private AvaliacaoService $avaliacao)
+    public function __construct(private TrabalhoWorkflow $workflow, private AvaliacaoService $avaliacao, private CertificadoTrabalhoService $certificados)
     {
     }
 
@@ -103,7 +104,12 @@ class TrabalhoGestaoController extends Controller
         $acoesTriagem = collect(TrabalhoWorkflow::TRANSICOES_GESTAO[$trabalho->status] ?? []);
         $podeAtribuir = in_array($trabalho->status, TrabalhoWorkflow::STATUS_ATRIBUICAO, true);
 
-        $trabalho->load('avaliacoes.notas.criterio');
+        $trabalho->load(['avaliacoes.notas.criterio', 'certificados.autor', 'sessao']);
+        $certificacao = [
+            'atividades' => $trabalho->evento->atividades()->orderBy('data_inicio')->get(),
+            'motivo' => $this->certificados->motivoInelegivel($trabalho),
+            'exigeApresentacao' => $trabalho->evento->trabalhoConfig?->exige_apresentacao_para_certificado ?? true,
+        ];
         $rodada = $trabalho->rodadaAtual();
         $resultado = [
             'rodada' => $rodada,
@@ -117,7 +123,7 @@ class TrabalhoGestaoController extends Controller
             'notaMinima' => $trabalho->evento->trabalhoConfig?->nota_minima_aprovacao ?? 7,
         ];
 
-        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado'));
+        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao'));
     }
 
     // ------------------------------------------------------------------
@@ -341,6 +347,10 @@ class TrabalhoGestaoController extends Controller
             'divergencia_maxima' => ['required', 'numeric', 'min:0', 'max:10'],
             'autor_ve_notas' => ['nullable', 'boolean'],
             'autor_ve_pareceres' => ['nullable', 'boolean'],
+            'exige_apresentacao_para_certificado' => ['nullable', 'boolean'],
+            'cert_trab_cabecalho' => ['nullable', 'string', 'max:1000'],
+            'cert_trab_corpo' => ['nullable', 'string', 'max:5000'],
+            'cert_trab_rodape' => ['nullable', 'string', 'max:1000'],
             'criterios' => ['nullable', 'array', 'max:15'],
             'criterios.*.id' => ['nullable', 'integer'],
             'criterios.*.nome' => ['required', 'string', 'max:255'],
@@ -374,6 +384,10 @@ class TrabalhoGestaoController extends Controller
                 'divergencia_maxima' => $dados['divergencia_maxima'],
                 'autor_ve_notas' => (bool) ($dados['autor_ve_notas'] ?? false),
                 'autor_ve_pareceres' => (bool) ($dados['autor_ve_pareceres'] ?? false),
+                'exige_apresentacao_para_certificado' => (bool) ($dados['exige_apresentacao_para_certificado'] ?? false),
+                'cert_trab_cabecalho' => $dados['cert_trab_cabecalho'] ?? null,
+                'cert_trab_corpo' => $dados['cert_trab_corpo'] ?? null,
+                'cert_trab_rodape' => $dados['cert_trab_rodape'] ?? null,
                 'max_autores' => $dados['max_autores'],
                 'max_arquivo_mb' => $dados['max_arquivo_mb'],
                 'resumo_min_palavras' => $dados['resumo_min_palavras'],
