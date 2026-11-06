@@ -101,12 +101,19 @@ class Trabalho extends Model
 
     public function arquivoAtual(): HasOne
     {
-        return $this->hasOne(TrabalhoArquivo::class)->where('ativo', true)->latestOfMany('versao');
+        // O filtro vai DENTRO da subconsulta: senão um arquivo inativo de versão maior (ex.: PDF final dos Anais) esconderia o ativo
+        return $this->hasOne(TrabalhoArquivo::class)->ofMany(['versao' => 'max'], fn ($q) => $q->where('ativo', true));
     }
 
     public function avaliacoes(): HasMany
     {
         return $this->hasMany(TrabalhoAvaliacao::class)->orderBy('id');
+    }
+
+    /** PDF final preparado pela gestão para os Anais (por exemplo, versão com identificação dos autores). */
+    public function arquivoAnais(): HasOne
+    {
+        return $this->hasOne(TrabalhoArquivo::class)->ofMany(['versao' => 'max'], fn ($q) => $q->where('tipo', 'final_anais'));
     }
 
     public function historico(): HasMany

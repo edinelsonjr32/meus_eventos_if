@@ -34,6 +34,16 @@ Route::get('/', function () {
     return view('welcome', compact('proximosEventos'));
 })->name('home');
 
+// Anais de Trabalhos (públicos somente após a publicação pela gestão)
+Route::prefix('e/{slug}/anais')->name('anais.')->middleware('throttle:anais')->group(function () {
+    $c = \App\Http\Controllers\Publico\AnaisController::class;
+    Route::get('/', [$c, 'index'])->name('index');
+    Route::get('/pdf', [$c, 'pdfAnais'])->name('pdf');
+    Route::get('/{codigo}', [$c, 'show'])->name('show');
+    Route::get('/{codigo}/pdf', [$c, 'pdfTrabalho'])->name('trabalho.pdf');
+    Route::post('/{codigo}/certificado', [$c, 'certificado'])->middleware('throttle:anais-certificado')->name('certificado');
+});
+
 // Landing Pages de Eventos Específicos & Inscrição
 Route::prefix('e')->group(function () {
     Route::get('/{slug}', [EventoPublicoController::class, 'show'])->name('evento.publico.show');
@@ -115,6 +125,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/evento/{evento}/certificados', [$a, 'index'])->name('certificados.index');
         Route::post('/evento/{evento}/certificados/lote', [$a, 'lote'])->name('certificados.lote');
         Route::post('/certificados/{certificado}/revogar', [$a, 'revogar'])->name('certificados.revogar');
+        $n = \App\Http\Controllers\Gestao\AnaisGestaoController::class;
+        Route::get('/evento/{evento}/anais', [$n, 'edit'])->name('anais.edit');
+        Route::put('/evento/{evento}/anais', [$n, 'update'])->name('anais.update');
+        Route::post('/evento/{evento}/anais/gerar', [$n, 'gerar'])->name('anais.gerar');
+        Route::get('/evento/{evento}/anais/pdf', [$n, 'pdf'])->name('anais.pdf');
+        Route::post('/evento/{evento}/anais/publicar', [$n, 'publicar'])->name('anais.publicar');
+        Route::post('/evento/{evento}/anais/despublicar', [$n, 'despublicar'])->name('anais.despublicar');
         Route::get('/evento/{evento}/exportar', [$c, 'exportar'])->name('exportar');
         Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
         Route::get('/{trabalho}', [$c, 'show'])->name('show');
@@ -124,6 +141,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{trabalho}/decisao', [$c, 'decisao'])->name('decisao');
         Route::post('/{trabalho}/prorrogar-correcao', [$c, 'prorrogarCorrecao'])->name('prorrogar');
         Route::post('/{trabalho}/reavaliar', [$c, 'reavaliar'])->name('reavaliar');
+        Route::post('/{trabalho}/arquivo-final', [$n, 'arquivoFinal'])->name('arquivo-final');
+        Route::get('/{trabalho}/arquivo-final', [$n, 'baixarFinal'])->name('arquivo-final.baixar');
         Route::post('/{trabalho}/apresentacao', [$a, 'apresentacao'])->name('apresentacao');
         Route::post('/{trabalho}/certificados', [$a, 'emitir'])->name('certificados.emitir');
         Route::delete('/{trabalho}/avaliadores/{avaliacao}', [$c, 'removerAvaliador'])->name('avaliadores.destroy');

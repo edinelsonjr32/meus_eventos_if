@@ -144,6 +144,12 @@
                     <i class="fa-solid fa-home me-1"></i> Tela Inicial
                 </a>
 
+                @if(optional($evento->anais)->publicado())
+                    <a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-sm btn-outline-light fw-bold px-3 shadow-sm">
+                        <i class="fa-solid fa-book me-1"></i> Anais
+                    </a>
+                @endif
+
                 @if(optional($evento->trabalhoConfig)->estaAberta())
                     <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-sm btn-warning fw-bold px-3 shadow-sm text-dark">
                         <i class="fa-solid fa-file-arrow-up me-1"></i> Submeter Trabalho

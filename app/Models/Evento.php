@@ -60,6 +60,11 @@ class Evento extends Model
         });
     }
 
+    public function anais()
+    {
+        return $this->hasOne(Anais::class);
+    }
+
     public function trabalhoConfig()
     {
         return $this->hasOne(TrabalhoConfig::class);
