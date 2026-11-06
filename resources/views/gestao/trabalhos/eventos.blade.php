@@ -6,13 +6,20 @@
 
             @forelse($eventos as $evento)
                 <div class="glass-card bg-white mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    @php $sit = \App\Models\TrabalhoConfig::situacaoDe($evento->trabalhoConfig); @endphp
                     <div>
                         <div class="fw-bold">{{ $evento->titulo }}</div>
-                        <small class="text-muted">{{ $evento->data_inicio->format('d/m/Y') }} · {{ $evento->total_trabalhos }} trabalho(s) submetido(s)</small>
+                        <small class="text-muted">{{ $evento->data_inicio->format('d/m/Y') }}
+                            @if($evento->trabalhoConfig) · {{ $evento->total_trabalhos }} trabalho(s) submetido(s) @endif</small>
+                        <div><span class="badge bg-{{ $sit['cor'] }} {{ in_array($sit['cor'], ['warning', 'info']) ? 'text-dark' : '' }}">{{ $sit['rotulo'] }}</span></div>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('gestao.trabalhos.index', $evento) }}" class="btn btn-primary-custom btn-sm fw-bold">Trabalhos</a>
-                        <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-outline-secondary btn-sm fw-bold">Configurar chamada</a>
+                        @if($evento->trabalhoConfig)
+                            <a href="{{ route('gestao.trabalhos.index', $evento) }}" class="btn btn-primary-custom btn-sm fw-bold">Trabalhos</a>
+                            <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-outline-secondary btn-sm fw-bold">Editar chamada</a>
+                        @else
+                            <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-primary-custom btn-sm fw-bold"><i class="fa-solid fa-plus me-1"></i> Criar chamada de trabalhos</a>
+                        @endif
                     </div>
                 </div>
             @empty

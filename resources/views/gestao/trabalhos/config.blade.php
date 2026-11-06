@@ -7,9 +7,27 @@
                     <i class="fa-solid fa-arrow-left"></i>
                 </a>
                 <div>
-                    <h3 class="fw-bold m-0">Configurar chamada de trabalhos</h3>
+                    <h3 class="fw-bold m-0">{{ $config->exists ? 'Editar chamada de trabalhos' : 'Criar chamada de trabalhos' }}</h3>
                     <small class="text-secondary">{{ $evento->titulo }}</small>
                 </div>
+            </div>
+
+            @php $sit = \App\Models\TrabalhoConfig::situacaoDe($config->exists ? $config : null); @endphp
+            <div class="glass-card bg-white mb-4">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <strong>Situação:</strong>
+                    <span class="badge bg-{{ $sit['cor'] }} {{ in_array($sit['cor'], ['warning', 'info']) ? 'text-dark' : '' }}">{{ $sit['rotulo'] }}</span>
+                </div>
+                <p class="small text-secondary mb-2">{{ $sit['descricao'] }}</p>
+                <ol class="small text-secondary mb-0 ps-3">
+                    <li><strong>Configure</strong> o período, as categorias, as regras e os textos abaixo.</li>
+                    <li><strong>Publique</strong> a chamada: o botão <em>Submeter Trabalho</em> aparece na página do evento e em "Meus Trabalhos" dos participantes, dentro do período definido.</li>
+                    <li>Acompanhe as submissões em <em>Trabalhos</em>, faça a triagem, distribua aos avaliadores e publique os Anais.</li>
+                </ol>
+                @if($config->exists && $config->ativo)
+                    <div class="small mt-2">Página pública do evento: <a href="{{ route('evento.publico.show', $evento->slug) }}" target="_blank">{{ route('evento.publico.show', $evento->slug) }}</a><br>
+                        Link direto do formulário: <a href="{{ route('trabalhos.create', $evento->slug) }}" target="_blank">{{ route('trabalhos.create', $evento->slug) }}</a></div>
+                @endif
             </div>
 
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
@@ -26,7 +44,7 @@
                     <div class="form-check form-switch mb-3">
                         <input type="hidden" name="ativo" value="0">
                         <input class="form-check-input" type="checkbox" name="ativo" value="1" id="ativo" @checked(old('ativo', $config->ativo))>
-                        <label class="form-check-label fw-bold" for="ativo">Chamada ativa (aceitando submissões dentro do período)</label>
+                        <label class="form-check-label fw-bold" for="ativo">Chamada publicada (aceita submissões dentro do período abaixo)</label>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -206,8 +224,15 @@
                     <textarea name="regras_texto" rows="8" class="form-control">{{ old('regras_texto', $config->regras_texto) }}</textarea>
                 </div>
 
-                <div class="text-end mb-5">
-                    <button class="btn btn-primary-custom fw-bold px-4"><i class="fa-regular fa-floppy-disk me-1"></i> Salvar configuração</button>
+                <div class="d-flex flex-wrap gap-2 justify-content-end mb-5">
+                    <button name="acao" value="salvar" class="btn btn-outline-secondary fw-bold px-4">
+                        <i class="fa-regular fa-floppy-disk me-1"></i> {{ $config->exists ? 'Salvar' : 'Salvar como rascunho' }}
+                    </button>
+                    @unless($config->exists && $config->ativo)
+                        <button name="acao" value="publicar" class="btn btn-primary-custom fw-bold px-4" onclick="return confirm('Publicar a chamada? Os participantes poderão submeter trabalhos dentro do período definido.')">
+                            <i class="fa-solid fa-bullhorn me-1"></i> Salvar e publicar chamada
+                        </button>
+                    @endunless
                 </div>
             </form>
         </div>

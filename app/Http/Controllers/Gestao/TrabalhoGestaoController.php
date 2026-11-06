@@ -60,6 +60,7 @@ class TrabalhoGestaoController extends Controller
     public function eventos(Request $request)
     {
         $eventos = Evento::gestaoTrabalhosPor($request->user())
+            ->with('trabalhoConfig')
             ->withCount(['trabalhos as total_trabalhos' => fn ($q) => $q->where('status', '!=', Trabalho::RASCUNHO)])
             ->orderByDesc('data_inicio')
             ->get();
@@ -338,6 +339,7 @@ class TrabalhoGestaoController extends Controller
         $this->authorize('gerirTrabalhos', $evento);
 
         $dados = $request->validate([
+            'acao' => ['nullable', Rule::in(['salvar', 'publicar'])],
             'ativo' => ['nullable', 'boolean'],
             'submissao_inicio' => ['nullable', 'date'],
             'submissao_fim' => ['nullable', 'date', 'after_or_equal:submissao_inicio'],
@@ -380,9 +382,12 @@ class TrabalhoGestaoController extends Controller
             'submissao_fim.after_or_equal' => 'O fim da submissão deve ser posterior ao início.',
         ]);
 
+        $eraNova = !$evento->trabalhoConfig()->exists();
+
         DB::transaction(function () use ($evento, $dados) {
             TrabalhoConfig::updateOrCreate(['evento_id' => $evento->id], [
-                'ativo' => (bool) ($dados['ativo'] ?? false),
+                // "Salvar e publicar" abre a chamada; "Salvar" respeita a chave "Chamada publicada"
+                'ativo' => ($dados['acao'] ?? 'salvar') === 'publicar' ? true : (bool) ($dados['ativo'] ?? false),
                 'submissao_inicio' => $dados['submissao_inicio'] ?? null,
                 'submissao_fim' => $dados['submissao_fim'] ?? null,
                 'avaliacao_fim' => $dados['avaliacao_fim'] ?? null,
@@ -418,7 +423,17 @@ class TrabalhoGestaoController extends Controller
             }
         });
 
-        return redirect()->route('gestao.trabalhos.config', $evento)->with('success', 'Configuração da chamada salva.');
+        $config = $evento->trabalhoConfig()->first();
+        $situacao = TrabalhoConfig::situacaoDe($config);
+
+        $mensagem = match (true) {
+            $eraNova && $config->ativo => 'Chamada criada e publicada! ' . $situacao['descricao'],
+            $eraNova => 'Chamada criada como rascunho. Quando estiver pronta, clique em "Salvar e publicar chamada".',
+            ($dados['acao'] ?? '') === 'publicar' => 'Chamada publicada. ' . $situacao['descricao'],
+            default => 'Configuração da chamada salva. Situação: ' . mb_strtolower($situacao['rotulo']) . '.',
+        };
+
+        return redirect()->route('gestao.trabalhos.config', $evento)->with('success', $mensagem);
     }
 
     /**

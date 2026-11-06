@@ -53,6 +53,36 @@
         </div>
     </div>
 
+    @php
+        $chamada = $evento->trabalhoConfig;
+        $sit = \App\Models\TrabalhoConfig::situacaoDe($chamada);
+        $totalTrabalhos = $evento->trabalhos()->where('status', '!=', 'rascunho')->count();
+    @endphp
+    <div class="glass-card bg-white mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h5 class="fw-bold m-0"><i class="fa-solid fa-file-circle-plus text-success me-2"></i> Chamada de trabalhos</h5>
+                <span class="badge bg-{{ $sit['cor'] }} {{ in_array($sit['cor'], ['warning', 'info']) ? 'text-dark' : '' }}">{{ $sit['rotulo'] }}</span>
+            </div>
+            <div class="small text-secondary">{{ $sit['descricao'] }}
+                @if($chamada) · {{ $totalTrabalhos }} trabalho(s) submetido(s) @endif</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            @if(!$chamada)
+                <a href="{{ route('gestao.trabalhos.config', $evento->id) }}" class="btn btn-primary-custom fw-bold shadow-sm">
+                    <i class="fa-solid fa-plus me-1"></i> Criar chamada de trabalhos
+                </a>
+            @else
+                <a href="{{ route('gestao.trabalhos.config', $evento->id) }}" class="btn btn-outline-secondary fw-bold">
+                    <i class="fa-solid fa-sliders me-1"></i> Editar chamada
+                </a>
+                <a href="{{ route('gestao.trabalhos.index', $evento->id) }}" class="btn btn-primary-custom fw-bold shadow-sm">
+                    <i class="fa-solid fa-inbox me-1"></i> Ver trabalhos
+                </a>
+            @endif
+        </div>
+    </div>
+
     <div class="row g-4">
 
         <div class="col-lg-4">

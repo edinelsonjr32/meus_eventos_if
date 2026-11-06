@@ -53,6 +53,35 @@ class TrabalhoConfig extends Model
         return $this->belongsTo(Evento::class);
     }
 
+    /**
+     * Situação da chamada de trabalhos de um evento: nao_criada | rascunho | em_breve | aberta | encerrada.
+     * Aceita null (evento ainda sem chamada).
+     *
+     * @return array{chave:string,rotulo:string,cor:string,descricao:string}
+     */
+    public static function situacaoDe(?self $config): array
+    {
+        if (!$config) {
+            return ['chave' => 'nao_criada', 'rotulo' => 'Chamada não criada', 'cor' => 'secondary',
+                'descricao' => 'Este evento ainda não recebe trabalhos. Crie a chamada para abrir as submissões.'];
+        }
+        if (!$config->ativo) {
+            return ['chave' => 'rascunho', 'rotulo' => 'Rascunho (não publicada)', 'cor' => 'warning',
+                'descricao' => 'A chamada foi configurada, mas ainda não está visível ao público. Publique para abrir as submissões.'];
+        }
+        if ($config->submissao_inicio && now()->lt($config->submissao_inicio)) {
+            return ['chave' => 'em_breve', 'rotulo' => 'Publicada — abre em ' . $config->submissao_inicio->format('d/m/Y H:i'), 'cor' => 'info',
+                'descricao' => 'Publicada, mas o período de submissão ainda não começou.'];
+        }
+        if ($config->submissao_fim && now()->gt($config->submissao_fim)) {
+            return ['chave' => 'encerrada', 'rotulo' => 'Submissões encerradas', 'cor' => 'dark',
+                'descricao' => 'O prazo de submissão terminou em ' . $config->submissao_fim->format('d/m/Y H:i') . '.'];
+        }
+
+        return ['chave' => 'aberta', 'rotulo' => 'Chamada aberta', 'cor' => 'success',
+            'descricao' => 'Os autores já podem submeter trabalhos' . ($config->submissao_fim ? ' até ' . $config->submissao_fim->format('d/m/Y H:i') : '') . '.'];
+    }
+
     /** Chamada ativa e dentro do período de submissão. */
     public function estaAberta(): bool
     {

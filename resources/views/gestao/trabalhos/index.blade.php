@@ -21,7 +21,7 @@
                         <i class="fa-solid fa-award me-1"></i> Certificados
                     </a>
                     <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-outline-secondary fw-bold">
-                        <i class="fa-solid fa-sliders me-1"></i> Configurar chamada
+                        <i class="fa-solid fa-sliders me-1"></i> {{ $config ? 'Editar chamada' : 'Criar chamada' }}
                     </a>
                 </div>
             </div>
@@ -33,9 +33,15 @@
                 <div class="alert alert-warning small"><ul class="mb-0 ps-3">@foreach(session('erros_lote') as $erro) <li>{{ $erro }}</li> @endforeach</ul></div>
             @endif
 
-            @if(!$config || !$config->estaAberta())
-                <div class="alert alert-warning small">A chamada está <strong>fechada</strong> (inativa ou fora do período). Ajuste em "Configurar chamada".</div>
-            @endif
+            @php $sit = \App\Models\TrabalhoConfig::situacaoDe($config); @endphp
+            <div class="alert alert-{{ $sit['cor'] === 'dark' ? 'secondary' : $sit['cor'] }} d-flex flex-wrap justify-content-between align-items-center gap-2 small">
+                <div><strong>{{ $sit['rotulo'] }}.</strong> {{ $sit['descricao'] }}</div>
+                @if(!$config)
+                    <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-sm btn-primary-custom fw-bold"><i class="fa-solid fa-plus me-1"></i> Criar chamada de trabalhos</a>
+                @elseif($sit['chave'] === 'rascunho')
+                    <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-sm btn-dark fw-bold">Revisar e publicar</a>
+                @endif
+            </div>
 
             <div class="d-flex flex-wrap gap-2 mb-3">
                 @foreach($contagem as $status => $total)
