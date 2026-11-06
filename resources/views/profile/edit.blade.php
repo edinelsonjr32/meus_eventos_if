@@ -10,6 +10,11 @@
 
     <div class="py-8">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @foreach(['warning' => 'alert-warning', 'error' => 'alert-danger', 'info' => 'alert-info'] as $chave => $classe)
+                @if(session($chave))
+                    <div class="alert {{ $classe }} shadow-sm" role="alert">{{ session($chave) }}</div>
+                @endif
+            @endforeach
 
             <div class="glass-card p-6 flex items-center gap-6 bg-white border border-gray-100">
                 <div class="h-24 w-24 rounded-full bg-emerald-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">

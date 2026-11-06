@@ -62,13 +62,18 @@
                 <div class="position-relative d-flex flex-column flex-md-row align-items-center justify-content-between gap-4">
                     <div class="d-flex align-items-center gap-4 text-center text-md-start">
                         <div class="bg-white text-success rounded-circle d-flex align-items-center justify-content-center shadow-lg" style="width: 80px; height: 80px; font-size: 2rem; font-weight: bold;">
-                            {{ substr($participante->nome_completo, 0, 1) }}
+                            {{ mb_strtoupper(mb_substr($participante->nome_completo ?? $user->name, 0, 1)) }}
                         </div>
                         <div>
-                            <h2 class="fw-bold m-0 mb-1">{{ $participante->nome_completo }}</h2>
+                            <h2 class="fw-bold m-0 mb-1">{{ $participante->nome_completo ?? $user->name }}</h2>
                             <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-md-start opacity-75 small">
-                                <span><i class="fa-regular fa-id-card me-1"></i> {{ $participante->cpf }}</span>
-                                <span><i class="fa-solid fa-graduation-cap me-1"></i> {{ ucfirst($participante->tipo_vinculo) }}</span>
+                                @if($participante)
+                                    <span><i class="fa-regular fa-id-card me-1"></i> {{ $participante->cpf }}</span>
+                                    <span><i class="fa-solid fa-graduation-cap me-1"></i> {{ ucfirst($participante->tipo_vinculo) }}</span>
+                                @else
+                                    <span><i class="fa-regular fa-envelope me-1"></i> {{ $user->email }}</span>
+                                    <span><i class="fa-solid fa-triangle-exclamation me-1"></i> Cadastro de participante incompleto</span>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -78,12 +83,22 @@
                             <div class="small text-uppercase tracking-wide opacity-75">Eventos</div>
                         </div>
                         <div class="stat-box">
-                            <div class="fs-2 fw-bold">{{ $participante->frequencias->count() }}</div>
+                            <div class="fs-2 fw-bold">{{ $participante ? $participante->frequencias->count() : 0 }}</div>
                             <div class="small text-uppercase tracking-wide opacity-75">Certificados</div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            @unless($participante)
+                <div class="alert alert-warning border-0 shadow-sm mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div>
+                        <strong><i class="fa-solid fa-id-card me-1"></i> Complete seu cadastro para usar a agenda.</strong>
+                        <div class="small">A agenda mostra os eventos em que você se inscreveu e as atividades que escolheu. Para isso, precisamos do seu CPF: informe-o em "Minha Conta". Se você só submete trabalhos ou avalia, pode ignorar este aviso.</div>
+                    </div>
+                    <a href="{{ route('profile.edit') }}" class="btn btn-dark fw-bold text-nowrap">Informar meu CPF</a>
+                </div>
+            @endunless
 
             @if($eventosInscritos->isEmpty())
                 <div class="glass-card text-center py-5">
@@ -91,7 +106,7 @@
                         <i class="fa-regular fa-calendar-xmark fs-1 text-secondary opacity-25"></i>
                     </div>
                     <h4 class="fw-bold text-dark">Sua agenda está vazia</h4>
-                    <p class="text-secondary mb-4">Inscreva-se em eventos para liberar atividades.</p>
+                    <p class="text-secondary mb-4">Inscreva-se em eventos para liberar atividades. Você também pode submeter trabalhos em "Meus Trabalhos".</p>
                     <a href="{{ route('home') }}" class="btn btn-primary-custom shadow-sm px-4">Ver Eventos Disponíveis</a>
                 </div>
             @else

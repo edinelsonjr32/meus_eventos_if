@@ -15,20 +15,19 @@ class AgendaController extends Controller
         $user = Auth::user();
         $participante = $user->participante;
 
-        if (!$participante) {
-            return redirect()->route('profile.edit')
-                ->with('warning', 'Para acessar sua agenda, complete seu cadastro informando seu CPF.');
-        }
+        // Sem cadastro de participante (CPF) não há inscrições: a página abre mesmo assim,
+        // explicando como completar o cadastro (antes redirecionava em silêncio para "Minha Conta")
+        $eventosInscritos = $participante
+            ? Evento::whereHas('inscricoes', function ($q) use ($participante) {
+                $q->where('participante_id', $participante->id);
+            })
+                ->with(['atividades' => function ($q) {
+                    $q->orderBy('data_inicio');
+                }])
+                ->get()
+            : collect();
 
-        $eventosInscritos = Evento::whereHas('inscricoes', function ($q) use ($participante) {
-            $q->where('participante_id', $participante->id);
-        })
-            ->with(['atividades' => function ($q) {
-                $q->orderBy('data_inicio');
-            }])
-            ->get();
-
-        return view('inscrito.dashboard', compact('eventosInscritos', 'participante'));
+        return view('inscrito.dashboard', compact('eventosInscritos', 'participante', 'user'));
     }
 
     public function toggleAtividade(Atividade $atividade)
