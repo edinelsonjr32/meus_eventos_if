@@ -21,6 +21,12 @@ class EventoTesteSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->isProduction()) {
+            $this->command?->error('Seeder de dados de teste bloqueado em produção (cria usuários com senhas conhecidas).');
+
+            return;
+        }
+
         $admin = User::where('email', 'admin@teste.com')->first();
         if (!$admin) {
             $admin = User::create(['name' => 'Admin Teste', 'email' => 'admin@teste.com', 'password' => 'Admin@12345']);

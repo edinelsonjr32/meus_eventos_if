@@ -20,6 +20,12 @@ class TrabalhosTesteSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->isProduction()) {
+            $this->command?->error('Seeder de dados de teste bloqueado em produção (cria usuários com senhas conhecidas).');
+
+            return;
+        }
+
         $evento = Evento::where('slug', 'semana-de-tecnologia-2026')->first();
         if (!$evento) {
             $this->command?->error('Rode antes: php artisan db:seed --class=EventoTesteSeeder');

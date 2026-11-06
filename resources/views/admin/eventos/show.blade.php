@@ -236,7 +236,7 @@
                                         <h6 class="text-secondary mb-3">{{ $atividade->titulo }}</h6>
 
                                         <div class="bg-white p-3 border rounded-3 d-inline-block mb-3 shadow-sm">
-                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ urlencode($linkPresenca) }}"
+                                            <img src="data:image/svg+xml;base64,{{ base64_encode((string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(250)->margin(0)->generate($linkPresenca)) }}"
                                                  alt="QR Code" class="img-fluid" width="250">
                                         </div>
 

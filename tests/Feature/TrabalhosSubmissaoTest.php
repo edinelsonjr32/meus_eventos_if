@@ -168,16 +168,17 @@ it('padroniza o CPF dos autores e vincula participante existente sem alterá-lo'
 });
 
 // ---------- Chamada ----------
-it('bloqueia nova submissão com chamada inativa, não iniciada ou encerrada', function (array $config) {
-    $this->config->update($config);
+it('bloqueia nova submissão com chamada inativa, não iniciada ou encerrada', function (Closure $config) {
+    // O fuso horário só existe depois que o app sobe: as datas são calculadas aqui dentro (não no dataset)
+    $this->config->update($config());
 
     $this->actingAs($this->autor)->post($this->url, dadosValidos())->assertRedirect(route('evento.publico.show', $this->evento->slug));
     $this->actingAs($this->autor)->get(route('trabalhos.create', $this->evento->slug))->assertRedirect();
     expect(Trabalho::count())->toBe(0);
 })->with([
-    'inativa' => [['ativo' => false]],
-    'ainda não começou' => [['submissao_inicio' => now()->addDay(), 'submissao_fim' => now()->addDays(5)]],
-    'encerrada' => [['submissao_inicio' => now()->subDays(5), 'submissao_fim' => now()->subMinute()]],
+    'inativa' => [fn () => ['ativo' => false]],
+    'ainda não começou' => [fn () => ['submissao_inicio' => now()->addDay(), 'submissao_fim' => now()->addDays(5)]],
+    'encerrada' => [fn () => ['submissao_inicio' => now()->subDays(5), 'submissao_fim' => now()->subMinute()]],
 ]);
 
 it('respeita o limite de trabalhos por usuário', function () {

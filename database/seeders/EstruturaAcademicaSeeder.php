@@ -2,36 +2,26 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Curso;
+use Illuminate\Database\Seeder;
 
+/** Cursos e turmas. Idempotente: pode ser executado novamente sem duplicar registros. */
 class EstruturaAcademicaSeeder extends Seeder
 {
+    private const ESTRUTURA = [
+        'Técnico em Informática' => ['2022', '2023', '2024'],
+        'Técnico em Meio Ambiente' => ['2024'],
+        'Tecnologia em ADS' => ['2021', '2022', '2023', '2024'],
+    ];
+
     public function run(): void
     {
-        // Curso 1
-        $info = Curso::create(['nome' => 'Técnico em Informática']);
-        $info->turmas()->createMany([
-            ['ano' => '2022'], // 3º Ano
-            ['ano' => '2023'], // 2º Ano
-            ['ano' => '2024'], // 1º Ano
-        ]);
+        foreach (self::ESTRUTURA as $nome => $anos) {
+            $curso = Curso::firstOrCreate(['nome' => $nome]);
 
-        // Curso 2
-        $meio = Curso::create(['nome' => 'Técnico em Meio Ambiente']);
-        $meio->turmas()->createMany([
-            ['ano' => '2024'],
-        ]);
-
-
-        
-        // Curso 3 (Superior)
-        $ads = Curso::create(['nome' => 'Tecnologia em ADS']);
-        $ads->turmas()->createMany([
-            ['ano' => '2021'],
-            ['ano' => '2022'],
-            ['ano' => '2023'],
-            ['ano' => '2024'],
-        ]);
+            foreach ($anos as $ano) {
+                $curso->turmas()->firstOrCreate(['ano' => $ano]);
+            }
+        }
     }
 }

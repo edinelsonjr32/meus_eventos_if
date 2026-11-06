@@ -207,7 +207,7 @@
             </div>
 
             <div class="qr-code-container">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data={{ $participante->cpf }}&bgcolor=ffffff&color=000000&margin=0" class="qr-code-img" alt="QR Code">
+                <img src="data:image/svg+xml;base64,{{ base64_encode((string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(80)->margin(0)->generate($participante->cpf)) }}" class="qr-code-img" alt="QR Code">
             </div>
         </div>
     </div>

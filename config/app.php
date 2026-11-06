@@ -65,7 +65,13 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'America/Belem'),
+
+    /*
+    | Pasta pública, quando diferente de "<app>/public" (hospedagem compartilhada: /home/CONTA/public_html).
+    | Vale também para o terminal (php artisan storage:link cria o link na pasta certa).
+    */
+    'public_path' => env('PUBLIC_PATH'),
 
     /*
     |--------------------------------------------------------------------------

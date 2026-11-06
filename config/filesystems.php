@@ -85,7 +85,8 @@ return [
     */
 
     'links' => [
-        public_path('storage') => storage_path('app/public'),
+        // Hospedagem compartilhada: o link nasce na pasta pública configurada (PUBLIC_PATH), não em <app>/public
+        (env('PUBLIC_PATH') ? rtrim(env('PUBLIC_PATH'), '/') : public_path()) . '/storage' => storage_path('app/public'),
     ],
 
 ];

@@ -11,7 +11,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Hospedagem compartilhada: a pasta pública (public_html) fica fora da pasta do aplicativo
+        if ($publica = config('app.public_path')) {
+            $this->app->usePublicPath($publica);
+        }
     }
 
     /**
@@ -19,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Em produção com APP_URL https, todos os links e redirecionamentos saem em https
+        if ($this->app->isProduction() && str_starts_with((string) config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Limites independentes (um contador por finalidade) para as rotas públicas dos Anais
         \Illuminate\Support\Facades\RateLimiter::for('anais', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->ip()));
         \Illuminate\Support\Facades\RateLimiter::for('anais-certificado', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(10)->by($request->ip()));

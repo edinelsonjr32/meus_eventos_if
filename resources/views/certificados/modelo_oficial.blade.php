@@ -106,7 +106,7 @@
         @endif
 
         <div class="footer-validation">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ route('certificado.validar', $frequencia->hash_validacao) }}" class="qr-code">
+            <img src="data:image/svg+xml;base64,{{ base64_encode((string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(150)->margin(0)->generate(route('certificado.validar', $frequencia->hash_validacao))) }}" class="qr-code">
 
             <strong>Registro de Autenticidade:</strong> {{ $frequencia->hash_validacao }} <br>
             Verifique em: {{ route('certificado.validar', $frequencia->hash_validacao) }}<br>
