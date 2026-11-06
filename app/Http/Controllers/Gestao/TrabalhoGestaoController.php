@@ -366,9 +366,16 @@ class TrabalhoGestaoController extends Controller
             'tipos_permitidos' => ['required', 'array', 'min:1'],
             'tipos_permitidos.*' => [Rule::in(array_keys(TrabalhoConfig::TIPOS))],
             'regras_texto' => ['nullable', 'string', 'max:10000'],
+            'chamada_tema' => ['nullable', 'string', 'max:255'],
+            'chamada_intro' => ['nullable', 'string', 'max:5000'],
+            'template_url' => ['nullable', 'url', 'max:500'],
+            'exige_resumo' => ['nullable', 'boolean'],
+            'exige_palavras_chave' => ['nullable', 'boolean'],
+            'exige_cpf_apresentador' => ['nullable', 'boolean'],
             'areas' => ['nullable', 'string', 'max:5000'],
         ], [
-            'tipos_permitidos.required' => 'Selecione ao menos um tipo de trabalho.',
+            'tipos_permitidos.required' => 'Selecione ao menos uma categoria de trabalho.',
+            'template_url.url' => 'O link do template deve ser uma URL completa (https://...).',
             'resumo_max_palavras.gte' => 'O máximo de palavras deve ser maior ou igual ao mínimo.',
             'submissao_fim.after_or_equal' => 'O fim da submissão deve ser posterior ao início.',
         ]);
@@ -396,6 +403,12 @@ class TrabalhoGestaoController extends Controller
                 'avaliacao_cega' => (bool) ($dados['avaliacao_cega'] ?? false),
                 'tipos_permitidos' => array_values($dados['tipos_permitidos']),
                 'regras_texto' => $dados['regras_texto'] ?? null,
+                'chamada_tema' => $dados['chamada_tema'] ?? null,
+                'chamada_intro' => $dados['chamada_intro'] ?? null,
+                'template_url' => $dados['template_url'] ?? null,
+                'exige_resumo' => (bool) ($dados['exige_resumo'] ?? false),
+                'exige_palavras_chave' => (bool) ($dados['exige_palavras_chave'] ?? false),
+                'exige_cpf_apresentador' => (bool) ($dados['exige_cpf_apresentador'] ?? false),
             ]);
 
             $this->sincronizarAreas($evento, $dados['areas'] ?? '');

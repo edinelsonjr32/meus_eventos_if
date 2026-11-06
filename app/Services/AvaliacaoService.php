@@ -277,7 +277,7 @@ class AvaliacaoService
         });
 
         $trabalho->load(['autores', 'evento', 'submetente']);
-        $emails = $trabalho->autores->pluck('email')->push($trabalho->submetente->email)->map(fn ($e) => mb_strtolower($e))->unique();
+        $emails = $trabalho->autores->pluck('email')->filter()->push($trabalho->submetente->email)->map(fn ($e) => mb_strtolower($e))->unique();
         foreach ($emails as $email) {
             Mail::to($email)->queue(new TrabalhoDecisaoMail($trabalho, $decisao));
         }

@@ -80,7 +80,11 @@ class CertificadoTrabalhoService
 
         foreach ($novos as $certificado) {
             $certificado->setRelation('trabalho', $trabalho);
-            Mail::to($certificado->autor->email)->queue(new CertificadoTrabalhoMail($certificado));
+            // Autores cadastrados só com nome e instituição não têm e-mail: o certificado fica disponível
+            // para o responsável pela submissão em "Meus Trabalhos" e para a gestão
+            if ($certificado->autor->email) {
+                Mail::to($certificado->autor->email)->queue(new CertificadoTrabalhoMail($certificado));
+            }
         }
 
         return $novos;
@@ -137,10 +141,12 @@ class CertificadoTrabalhoService
         // Valores variáveis SEMPRE escapados; o modelo (escrito pela gestão) só aceita tags básicas
         $valores = [
             '{AUTOR}' => e(mb_strtoupper($autor->nome_completo)),
-            '{CPF}' => e($autor->cpf),
+            '{CPF}' => e((string) $autor->cpf),
             '{TIPO_AUTOR}' => e(mb_strtolower($certificado->funcaoRotulo())),
             '{TITULO_TRABALHO}' => e($trabalho->titulo),
             '{TIPO_TRABALHO}' => e(mb_strtolower(TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? 'trabalho')),
+            '{CATEGORIA}' => e(mb_strtolower(TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? 'trabalho')),
+            '{INSTITUICAO}' => e((string) $autor->instituicao),
             '{AREA}' => e($trabalho->area->nome ?? ''),
             '{COAUTORES}' => $coautores->isEmpty() ? '' : ' Coautoria: ' . e($coautores->implode(', ')) . '.',
             '{EVENTO}' => e($trabalho->evento->titulo),
@@ -149,6 +155,11 @@ class CertificadoTrabalhoService
         ];
 
         $corpo = $config?->cert_trab_corpo ?: TrabalhoConfig::CERT_CORPO_PADRAO;
+
+        // Sem CPF informado, remove o trecho "CPF {CPF}" em vez de deixar um vazio no certificado
+        if (blank($autor->cpf)) {
+            $corpo = preg_replace('/,?\s*CPF[\s:nº°.]*\{CPF\}\s*,?/iu', ' ', $corpo);
+        }
 
         return [
             'cabecalho' => e($config?->cert_trab_cabecalho ?: TrabalhoConfig::CERT_CABECALHO_PADRAO),

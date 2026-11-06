@@ -270,9 +270,9 @@ it('exporta apenas trabalhos submetidos, respeitando filtros', function () {
     Excel::fake();
     Excel::matchByRegex();
     $rascunho = $this->w->salvar($this->evento, $this->autor, ['titulo' => 'Rascunho oculto', 'autores' => []]);
-    $outro = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Outro tipo', 'tipo_trabalho' => 'artigo_completo']);
+    $outro = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Outro tipo', 'tipo_trabalho' => 'extensao']);
 
-    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.exportar', ['evento' => $this->evento, 'formato' => 'xlsx', 'tipo' => 'artigo_completo']))->assertOk();
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.exportar', ['evento' => $this->evento, 'formato' => 'xlsx', 'tipo' => 'extensao']))->assertOk();
 
     Excel::assertDownloaded(
         '/^trabalhos-.*\.xlsx$/',
@@ -308,7 +308,7 @@ it('neutraliza injeção de fórmulas na exportação', function () {
 
 // ---------- Configuração ----------
 it('valida e salva os novos campos de avaliação da chamada', function () {
-    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo'], 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
+    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa'], 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
 
     $this->actingAs($this->gestor)->put(route('gestao.trabalhos.config.update', $this->evento), array_merge($base, ['avaliadores_por_trabalho' => 0]))
         ->assertSessionHasErrors('avaliadores_por_trabalho');

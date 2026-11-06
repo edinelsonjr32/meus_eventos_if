@@ -1,23 +1,83 @@
 @php
     $editando = $trabalho->exists;
     $action = $editando ? route('trabalhos.update', $trabalho) : route('trabalhos.store', $evento->slug);
-    $tipos = $config->tiposHabilitados();
+    $categorias = $config->tiposHabilitados();
     $arquivoAtual = $editando ? $trabalho->arquivoAtual : null;
+
+    $exigeResumo = $config->exige_resumo ?? true;
+    $exigePalavras = $config->exige_palavras_chave ?? true;
+    $exigeCpf = $config->exige_cpf_apresentador ?? true;
+    $tema = $config->chamada_tema;
+    $templateUrl = $config->template_url;
+
+    // Seção que contém o primeiro erro de validação do servidor (para reabrir o formulário no lugar certo)
+    $chavesComErro = collect($errors->keys());
+    $passoInicial = 1;
+    if ($chavesComErro->isNotEmpty()) {
+        $passoInicial = match (true) {
+            $chavesComErro->contains(fn ($k) => preg_match('/^(titulo|tipo_trabalho|resumo|abstract|palavras_chave|area_tematica_id|agencia_fomento|projeto_pesquisa|comite_etica)/', $k)) => 1,
+            $chavesComErro->contains(fn ($k) => $k === 'autores' || str_starts_with($k, 'autores.0.')) => 2,
+            $chavesComErro->contains(fn ($k) => preg_match('/^autores\.[1-9]/', $k)) => 3,
+            default => 4,
+        };
+    }
+
+    $maisAutores = old('mais_autores', count($autores) > 1 ? 'sim' : 'nao');
+    $dadosJs = [
+        'autores' => $autores,
+        'maxAutores' => (int) $config->max_autores,
+        'resumoMin' => (int) $config->resumo_min_palavras,
+        'resumoMax' => (int) $config->resumo_max_palavras,
+        'resumo' => old('resumo', $trabalho->resumo),
+        'exigeResumo' => (bool) $exigeResumo,
+        'exigePalavras' => (bool) $exigePalavras,
+        'exigeCpf' => (bool) $exigeCpf,
+        'passo' => $passoInicial,
+        'maisAutores' => $maisAutores,
+        'tipo' => old('tipo_trabalho', $trabalho->tipo_trabalho),
+        'modalidade' => old('modalidade_apresentacao', $trabalho->modalidade_apresentacao),
+        'titulo' => old('titulo', $trabalho->titulo),
+        'palavras' => old('palavras_chave', implode(', ', $trabalho->palavras_chave ?? [])),
+        'temArquivo' => (bool) $arquivoAtual,
+        'maxArquivoMb' => (int) $config->max_arquivo_mb,
+        'decl1' => (bool) old('declaracao_ineditismo'),
+        'decl2' => (bool) old('declaracao_regulamento'),
+    ];
 @endphp
 <x-app-layout>
     <div class="row justify-content-center">
-        <div class="col-xl-10">
+        <div class="col-xl-9">
 
             <div class="d-flex align-items-center gap-3 mb-4">
-                <a href="{{ $editando ? route('trabalhos.show', $trabalho) : route('evento.publico.show', $evento->slug) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+                <a href="{{ $editando ? route('trabalhos.show', $trabalho) : route('trabalhos.index') }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
                     <i class="fa-solid fa-arrow-left"></i>
                 </a>
                 <div>
-                    <h3 class="fw-bold m-0">{{ $editando ? 'Editar trabalho' : 'Submeter trabalho' }}</h3>
+                    <h3 class="fw-bold m-0">Formulário de Submissão de Trabalhos</h3>
                     <small class="text-secondary">{{ $evento->titulo }}
                         @if($config->submissao_fim) · prazo até {{ $config->submissao_fim->format('d/m/Y H:i') }} @endif
                     </small>
                 </div>
+            </div>
+
+            {{-- Abertura (igual ao formulário original) --}}
+            <div class="glass-card bg-white mb-4">
+                @if($config->chamada_intro)
+                    <div style="white-space: pre-line;">{{ $config->chamada_intro }}</div>
+                @else
+                    <p>Este formulário destina-se à submissão de trabalhos para o evento <strong>{{ $evento->titulo }}</strong>@if($tema), que terá como tema <em>"{{ $tema }}"</em>@endif.</p>
+                    <p>Se você tem uma proposta que se alinha a esse tema, preencha o formulário com os detalhes de seu trabalho. As propostas serão analisadas pela comissão organizadora e os selecionados terão a oportunidade de compartilhar seu conhecimento e experiência durante o evento.</p>
+                @endif
+
+                <p class="mb-2">Leia com atenção as orientações de submissão{!! $templateUrl ? ' e utilize o <a href="' . e($templateUrl) . '" target="_blank" rel="noopener" class="fw-bold">template</a> para submeter o trabalho' : '' !!}.</p>
+
+                @if($config->regras_texto)
+                    <details class="mb-2">
+                        <summary class="fw-bold">Orientações de submissão e regulamento</summary>
+                        <div class="mt-2 small" style="white-space: pre-line;">{{ $config->regras_texto }}</div>
+                    </details>
+                @endif
+                <div class="small text-danger">* Indica uma pergunta obrigatória</div>
             </div>
 
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
@@ -28,216 +88,271 @@
                     <ul class="mb-0 mt-1 small">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul>
                 </div>
             @endif
-
-            @if($trabalho->status === 'aguardando_correcao' || $trabalho->status === 'devolvido_triagem')
+            @if(in_array($trabalho->status, ['aguardando_correcao', 'devolvido_triagem'], true))
                 <div class="alert alert-warning"><i class="fa-solid fa-pen me-1"></i> A gestão solicitou ajustes. Atualize o trabalho (e o PDF, se necessário) e reenvie.</div>
             @endif
 
-            @if($config->regras_texto)
-                <details class="glass-card bg-white mb-4">
-                    <summary class="fw-bold">Regulamento e normas da chamada</summary>
-                    <div class="mt-3 small" style="white-space: pre-line;">{{ $config->regras_texto }}</div>
-                </details>
-            @endif
-
-            <form action="{{ $action }}" method="POST" enctype="multipart/form-data"
-                  x-data="formTrabalho({{ \Illuminate\Support\Js::from($autores) }}, {{ (int) $config->max_autores }}, {{ (int) $config->resumo_min_palavras }}, {{ (int) $config->resumo_max_palavras }}, {{ \Illuminate\Support\Js::from(old('resumo', $trabalho->resumo)) }})">
+            <form action="{{ $action }}" method="POST" enctype="multipart/form-data" novalidate x-data="formTrabalho({{ \Illuminate\Support\Js::from($dadosJs) }})">
                 @csrf
                 @if($editando) @method('PUT') @endif
 
-                {{-- 1. Dados do trabalho --}}
-                <div class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-file-lines me-2"></i> 1. Dados do trabalho</h6>
-
-                    <div class="mb-3">
-                        <label class="small fw-bold text-secondary">Título *</label>
-                        <input type="text" name="titulo" class="form-control" maxlength="255" value="{{ old('titulo', $trabalho->titulo) }}" required>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="small fw-bold text-secondary">Tipo de trabalho *</label>
-                            <select name="tipo_trabalho" class="form-select">
-                                <option value="">Selecione...</option>
-                                @foreach($tipos as $valor => $rotulo)
-                                    <option value="{{ $valor }}" @selected(old('tipo_trabalho', $trabalho->tipo_trabalho) === $valor)>{{ $rotulo }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="small fw-bold text-secondary">Área temática</label>
-                            <select name="area_tematica_id" class="form-select">
-                                <option value="">Selecione...</option>
-                                @foreach($areas as $area)
-                                    <option value="{{ $area->id }}" @selected((int) old('area_tematica_id', $trabalho->area_tematica_id) === $area->id)>{{ $area->nome }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="small fw-bold text-secondary">Modalidade de apresentação *</label>
-                            <select name="modalidade_apresentacao" class="form-select">
-                                <option value="">Selecione...</option>
-                                @foreach(\App\Models\Trabalho::MODALIDADES as $valor => $rotulo)
-                                    <option value="{{ $valor }}" @selected(old('modalidade_apresentacao', $trabalho->modalidade_apresentacao) === $valor)>{{ $rotulo }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="small fw-bold text-secondary d-flex justify-content-between">
-                            <span>Resumo * <span class="fw-normal">({{ $config->resumo_min_palavras }} a {{ $config->resumo_max_palavras }} palavras)</span></span>
-                            <span :class="palavras < min || palavras > max ? 'text-danger' : 'text-success'" x-text="palavras + ' palavras'"></span>
-                        </label>
-                        <textarea name="resumo" rows="8" class="form-control" x-model="resumo">{{ old('resumo', $trabalho->resumo) }}</textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="small fw-bold text-secondary">Abstract (opcional)</label>
-                        <textarea name="abstract" rows="4" class="form-control">{{ old('abstract', $trabalho->abstract) }}</textarea>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="small fw-bold text-secondary">Palavras-chave * (3 a 5, separadas por vírgula)</label>
-                            <input type="text" name="palavras_chave" class="form-control" value="{{ old('palavras_chave', implode(', ', $trabalho->palavras_chave ?? [])) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold text-secondary">Agência de fomento</label>
-                            <input type="text" name="agencia_fomento" class="form-control" value="{{ old('agencia_fomento', $trabalho->agencia_fomento) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold text-secondary">Projeto de pesquisa</label>
-                            <input type="text" name="projeto_pesquisa" class="form-control" value="{{ old('projeto_pesquisa', $trabalho->projeto_pesquisa) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold text-secondary">Comitê de ética (nº do parecer)</label>
-                            <input type="text" name="comite_etica" class="form-control" value="{{ old('comite_etica', $trabalho->comite_etica) }}">
-                        </div>
-                    </div>
-                </div>
-
-                {{-- 2. Autores --}}
-                <div class="glass-card bg-white mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="fw-bold text-success m-0"><i class="fa-solid fa-users me-2"></i> 2. Autores</h6>
-                        <button type="button" class="btn btn-sm btn-outline-success fw-bold" @click="adicionar()">
-                            <i class="fa-solid fa-plus me-1"></i> Adicionar autor
-                        </button>
-                    </div>
-                    <p class="small text-muted">Informe exatamente <strong>um autor principal</strong> e ao menos <strong>um apresentador</strong>.
-                        Limite de {{ $config->max_autores }} autores (orientadores e coorientadores não contam).</p>
-
-                    <template x-for="(a, i) in autores" :key="a.uid">
-                        <div class="border rounded-3 p-3 mb-3 bg-light">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong x-text="'Autor ' + (i + 1)"></strong>
-                                <div class="d-flex gap-1">
-                                    <button type="button" class="btn btn-sm btn-light" @click="mover(i, -1)" :disabled="i === 0" title="Subir"><i class="fa-solid fa-arrow-up"></i></button>
-                                    <button type="button" class="btn btn-sm btn-light" @click="mover(i, 1)" :disabled="i === autores.length - 1" title="Descer"><i class="fa-solid fa-arrow-down"></i></button>
-                                    <button type="button" class="btn btn-sm btn-light text-danger" @click="remover(i)" :disabled="autores.length === 1" title="Remover"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-                            </div>
-
-                            <div class="row g-2">
-                                <div class="col-md-6">
-                                    <label class="small fw-bold text-secondary">Nome completo *</label>
-                                    <input type="text" class="form-control form-control-sm" :name="`autores[${i}][nome_completo]`" x-model="a.nome_completo">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="small fw-bold text-secondary">CPF *</label>
-                                    <input type="text" class="form-control form-control-sm" placeholder="000.000.000-00" maxlength="14" :name="`autores[${i}][cpf]`" x-model="a.cpf" @input="a.cpf = mascara(a.cpf)">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="small fw-bold text-secondary">Tipo de autor *</label>
-                                    <select class="form-select form-select-sm" :name="`autores[${i}][tipo_autor]`" x-model="a.tipo_autor">
-                                        @foreach(\App\Models\Trabalho::TIPOS_AUTOR as $valor => $rotulo)
-                                            <option value="{{ $valor }}">{{ $rotulo }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-5">
-                                    <label class="small fw-bold text-secondary">E-mail *</label>
-                                    <input type="email" class="form-control form-control-sm" :name="`autores[${i}][email]`" x-model="a.email">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="small fw-bold text-secondary">Telefone</label>
-                                    <input type="text" class="form-control form-control-sm" :name="`autores[${i}][telefone]`" x-model="a.telefone">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="small fw-bold text-secondary">Vínculo</label>
-                                    <select class="form-select form-select-sm" :name="`autores[${i}][vinculo]`" x-model="a.vinculo">
-                                        <option value="">Selecione...</option>
-                                        <option value="aluno">Aluno</option>
-                                        <option value="servidor">Servidor</option>
-                                        <option value="externo">Externo</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="small fw-bold text-secondary">Instituição</label>
-                                    <input type="text" class="form-control form-control-sm" :name="`autores[${i}][instituicao]`" x-model="a.instituicao">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="small fw-bold text-secondary">Titulação / Curso</label>
-                                    <input type="text" class="form-control form-control-sm" :name="`autores[${i}][titulacao]`" x-model="a.titulacao">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="small fw-bold text-secondary">Currículo Lattes (URL)</label>
-                                    <input type="url" class="form-control form-control-sm" placeholder="https://lattes.cnpq.br/..." :name="`autores[${i}][lattes]`" x-model="a.lattes">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="small fw-bold text-secondary">ORCID</label>
-                                    <input type="text" class="form-control form-control-sm" placeholder="0000-0000-0000-0000" :name="`autores[${i}][orcid]`" x-model="a.orcid">
-                                </div>
-                            </div>
-
-                            <div class="d-flex gap-4 mt-2">
-                                <input type="hidden" :name="`autores[${i}][apresentador]`" :value="a.apresentador ? 1 : 0">
-                                <input type="hidden" :name="`autores[${i}][correspondente]`" :value="a.correspondente ? 1 : 0">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" :id="`apr${a.uid}`" x-model="a.apresentador">
-                                    <label class="form-check-label small" :for="`apr${a.uid}`">Apresentador</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="correspondente_ui" :id="`cor${a.uid}`" :checked="a.correspondente" @change="definirCorrespondente(i)">
-                                    <label class="form-check-label small" :for="`cor${a.uid}`">Autor correspondente</label>
-                                </div>
-                            </div>
-                        </div>
+                {{-- Indicador de seções --}}
+                <div class="d-flex flex-wrap gap-2 mb-3 small">
+                    <template x-for="p in secoes()" :key="p.n">
+                        <span class="badge rounded-pill px-3 py-2" :class="passo === p.n ? 'bg-success' : (passo > p.n ? 'bg-success bg-opacity-25 text-success' : 'bg-secondary bg-opacity-25 text-secondary')" x-text="p.n + '. ' + p.titulo"></span>
                     </template>
                 </div>
 
-                {{-- 3. Arquivo --}}
-                <div class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-file-pdf me-2"></i> 3. Arquivo do trabalho (PDF)</h6>
+                {{-- ============ Seção 1: dados do trabalho ============ --}}
+                <section x-show="passo === 1" class="glass-card bg-white mb-4">
+                    <h6 class="fw-bold text-success mb-3">Dados do trabalho</h6>
 
-                    @if($arquivoAtual)
-                        <div class="alert alert-light border small">
-                            Arquivo atual: <strong>{{ $arquivoAtual->nome_original }}</strong>
-                            ({{ number_format($arquivoAtual->tamanho / 1048576, 2, ',', '.') }} MB, versão {{ $arquivoAtual->versao }}) —
-                            <a href="{{ route('trabalhos.arquivo', $trabalho) }}" target="_blank">abrir</a>.
-                            Envie um novo arquivo abaixo somente se quiser substituí-lo.
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary">E-mail *</label>
+                        <input type="email" class="form-control bg-light" value="{{ auth()->user()->email }}" readonly tabindex="-1">
+                        <div class="form-text">O e-mail da sua conta é registrado automaticamente com a submissão.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary">Título do trabalho *</label>
+                        <input type="text" name="titulo" class="form-control" maxlength="255" value="{{ old('titulo', $trabalho->titulo) }}" x-model="titulo">
+                        <div class="text-danger small" x-show="erros.titulo" x-text="erros.titulo"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary d-block">Categoria do Trabalho *</label>
+                        @foreach($categorias as $valor => $rotulo)
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_trabalho" id="cat_{{ $valor }}" value="{{ $valor }}" @checked(old('tipo_trabalho', $trabalho->tipo_trabalho) === $valor) x-model="tipo">
+                                <label class="form-check-label" for="cat_{{ $valor }}">{{ $rotulo }}</label>
+                            </div>
+                        @endforeach
+                        <div class="text-danger small" x-show="erros.tipo" x-text="erros.tipo"></div>
+                    </div>
+
+                    @if($exigeResumo)
+                        <div class="mb-3">
+                            <label class="small fw-bold text-secondary d-flex justify-content-between">
+                                <span>Resumo * <span class="fw-normal">({{ $config->resumo_min_palavras }} a {{ $config->resumo_max_palavras }} palavras)</span></span>
+                                <span :class="palavrasResumo < resumoMin || palavrasResumo > resumoMax ? 'text-danger' : 'text-success'" x-text="palavrasResumo + ' palavras'"></span>
+                            </label>
+                            <textarea name="resumo" rows="7" class="form-control" x-model="resumo">{{ old('resumo', $trabalho->resumo) }}</textarea>
+                            <div class="text-danger small" x-show="erros.resumo" x-text="erros.resumo"></div>
+                        </div>
+                    @endif
+                    @if($exigePalavras)
+                        <div class="mb-3">
+                            <label class="small fw-bold text-secondary">Palavras-chave * (3 a 5, separadas por vírgula)</label>
+                            <input type="text" name="palavras_chave" class="form-control" value="{{ old('palavras_chave', implode(', ', $trabalho->palavras_chave ?? [])) }}" x-model="palavras">
+                            <div class="text-danger small" x-show="erros.palavras" x-text="erros.palavras"></div>
                         </div>
                     @endif
 
-                    <input type="file" name="arquivo" accept="application/pdf,.pdf" class="form-control"
-                           @change="validarArquivo($event, {{ (int) $config->max_arquivo_mb }})">
-                    <div class="form-text">Somente PDF, até {{ $config->max_arquivo_mb }} MB.
-                        @if($config->avaliacao_cega) <strong>Avaliação cega:</strong> envie a versão <u>sem identificação dos autores</u>. @endif
+                    <details @if(!$exigeResumo || !$exigePalavras || $trabalho->abstract || $trabalho->agencia_fomento || $trabalho->projeto_pesquisa || $trabalho->comite_etica || $trabalho->area_tematica_id) open @endif>
+                        <summary class="small fw-bold text-secondary mb-2">Informações complementares (opcional)</summary>
+                        <div class="row g-3 mt-1">
+                            @if($areas->isNotEmpty())
+                                <div class="col-md-6">
+                                    <label class="small fw-bold text-secondary">Área temática</label>
+                                    <select name="area_tematica_id" class="form-select">
+                                        <option value="">Selecione...</option>
+                                        @foreach($areas as $area)
+                                            <option value="{{ $area->id }}" @selected((int) old('area_tematica_id', $trabalho->area_tematica_id) === $area->id)>{{ $area->nome }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endif
+                            @unless($exigeResumo)
+                                <div class="col-12">
+                                    <label class="small fw-bold text-secondary d-flex justify-content-between">
+                                        <span>Resumo <span class="fw-normal">(até {{ $config->resumo_max_palavras }} palavras)</span></span>
+                                        <span :class="palavrasResumo > resumoMax ? 'text-danger' : 'text-muted'" x-text="palavrasResumo + ' palavras'"></span>
+                                    </label>
+                                    <textarea name="resumo" rows="6" class="form-control" x-model="resumo">{{ old('resumo', $trabalho->resumo) }}</textarea>
+                                    <div class="text-danger small" x-show="erros.resumo" x-text="erros.resumo"></div>
+                                </div>
+                            @endunless
+                            @unless($exigePalavras)
+                                <div class="col-md-6">
+                                    <label class="small fw-bold text-secondary">Palavras-chave (3 a 5, separadas por vírgula)</label>
+                                    <input type="text" name="palavras_chave" class="form-control" value="{{ old('palavras_chave', implode(', ', $trabalho->palavras_chave ?? [])) }}" x-model="palavras">
+                                    <div class="text-danger small" x-show="erros.palavras" x-text="erros.palavras"></div>
+                                </div>
+                            @endunless
+                            <div class="col-12">
+                                <label class="small fw-bold text-secondary">Abstract</label>
+                                <textarea name="abstract" rows="4" class="form-control">{{ old('abstract', $trabalho->abstract) }}</textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small fw-bold text-secondary">Agência de fomento</label>
+                                <input type="text" name="agencia_fomento" class="form-control" value="{{ old('agencia_fomento', $trabalho->agencia_fomento) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small fw-bold text-secondary">Projeto de pesquisa</label>
+                                <input type="text" name="projeto_pesquisa" class="form-control" value="{{ old('projeto_pesquisa', $trabalho->projeto_pesquisa) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small fw-bold text-secondary">Comitê de ética (nº do parecer)</label>
+                                <input type="text" name="comite_etica" class="form-control" value="{{ old('comite_etica', $trabalho->comite_etica) }}">
+                            </div>
+                        </div>
+                    </details>
+                </section>
+
+                {{-- ============ Seção 2: autor apresentador ============ --}}
+                <section x-show="passo === 2" class="glass-card bg-white mb-4">
+                    <h6 class="fw-bold text-success mb-1">Cadastro de autores</h6>
+                    <p class="small text-muted">Insira o nome completo e a Instituição de Ensino ao qual o apresentador(a) esteja vinculado(a).</p>
+
+                    <input type="hidden" name="autores[0][tipo_autor]" value="autor_principal">
+                    <input type="hidden" name="autores[0][apresentador]" value="1">
+                    <input type="hidden" name="autores[0][correspondente]" value="1">
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="small fw-bold text-secondary">Nome completo do autor apresentador *</label>
+                            <input type="text" name="autores[0][nome_completo]" class="form-control" value="{{ $autores[0]['nome_completo'] ?? '' }}" x-model="apresentador.nome_completo">
+                            <div class="text-danger small" x-show="erros.ap_nome" x-text="erros.ap_nome"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-secondary">CPF @if($exigeCpf) * @endif</label>
+                            <input type="text" name="autores[0][cpf]" class="form-control" placeholder="000.000.000-00" maxlength="14" value="{{ $autores[0]['cpf'] ?? '' }}" x-model="apresentador.cpf" @input="apresentador.cpf = mascara(apresentador.cpf)">
+                            <div class="form-text">Usado para emitir o seu certificado.</div>
+                            <div class="text-danger small" x-show="erros.ap_cpf" x-text="erros.ap_cpf"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary">E-mail *</label>
+                            <input type="email" name="autores[0][email]" class="form-control" value="{{ $autores[0]['email'] ?? '' }}" x-model="apresentador.email">
+                            <div class="text-danger small" x-show="erros.ap_email" x-text="erros.ap_email"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary">Instituição de Ensino - IES de vínculo *</label>
+                            <input type="text" name="autores[0][instituicao]" class="form-control" value="{{ $autores[0]['instituicao'] ?? '' }}" x-model="apresentador.instituicao">
+                            <div class="text-danger small" x-show="erros.ap_ies" x-text="erros.ap_ies"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary d-block">Categoria *</label>
+                            @foreach(\App\Models\Trabalho::CATEGORIAS_AUTOR as $valor => $rotulo)
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="autores[0][categoria_autor]" id="apcat_{{ $valor }}" value="{{ $valor }}" @checked(($autores[0]['categoria_autor'] ?? null) === $valor) x-model="apresentador.categoria_autor">
+                                    <label class="form-check-label" for="apcat_{{ $valor }}">{{ $rotulo }}</label>
+                                </div>
+                            @endforeach
+                            <div class="text-danger small" x-show="erros.ap_categoria" x-text="erros.ap_categoria"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-secondary d-block">Cadastrar mais autores? *</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="mais_autores" id="mais_sim" value="sim" @checked($maisAutores === 'sim') x-model="maisAutores" @change="aoEscolherMaisAutores()">
+                                <label class="form-check-label" for="mais_sim">Sim</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="mais_autores" id="mais_nao" value="nao" @checked($maisAutores === 'nao') x-model="maisAutores">
+                                <label class="form-check-label" for="mais_nao">Não</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-danger small mt-1" x-show="erroArquivo" x-text="erroArquivo" x-cloak></div>
-                </div>
+                    <div class="text-danger small mt-2" x-show="erros.autores" x-text="erros.autores"></div>
+                </section>
 
-                {{-- 4. Declarações --}}
-                <div class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-signature me-2"></i> 4. Declarações</h6>
+                {{-- ============ Seção 3: demais autores ============ --}}
+                <section x-show="passo === 3" class="glass-card bg-white mb-4">
+                    <h6 class="fw-bold text-success mb-1">Cadastro de autores</h6>
+                    <p class="small text-muted">Insira o nome completo e a Instituição de Ensino ao qual cada autor(a) esteja vinculado(a) (João da Silva - Instituto Federal do Pará - Campus Óbidos).</p>
 
+                    <template x-if="maisAutores === 'sim'">
+                        <div>
+                            <template x-for="(a, i) in extras" :key="a.uid">
+                                <div class="border rounded-3 p-3 mb-3 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong x-text="'Autor ' + (i + 2)"></strong>
+                                        <button type="button" class="btn btn-sm btn-light text-danger" @click="removerExtra(i)" title="Remover"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                    <input type="hidden" :name="`autores[${i + 1}][apresentador]`" :value="a.apresentador ? 1 : 0">
+                                    <input type="hidden" :name="`autores[${i + 1}][correspondente]`" :value="a.correspondente ? 1 : 0">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="small fw-bold text-secondary" x-text="'Nome completo do autor ' + (i + 2) + ' *'"></label>
+                                            <input type="text" class="form-control form-control-sm" :name="`autores[${i + 1}][nome_completo]`" x-model="a.nome_completo">
+                                            <div class="text-danger small" x-show="a.erroNome" x-text="a.erroNome"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="small fw-bold text-secondary">IES (Instituição de Ensino) *</label>
+                                            <input type="text" class="form-control form-control-sm" :name="`autores[${i + 1}][instituicao]`" x-model="a.instituicao">
+                                            <div class="text-danger small" x-show="a.erroIes" x-text="a.erroIes"></div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small fw-bold text-secondary">Função</label>
+                                            <select class="form-select form-select-sm" :name="`autores[${i + 1}][tipo_autor]`" x-model="a.tipo_autor">
+                                                <option value="coautor">Coautor</option>
+                                                <option value="orientador">Orientador</option>
+                                                <option value="coorientador">Coorientador</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small fw-bold text-secondary">Categoria</label>
+                                            <select class="form-select form-select-sm" :name="`autores[${i + 1}][categoria_autor]`" x-model="a.categoria_autor">
+                                                <option value="">—</option>
+                                                @foreach(\App\Models\Trabalho::CATEGORIAS_AUTOR as $valor => $rotulo) <option value="{{ $valor }}">{{ $rotulo }}</option> @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small fw-bold text-secondary">E-mail <span class="fw-normal">(opcional)</span></label>
+                                            <input type="email" class="form-control form-control-sm" :name="`autores[${i + 1}][email]`" x-model="a.email">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <button type="button" class="btn btn-sm btn-outline-success fw-bold" @click="adicionarExtra()" x-show="extras.length + 1 < maxAutores + 2">
+                                <i class="fa-solid fa-plus me-1"></i> Adicionar autor
+                            </button>
+                            <div class="form-text">Até {{ $config->max_autores }} autores (orientadores e coorientadores não contam no limite).</div>
+                        </div>
+                    </template>
+                </section>
+
+                {{-- ============ Seção 4: envio de arquivo ============ --}}
+                <section x-show="passo === 4" class="glass-card bg-white mb-4">
+                    <h6 class="fw-bold text-success mb-3">Envio de arquivo</h6>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary d-block">Modalidade de Apresentação *</label>
+                        @foreach(\App\Models\Trabalho::MODALIDADES_DESCRICAO as $valor => $rotulo)
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="modalidade_apresentacao" id="mod_{{ $valor }}" value="{{ $valor }}" @checked(old('modalidade_apresentacao', $trabalho->modalidade_apresentacao) === $valor) x-model="modalidade">
+                                <label class="form-check-label" for="mod_{{ $valor }}">{{ $rotulo }}</label>
+                            </div>
+                        @endforeach
+                        <div class="text-danger small" x-show="erros.modalidade" x-text="erros.modalidade"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary">Envio de arquivo (Formato PDF) *</label>
+                        @if($arquivoAtual)
+                            <div class="alert alert-light border small py-2">
+                                Arquivo atual: <strong>{{ $arquivoAtual->nome_original }}</strong>
+                                ({{ number_format($arquivoAtual->tamanho / 1048576, 2, ',', '.') }} MB, versão {{ $arquivoAtual->versao }}) —
+                                <a href="{{ route('trabalhos.arquivo', $trabalho) }}" target="_blank">abrir</a>.
+                                Envie um novo arquivo somente se quiser substituí-lo.
+                            </div>
+                        @endif
+                        <input type="file" name="arquivo" accept="application/pdf,.pdf" class="form-control" @change="validarArquivo($event)">
+                        <div class="form-text">
+                            Somente PDF, até {{ $config->max_arquivo_mb }} MB.
+                            @if($templateUrl) Use o <a href="{{ $templateUrl }}" target="_blank" rel="noopener">template</a> do evento. @endif
+                            @if($config->avaliacao_cega) <strong>Avaliação cega:</strong> envie a versão <u>sem identificação dos autores</u>. @endif
+                        </div>
+                        <div class="text-danger small" x-show="erros.arquivo" x-text="erros.arquivo"></div>
+                    </div>
+
+                    <hr>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="declaracao_ineditismo" value="1" id="d1" @checked(old('declaracao_ineditismo'))>
+                        <input class="form-check-input" type="checkbox" name="declaracao_ineditismo" value="1" id="d1" x-model="decl1" @checked(old('declaracao_ineditismo'))>
                         <label class="form-check-label small" for="d1">Declaro que o trabalho é inédito e que todos os autores concordam com a submissão. *</label>
                     </div>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="declaracao_regulamento" value="1" id="d2" @checked(old('declaracao_regulamento'))>
+                        <input class="form-check-input" type="checkbox" name="declaracao_regulamento" value="1" id="d2" x-model="decl2" @checked(old('declaracao_regulamento'))>
                         <label class="form-check-label small" for="d2">Li e aceito o regulamento da chamada de trabalhos. *</label>
                     </div>
                     <div class="form-check">
@@ -245,59 +360,131 @@
                         <input class="form-check-input" type="checkbox" name="autoriza_publicacao" value="1" id="d3" @checked(old('autoriza_publicacao', $trabalho->autoriza_publicacao))>
                         <label class="form-check-label small" for="d3">Autorizo a publicação do trabalho nos Anais do evento (necessário para constar nos Anais, caso seja aprovado e apresentado).</label>
                     </div>
-                </div>
+                    <div class="text-danger small mt-2" x-show="erros.declaracoes" x-text="erros.declaracoes"></div>
+                </section>
 
-                <div class="d-flex flex-wrap gap-2 justify-content-end mb-5">
-                    <button type="submit" name="acao" value="rascunho" class="btn btn-outline-secondary fw-bold px-4">
-                        <i class="fa-regular fa-floppy-disk me-1"></i> Salvar rascunho
-                    </button>
-                    <button type="submit" name="acao" value="submeter" class="btn btn-primary-custom fw-bold px-4"
-                            onclick="return confirm('Após submeter, o trabalho será enviado à gestão. Deseja continuar?')">
-                        <i class="fa-solid fa-paper-plane me-1"></i> {{ $trabalho->status === 'aguardando_correcao' ? 'Reenviar versão corrigida' : 'Submeter trabalho' }}
-                    </button>
+                {{-- Navegação --}}
+                <div class="d-flex flex-wrap gap-2 justify-content-between mb-5">
+                    <div>
+                        <button type="button" class="btn btn-light fw-bold" x-show="passo > 1" @click="voltar()"><i class="fa-solid fa-arrow-left me-1"></i> Voltar</button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" name="acao" value="rascunho" class="btn btn-outline-secondary fw-bold" @click="rascunho($event)">
+                            <i class="fa-regular fa-floppy-disk me-1"></i> Salvar rascunho
+                        </button>
+                        <button type="button" class="btn btn-primary-custom fw-bold" x-show="passo < 4" @click="proximo()">
+                            Próxima <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </button>
+                        <button type="submit" name="acao" value="submeter" class="btn btn-primary-custom fw-bold" x-show="passo === 4" @click="enviar($event)">
+                            <i class="fa-solid fa-paper-plane me-1"></i> {{ $trabalho->status === 'aguardando_correcao' ? 'Reenviar versão corrigida' : 'Enviar' }}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        function formTrabalho(iniciais, maxAutores, min, max, resumoInicial) {
+        function formTrabalho(cfg) {
             let seq = 0;
-            const novo = (d = {}) => ({
-                uid: ++seq, nome_completo: '', cpf: '', email: '', telefone: '', instituicao: '', vinculo: '', titulacao: '',
-                lattes: '', orcid: '', tipo_autor: 'coautor', apresentador: false, correspondente: false, ...d,
-                apresentador: !!(d.apresentador), correspondente: !!(d.correspondente),
-            });
+            const vazio = () => ({ uid: ++seq, nome_completo: '', cpf: '', email: '', instituicao: '', categoria_autor: '', tipo_autor: 'coautor', apresentador: false, correspondente: false, erroNome: '', erroIes: '' });
+            const normaliza = (d = {}) => {
+                const o = vazio();
+                ['nome_completo', 'cpf', 'email', 'instituicao', 'categoria_autor', 'tipo_autor'].forEach(k => { if (d[k]) o[k] = d[k]; });
+                o.apresentador = !!d.apresentador; o.correspondente = !!d.correspondente;
+                return o;
+            };
+
+            const lista = (cfg.autores && cfg.autores.length) ? cfg.autores : [{}];
+            const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
             return {
-                min, max, resumo: resumoInicial || '', erroArquivo: '',
-                autores: (iniciais.length ? iniciais : [{}]).map(a => novo(Object.fromEntries(Object.entries(a).map(([k, v]) => [k, v ?? ''])))),
-                get palavras() {
-                    const t = (this.resumo || '').trim();
-                    return t ? t.split(/\s+/).length : 0;
+                passo: cfg.passo, maisAutores: cfg.maisAutores, titulo: cfg.titulo || '', tipo: cfg.tipo || '', modalidade: cfg.modalidade || '',
+                resumo: cfg.resumo || '', palavras: cfg.palavras || '', resumoMin: cfg.resumoMin, resumoMax: cfg.resumoMax,
+                maxAutores: cfg.maxAutores, decl1: !!cfg.decl1, decl2: !!cfg.decl2, erros: {},
+                apresentador: normaliza(lista[0]),
+                extras: lista.slice(1).map(normaliza),
+
+                secoes() {
+                    const s = [{ n: 1, titulo: 'Dados do trabalho' }, { n: 2, titulo: 'Autor apresentador' }];
+                    if (this.maisAutores === 'sim') s.push({ n: 3, titulo: 'Demais autores' });
+                    s.push({ n: 4, titulo: 'Envio do arquivo' });
+                    return s;
                 },
-                adicionar() {
-                    if (this.autores.length >= maxAutores + 4) { alert('Limite de autores atingido.'); return; }
-                    this.autores.push(novo());
-                },
-                remover(i) { if (this.autores.length > 1) this.autores.splice(i, 1); },
-                mover(i, d) {
-                    const j = i + d;
-                    if (j < 0 || j >= this.autores.length) return;
-                    [this.autores[i], this.autores[j]] = [this.autores[j], this.autores[i]];
-                },
-                definirCorrespondente(i) { this.autores.forEach((a, k) => a.correspondente = k === i); },
+                get palavrasResumo() { const t = (this.resumo || '').trim(); return t ? t.split(/\s+/).length : 0; },
+
                 mascara(v) {
                     v = (v || '').replace(/\D/g, '').slice(0, 11);
                     return v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
                 },
-                validarArquivo(e, mb) {
-                    this.erroArquivo = '';
-                    const f = e.target.files[0];
+
+                aoEscolherMaisAutores() { if (this.extras.length === 0) this.adicionarExtra(); },
+                adicionarExtra() { if (this.extras.length + 1 < this.maxAutores + 2) this.extras.push(vazio()); },
+                removerExtra(i) { this.extras.splice(i, 1); },
+
+                // ---- validação no navegador (o servidor continua sendo a validação definitiva) ----
+                validar(n) {
+                    const e = {};
+                    if (n === 1) {
+                        if (!this.titulo.trim()) e.titulo = 'Informe o título do trabalho.';
+                        if (!this.tipo) e.tipo = 'Selecione a categoria do trabalho.';
+                        if (cfg.exigeResumo && (this.palavrasResumo < this.resumoMin || this.palavrasResumo > this.resumoMax)) e.resumo = `O resumo deve ter entre ${this.resumoMin} e ${this.resumoMax} palavras.`;
+                        if (!cfg.exigeResumo && this.palavrasResumo > this.resumoMax) e.resumo = `O resumo deve ter no máximo ${this.resumoMax} palavras.`;
+                        const qtd = this.palavras.split(/[,;]+/).map(p => p.trim()).filter(Boolean).length;
+                        if ((cfg.exigePalavras || qtd > 0) && (qtd < 3 || qtd > 5)) e.palavras = 'Informe de 3 a 5 palavras-chave, separadas por vírgula.';
+                    }
+                    if (n === 2) {
+                        const a = this.apresentador;
+                        if (!a.nome_completo.trim()) e.ap_nome = 'Informe o nome completo do apresentador.';
+                        if (!emailOk(a.email)) e.ap_email = 'Informe um e-mail válido.';
+                        if (!a.instituicao.trim()) e.ap_ies = 'Informe a instituição de ensino.';
+                        if (!a.categoria_autor) e.ap_categoria = 'Informe se é docente ou discente.';
+                        if (cfg.exigeCpf && a.cpf.length !== 14) e.ap_cpf = 'Informe o CPF completo.';
+                        if (!this.maisAutores) e.autores = 'Informe se deseja cadastrar mais autores.';
+                    }
+                    if (n === 3 && this.maisAutores === 'sim') {
+                        this.extras.forEach(a => {
+                            a.erroNome = a.nome_completo.trim() ? '' : 'Informe o nome completo.';
+                            a.erroIes = a.instituicao.trim() ? '' : 'Informe a instituição.';
+                            if (a.erroNome || a.erroIes) e.extras = true;
+                        });
+                    }
+                    if (n === 4) {
+                        if (!this.modalidade) e.modalidade = 'Selecione a modalidade de apresentação.';
+                        const arq = this.$root.querySelector('input[name=arquivo]');
+                        if (!cfg.temArquivo && !(arq && arq.files.length)) e.arquivo = 'Envie o arquivo PDF do trabalho.';
+                        if (!this.decl1 || !this.decl2) e.declaracoes = 'É necessário aceitar as duas declarações obrigatórias.';
+                    }
+                    this.erros = e;
+                    return Object.keys(e).length === 0;
+                },
+                irPara(n) { this.passo = n; this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' })); },
+                proximo() {
+                    if (!this.validar(this.passo)) return;
+                    this.irPara(this.passo === 2 && this.maisAutores !== 'sim' ? 4 : this.passo + 1);
+                },
+                voltar() { this.erros = {}; this.irPara(this.passo === 4 && this.maisAutores !== 'sim' ? 2 : this.passo - 1); },
+
+                // Rascunho exige apenas o título
+                rascunho(ev) {
+                    if (!this.titulo.trim()) { ev.preventDefault(); this.irPara(1); this.erros = { titulo: 'Informe ao menos o título para salvar o rascunho.' }; }
+                },
+                // Envio: valida todas as seções e abre a primeira com problema
+                enviar(ev) {
+                    const ordem = this.maisAutores === 'sim' ? [1, 2, 3, 4] : [1, 2, 4];
+                    for (const n of ordem) {
+                        if (!this.validar(n)) { ev.preventDefault(); this.irPara(n); return; }
+                    }
+                    if (!confirm('Após enviar, o trabalho será encaminhado à gestão do evento. Deseja continuar?')) ev.preventDefault();
+                },
+                validarArquivo(ev) {
+                    this.erros = { ...this.erros, arquivo: '' };
+                    const f = ev.target.files[0];
                     if (!f) return;
-                    if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') this.erroArquivo = 'O arquivo deve ser um PDF.';
-                    else if (f.size > mb * 1048576) this.erroArquivo = `O arquivo excede ${mb} MB.`;
-                    if (this.erroArquivo) e.target.value = '';
+                    let msg = '';
+                    if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') msg = 'O arquivo deve ser um PDF.';
+                    else if (f.size > cfg.maxArquivoMb * 1048576) msg = `O arquivo excede ${cfg.maxArquivoMb} MB.`;
+                    if (msg) { ev.target.value = ''; this.erros = { ...this.erros, arquivo: msg }; }
                 },
             };
         }

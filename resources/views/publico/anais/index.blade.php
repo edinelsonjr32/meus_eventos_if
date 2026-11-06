@@ -23,7 +23,7 @@
             </div>
             <div class="col-md-2">
                 <select name="tipo" class="form-select">
-                    <option value="">Todos os tipos</option>
+                    <option value="">Todas as categorias</option>
                     @foreach(\App\Models\TrabalhoConfig::TIPOS as $v => $r) <option value="{{ $v }}" @selected(request('tipo') === $v)>{{ $r }}</option> @endforeach
                 </select>
             </div>

@@ -313,9 +313,9 @@ it('fluxo completo de ressalvas: correção, reenvio, nova rodada e aprovação'
     $this->actingAs($this->autor)->get(route('trabalhos.edit', $t))->assertOk();
     $this->actingAs($this->autor)->put(route('trabalhos.update', $t), [
         'acao' => 'submeter', 'titulo' => 'Título corrigido', 'resumo' => str_repeat('palavra ', 120), 'palavras_chave' => 'a, b, c',
-        'tipo_trabalho' => 'resumo', 'modalidade_apresentacao' => 'oral', 'declaracao_ineditismo' => 1, 'declaracao_regulamento' => 1,
+        'tipo_trabalho' => 'pesquisa', 'modalidade_apresentacao' => 'oral', 'declaracao_ineditismo' => 1, 'declaracao_regulamento' => 1,
         'arquivo' => UploadedFile::fake()->createWithContent('v2.pdf', "%PDF-1.4\n%%EOF"),
-        'autores' => [['nome_completo' => 'Fulana', 'cpf' => '111.444.777-35', 'email' => $this->autor->email, 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'correspondente' => 1]],
+        'autores' => [['nome_completo' => 'Fulana', 'cpf' => '111.444.777-35', 'email' => $this->autor->email, 'instituicao' => 'IFPA', 'categoria_autor' => 'discente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'correspondente' => 1]],
     ])->assertSessionHasNoErrors();
     expect($t->fresh()->status)->toBe('resubmetido');
 
@@ -373,7 +373,7 @@ it('exige critérios para encaminhar à avaliação', function () {
 });
 
 it('configura critérios (criar, editar, remover) e bloqueia depois da primeira nota', function () {
-    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo'],
+    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa'],
         'avaliadores_por_trabalho' => 2, 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
     $url = route('gestao.trabalhos.config.update', $this->evento);
     $this->actingAs($this->gestor);
@@ -398,7 +398,7 @@ it('configura critérios (criar, editar, remover) e bloqueia depois da primeira 
 });
 
 it('valida critérios inválidos na configuração', function () {
-    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo'],
+    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa'],
         'avaliadores_por_trabalho' => 2, 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
 
     $this->actingAs($this->gestor)->put(route('gestao.trabalhos.config.update', $this->evento), $base + ['criterios' => [['nome' => '', 'peso' => 0, 'nota_max' => -1]]])

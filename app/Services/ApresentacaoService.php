@@ -45,10 +45,12 @@ class ApresentacaoService
             return false;
         }
 
-        $cpfs = $trabalho->autores()->where('apresentador', true)->pluck('cpf');
+        $apresentadores = $trabalho->autores()->where('apresentador', true)->get(['cpf', 'email']);
+        $cpfs = $apresentadores->pluck('cpf')->filter()->all();
+        $emails = $apresentadores->pluck('email')->filter()->all();
 
         $presente = Frequencia::where('atividade_id', $trabalho->atividade_id)
-            ->whereHas('participante', fn ($p) => $p->whereIn('cpf', $cpfs))
+            ->whereHas('participante', fn ($p) => $p->where(fn ($q) => $q->whereIn('cpf', $cpfs)->orWhereIn('email', $emails)))
             ->exists();
 
         if ($presente) {
@@ -92,14 +94,18 @@ class ApresentacaoService
     public function sincronizarPorFrequencia(Frequencia $frequencia): int
     {
         $cpf = $frequencia->participante?->cpf;
-        if (!$cpf) {
+        $email = $frequencia->participante?->email;
+        if (!$cpf && !$email) {
             return 0;
         }
 
         $trabalhos = Trabalho::where('status', 'aprovado')
             ->where('apresentado', false)
             ->where('atividade_id', $frequencia->atividade_id)
-            ->whereHas('autores', fn ($a) => $a->where('apresentador', true)->where('cpf', $cpf))
+            ->whereHas('autores', fn ($a) => $a->where('apresentador', true)->where(function ($q) use ($cpf, $email) {
+                // Apresentador identificado pelo CPF ou, na falta dele, pelo e-mail
+                $q->when($cpf, fn ($w) => $w->orWhere('cpf', $cpf))->when($email, fn ($w) => $w->orWhere('email', $email));
+            }))
             ->get();
 
         foreach ($trabalhos as $trabalho) {

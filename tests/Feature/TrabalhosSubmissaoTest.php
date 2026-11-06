@@ -31,8 +31,8 @@ function resumoCom(int $palavras): string
 function autoresValidos(): array
 {
     return [
-        ['nome_completo' => 'Ana Autora', 'cpf' => '111.444.777-35', 'email' => 'ana@x.com', 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'correspondente' => 1],
-        ['nome_completo' => 'Otto Orientador', 'cpf' => '529.982.247-25', 'email' => 'otto@x.com', 'tipo_autor' => 'orientador', 'apresentador' => 0, 'correspondente' => 0],
+        ['nome_completo' => 'Ana Autora', 'cpf' => '111.444.777-35', 'email' => 'ana@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'correspondente' => 1],
+        ['nome_completo' => 'Otto Orientador', 'cpf' => '529.982.247-25', 'email' => 'otto@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'orientador', 'apresentador' => 0, 'correspondente' => 0],
     ];
 }
 
@@ -43,7 +43,7 @@ function dadosValidos(array $sobrescrever = []): array
         'titulo' => 'Um trabalho de teste',
         'resumo' => resumoCom(40),
         'palavras_chave' => 'ensino, tecnologia, inovação',
-        'tipo_trabalho' => 'resumo',
+        'tipo_trabalho' => 'pesquisa',
         'modalidade_apresentacao' => 'oral',
         'declaracao_ineditismo' => 1,
         'declaracao_regulamento' => 1,
@@ -125,26 +125,26 @@ it('rejeita a submissão com dados incompletos ou inválidos', function (array $
 it('valida regras dos autores', function (array $autores, string $campo) {
     $this->actingAs($this->autor)->post($this->url, dadosValidos(['autores' => $autores]))->assertSessionHasErrors($campo);
 })->with([
-    'CPF inválido' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-36', 'email' => 'a@x.com', 'tipo_autor' => 'autor_principal', 'apresentador' => 1]], 'autores.0.cpf'],
-    'sem autor principal' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'tipo_autor' => 'coautor', 'apresentador' => 1]], 'autores'],
+    'CPF inválido' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-36', 'email' => 'a@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1]], 'autores.0.cpf'],
+    'sem autor principal' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'coautor', 'apresentador' => 1]], 'autores'],
     'dois autores principais' => [[
-        ['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'tipo_autor' => 'autor_principal', 'apresentador' => 1],
-        ['nome_completo' => 'B', 'cpf' => '529.982.247-25', 'email' => 'b@x.com', 'tipo_autor' => 'autor_principal', 'apresentador' => 0],
+        ['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1],
+        ['nome_completo' => 'B', 'cpf' => '529.982.247-25', 'email' => 'b@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 0],
     ], 'autores'],
-    'sem apresentador' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'tipo_autor' => 'autor_principal', 'apresentador' => 0]], 'autores'],
+    'sem apresentador' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 0]], 'autores'],
     'CPF repetido' => [[
-        ['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'tipo_autor' => 'autor_principal', 'apresentador' => 1],
-        ['nome_completo' => 'B', 'cpf' => '11144477735', 'email' => 'b@x.com', 'tipo_autor' => 'coautor', 'apresentador' => 0],
+        ['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1],
+        ['nome_completo' => 'B', 'cpf' => '11144477735', 'email' => 'b@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'coautor', 'apresentador' => 0],
     ], 'autores'],
-    'e-mail inválido' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'invalido', 'tipo_autor' => 'autor_principal', 'apresentador' => 1]], 'autores.0.email'],
-    'ORCID inválido' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'orcid' => '123']], 'autores.0.orcid'],
+    'e-mail inválido' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'invalido', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1]], 'autores.0.email'],
+    'ORCID inválido' => [[['nome_completo' => 'A', 'cpf' => '111.444.777-35', 'email' => 'a@x.com', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'orcid' => '123']], 'autores.0.orcid'],
 ]);
 
 it('respeita o limite de autores (orientadores não contam)', function () {
     $cpfs = ['111.444.777-35', '529.982.247-25', '168.995.350-09', '935.411.347-80'];
     $quatro = collect($cpfs)->map(fn ($cpf, $i) => [
         'nome_completo' => "Autor {$i}", 'cpf' => $cpf, 'email' => "a{$i}@x.com",
-        'tipo_autor' => $i === 0 ? 'autor_principal' : 'coautor', 'apresentador' => $i === 0 ? 1 : 0,
+        'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'docente', 'tipo_autor' => $i === 0 ? 'autor_principal' : 'coautor', 'apresentador' => $i === 0 ? 1 : 0,
     ])->all();
 
     $this->actingAs($this->autor)->post($this->url, dadosValidos(['autores' => $quatro]))->assertSessionHasErrors('autores');
@@ -306,13 +306,13 @@ it('avaliador sem papel de gestão não acessa a fila nem a configuração', fun
 it('dono e gestor configuram a chamada; admin de outro evento não', function () {
     $dados = [
         'ativo' => 1, 'submissao_inicio' => '2026-11-01T08:00', 'submissao_fim' => '2026-12-01T18:00', 'max_autores' => 5,
-        'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo', 'poster'],
+        'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa', 'extensao'],
         'avaliadores_por_trabalho' => 2, 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3, 'areas' => "Área A\nÁrea B\n\nÁrea A", 'regras_texto' => 'Regras',
     ];
 
     $this->actingAs($this->dono)->put(route('gestao.trabalhos.config.update', $this->evento), $dados)->assertSessionHasNoErrors();
     $this->config->refresh();
-    expect($this->config->max_autores)->toBe(5)->and($this->config->tipos_permitidos)->toBe(['resumo', 'poster'])
+    expect($this->config->max_autores)->toBe(5)->and($this->config->tipos_permitidos)->toBe(['pesquisa', 'extensao'])
         ->and($this->evento->areasTematicas()->pluck('nome')->all())->toBe(['Área A', 'Área B']);
 
     $gestor = usuario();
@@ -324,7 +324,7 @@ it('dono e gestor configuram a chamada; admin de outro evento não', function ()
 });
 
 it('valida a configuração da chamada', function () {
-    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo']];
+    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa']];
 
     $this->actingAs($this->dono)->put(route('gestao.trabalhos.config.update', $this->evento), array_merge($base, ['resumo_max_palavras' => 10]))->assertSessionHasErrors('resumo_max_palavras');
     $this->actingAs($this->dono)->put(route('gestao.trabalhos.config.update', $this->evento), array_merge($base, ['tipos_permitidos' => []]))->assertSessionHasErrors('tipos_permitidos');

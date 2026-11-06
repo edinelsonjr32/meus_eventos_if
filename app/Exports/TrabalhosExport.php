@@ -24,7 +24,7 @@ class TrabalhosExport implements FromCollection, WithHeadings, WithMapping, Shou
     public function headings(): array
     {
         return [
-            'Protocolo', 'Título', 'Tipo', 'Área temática', 'Modalidade', 'Status', 'Enviado em', 'Autores',
+            'Protocolo', 'Título', 'Categoria', 'Área temática', 'Modalidade', 'Status', 'Enviado em', 'Autores',
             'Apresentador(es)', 'Correspondente', 'E-mail do correspondente', 'Avaliadores (atribuídos/concluídos)',
             'Autoriza publicação', 'Palavras-chave',
         ];

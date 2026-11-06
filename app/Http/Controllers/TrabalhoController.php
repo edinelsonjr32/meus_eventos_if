@@ -176,18 +176,23 @@ class TrabalhoController extends Controller
     {
         $config = $evento->trabalhoConfig;
 
-        // Autor principal pré-preenchido com os dados de quem está submetendo
+        // O autor apresentador (principal) é sempre o primeiro; ao editar, vem dos dados salvos
+        $campos = ['nome_completo', 'cpf', 'email', 'instituicao', 'categoria_autor', 'tipo_autor', 'apresentador', 'correspondente'];
         $autores = old('autores');
-        if ($autores === null) {
-            $autores = $trabalho->exists
-                ? $trabalho->autores->map->only(['nome_completo', 'cpf', 'email', 'telefone', 'instituicao', 'vinculo', 'titulacao', 'lattes', 'orcid', 'tipo_autor', 'apresentador', 'correspondente'])->all()
-                : [];
+
+        if ($autores === null && $trabalho->exists) {
+            $autores = $trabalho->autores
+                ->sortBy(fn ($a) => $a->tipo_autor === 'autor_principal' ? 0 : 1)
+                ->map(fn ($a) => $a->only($campos))->values()->all();
         }
+
         if (empty($autores)) {
+            // Apresentador pré-preenchido com os dados de quem está submetendo
             $participante = $request->user()->participante;
             $autores = [[
                 'nome_completo' => $request->user()->name, 'cpf' => $participante?->cpf, 'email' => $request->user()->email,
-                'vinculo' => $participante?->tipo_vinculo, 'tipo_autor' => 'autor_principal', 'apresentador' => true, 'correspondente' => true,
+                'categoria_autor' => match ($participante?->tipo_vinculo) { 'aluno' => 'discente', 'servidor' => 'docente', default => null },
+                'tipo_autor' => 'autor_principal', 'apresentador' => true, 'correspondente' => true,
             ]];
         }
 

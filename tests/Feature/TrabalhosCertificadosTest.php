@@ -381,7 +381,7 @@ it('outro usuário não vê os certificados na página do trabalho', function ()
 
 // ---------- Configuração ----------
 it('salva os textos do certificado e a exigência de apresentação', function () {
-    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['resumo'],
+    $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa'],
         'avaliadores_por_trabalho' => 2, 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
 
     $this->actingAs($this->gestor)->put(route('gestao.trabalhos.config.update', $this->evento), array_merge($base, [

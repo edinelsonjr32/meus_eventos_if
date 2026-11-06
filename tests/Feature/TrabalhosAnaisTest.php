@@ -143,13 +143,13 @@ it('lista somente trabalhos aprovados, apresentados e autorizados', function () 
 
 it('filtra e busca na listagem pública', function () {
     criarAnais($this);
-    trabalhoPublicavel($this, ['titulo' => 'Inteligência artificial', 'tipo_trabalho' => 'artigo_completo', 'palavras_chave' => 'ia, ensino, dados']);
-    $b = trabalhoPublicavel($this, ['titulo' => 'Horta escolar', 'tipo_trabalho' => 'resumo']);
+    trabalhoPublicavel($this, ['titulo' => 'Inteligência artificial', 'tipo_trabalho' => 'extensao', 'palavras_chave' => 'ia, ensino, dados']);
+    $b = trabalhoPublicavel($this, ['titulo' => 'Horta escolar', 'tipo_trabalho' => 'pesquisa']);
     $b->update(['modalidade_apresentacao' => 'poster']);
 
     $this->get(route('anais.index', ['semana-teste', 'q' => 'artificial']))->assertSee('Inteligência artificial')->assertDontSee('Horta escolar');
     $this->get(route('anais.index', ['semana-teste', 'q' => 'ensino']))->assertSee('Inteligência artificial')->assertDontSee('Horta escolar');
-    $this->get(route('anais.index', ['semana-teste', 'tipo' => 'resumo']))->assertSee('Horta escolar')->assertDontSee('Inteligência artificial');
+    $this->get(route('anais.index', ['semana-teste', 'tipo' => 'pesquisa']))->assertSee('Horta escolar')->assertDontSee('Inteligência artificial');
     $this->get(route('anais.index', ['semana-teste', 'modalidade' => 'poster']))->assertSee('Horta escolar')->assertDontSee('Inteligência artificial');
     $this->get(route('anais.index', ['semana-teste', 'q' => '%_']))->assertOk()->assertDontSee('Horta escolar');   // curingas não vazam resultados
 });

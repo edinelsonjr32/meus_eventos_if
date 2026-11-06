@@ -41,7 +41,15 @@ class Trabalho extends Model
         'coorientador' => 'Coorientador',
     ];
 
-    public const MODALIDADES = ['oral' => 'Apresentação oral', 'poster' => 'Pôster'];
+    public const MODALIDADES = ['poster' => 'Pôster', 'oral' => 'Apresentação oral/remoto'];
+
+    /** Texto completo exibido no formulário (igual ao do formulário original). */
+    public const MODALIDADES_DESCRICAO = [
+        'poster' => 'Pôster',
+        'oral' => 'Apresentação oral/remoto (para autores externos na impossibilidade de comparecer no evento)',
+    ];
+
+    public const CATEGORIAS_AUTOR = ['docente' => 'Docente', 'discente' => 'Discente'];
 
     protected $fillable = [
         'evento_id', 'codigo', 'submetido_por', 'titulo', 'resumo', 'abstract', 'palavras_chave', 'tipo_trabalho',

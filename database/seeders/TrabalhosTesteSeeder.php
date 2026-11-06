@@ -30,11 +30,17 @@ class TrabalhosTesteSeeder extends Seeder
             'ativo' => true,
             'submissao_inicio' => now()->subDay(),
             'submissao_fim' => now()->addDays(30),
-            'max_autores' => 6,
+            'max_autores' => 10,
             'max_arquivo_mb' => 20,
             'resumo_min_palavras' => 20,
             'resumo_max_palavras' => 300,
-            'tipos_permitidos' => ['resumo', 'resumo_expandido', 'artigo_completo', 'relato_experiencia'],
+            // Mesma estrutura do formulário utilizado na Semana de Ciência e Tecnologia
+            'tipos_permitidos' => ['pesquisa', 'extensao', 'projeto_integrador', 'relato_experiencia'],
+            'chamada_tema' => 'Planeta Amazônia: cultura das águas para enfrentar as mudanças climáticas',
+            'chamada_intro' => "Este formulário destina-se à submissão de trabalhos para o evento, que terá como tema \"Planeta Amazônia: cultura das águas para enfrentar as mudanças climáticas\".\n\nSe você tem uma proposta que se alinha a esse tema, preencha o formulário com os detalhes de seu trabalho. As propostas serão analisadas pela comissão organizadora e os selecionados terão a oportunidade de compartilhar seu conhecimento e experiência durante o evento.",
+            'exige_resumo' => false,
+            'exige_palavras_chave' => false,
+            'exige_cpf_apresentador' => true,
             'regras_texto' => "1. Os trabalhos devem ser inéditos.\n2. O arquivo deve estar em PDF.\n3. Informe todos os autores com CPF válido.",
         ]);
 
@@ -62,9 +68,9 @@ class TrabalhosTesteSeeder extends Seeder
         $resumo = trim(str_repeat('Este trabalho apresenta uma investigação sobre o uso de tecnologias digitais no ensino técnico, descrevendo método, resultados e conclusões. ', 3));
 
         $exemplos = [
-            ['Uso de IA generativa no ensino técnico', 'artigo_completo', true],
+            ['Uso de IA generativa no ensino técnico', 'pesquisa', true],
             ['Relato de experiência: robótica na escola', 'relato_experiencia', true],
-            ['Sistema de controle de frequência com QR Code', 'resumo_expandido', false],
+            ['Sistema de controle de frequência com QR Code', 'projeto_integrador', false],
         ];
 
         foreach ($exemplos as $i => [$titulo, $tipo, $submeter]) {
@@ -81,8 +87,8 @@ class TrabalhosTesteSeeder extends Seeder
                 'modalidade_apresentacao' => $i % 2 ? 'poster' : 'oral',
                 'autoriza_publicacao' => true,
                 'autores' => [
-                    ['nome_completo' => 'Autor Teste', 'cpf' => '111.444.777-35', 'email' => 'autor@teste.com', 'tipo_autor' => 'autor_principal', 'apresentador' => true, 'correspondente' => true, 'vinculo' => 'aluno', 'instituicao' => 'IFPA Campus Óbidos'],
-                    ['nome_completo' => 'Maria Orientadora', 'cpf' => '529.982.247-25', 'email' => 'maria@exemplo.com', 'tipo_autor' => 'orientador', 'apresentador' => false, 'correspondente' => false, 'vinculo' => 'servidor', 'instituicao' => 'IFPA', 'titulacao' => 'Doutora'],
+                    ['nome_completo' => 'Autor Teste', 'cpf' => '111.444.777-35', 'email' => 'autor@teste.com', 'tipo_autor' => 'autor_principal', 'apresentador' => true, 'correspondente' => true, 'categoria_autor' => 'discente', 'instituicao' => 'IFPA Campus Óbidos'],
+                    ['nome_completo' => 'Maria Orientadora', 'cpf' => '529.982.247-25', 'email' => 'maria@exemplo.com', 'tipo_autor' => 'orientador', 'apresentador' => false, 'correspondente' => false, 'categoria_autor' => 'docente', 'instituicao' => 'IFPA', 'titulacao' => 'Doutora'],
                 ],
             ]);
 

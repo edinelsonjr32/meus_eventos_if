@@ -35,7 +35,7 @@
                     <div class="data-row">
                         <span class="data-label">Autor</span>
                         <div class="fw-bold">{{ $certificado->autor->nome_completo }}</div>
-                        <small class="text-muted">CPF: ***.{{ substr($certificado->autor->cpf, 4, 3) }}.***-** · {{ $certificado->funcaoRotulo() }}</small>
+                        <small class="text-muted">@if($certificado->autor->cpf) CPF: ***.{{ substr($certificado->autor->cpf, 4, 3) }}.***-** · @endif{{ $certificado->funcaoRotulo() }}</small>
                     </div>
                     <div class="data-row">
                         <span class="data-label">Trabalho</span>

@@ -41,7 +41,7 @@ function mkTrabalho(Evento $e, User $autor, array $extra = [], string $status = 
 {
     $w = app(TrabalhoWorkflow::class);
     $t = $w->salvar($e, $autor, array_merge([
-        'titulo' => 'Trabalho ' . uniqid(), 'resumo' => 'Resumo', 'palavras_chave' => 'a, b, c', 'tipo_trabalho' => 'resumo',
+        'titulo' => 'Trabalho ' . uniqid(), 'resumo' => 'Resumo', 'palavras_chave' => 'a, b, c', 'tipo_trabalho' => 'pesquisa',
         'modalidade_apresentacao' => 'oral',
         'autores' => [['nome_completo' => 'Autor ' . uniqid(), 'cpf' => '111.444.777-35', 'email' => $autor->email, 'tipo_autor' => 'autor_principal', 'apresentador' => true]],
     ], $extra));

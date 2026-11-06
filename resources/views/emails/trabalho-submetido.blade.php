@@ -7,7 +7,7 @@
     <table cellpadding="6" style="border-collapse: collapse;">
         <tr><td><strong>Protocolo</strong></td><td>{{ $trabalho->codigo }}</td></tr>
         <tr><td><strong>Título</strong></td><td>{{ $trabalho->titulo }}</td></tr>
-        <tr><td><strong>Tipo</strong></td><td>{{ \App\Models\TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? $trabalho->tipo_trabalho }}</td></tr>
+        <tr><td><strong>Categoria</strong></td><td>{{ \App\Models\TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? $trabalho->tipo_trabalho }}</td></tr>
         <tr><td><strong>Data do envio</strong></td><td>{{ $trabalho->submetido_em?->format('d/m/Y H:i') }}</td></tr>
     </table>
 

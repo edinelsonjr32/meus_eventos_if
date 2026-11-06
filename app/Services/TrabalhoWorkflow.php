@@ -102,7 +102,7 @@ class TrabalhoWorkflow
         });
 
         $trabalho->load(['autores', 'evento']);
-        $destinatarios = $trabalho->autores->pluck('email')->push($user->email)->map(fn ($e) => mb_strtolower($e))->unique();
+        $destinatarios = $trabalho->autores->pluck('email')->filter()->push($user->email)->map(fn ($e) => mb_strtolower($e))->unique();
         foreach ($destinatarios as $email) {
             Mail::to($email)->queue(new TrabalhoSubmetidoMail($trabalho));
         }
@@ -148,15 +148,15 @@ class TrabalhoWorkflow
         $principal = collect($autores)->contains(fn ($a) => !empty($a['correspondente']));
 
         foreach (array_values($autores) as $i => $a) {
-            // Apenas vincula (nunca altera) um participante já existente com o mesmo CPF
-            $participante = Participante::where('cpf', $a['cpf'])->first();
+            // Apenas vincula (nunca altera) um participante já existente com o mesmo CPF (quando informado)
+            $participante = !empty($a['cpf']) ? Participante::where('cpf', $a['cpf'])->first() : null;
 
             $trabalho->autores()->create([
                 'ordem' => $i + 1,
                 'participante_id' => $participante?->id,
                 'nome_completo' => $a['nome_completo'],
-                'cpf' => $a['cpf'],
-                'email' => $a['email'],
+                'cpf' => $a['cpf'] ?? null,
+                'email' => $a['email'] ?? null,
                 'telefone' => $a['telefone'] ?? null,
                 'instituicao' => $a['instituicao'] ?? null,
                 'vinculo' => $a['vinculo'] ?? null,
@@ -164,6 +164,7 @@ class TrabalhoWorkflow
                 'lattes' => $a['lattes'] ?? null,
                 'orcid' => $a['orcid'] ?? null,
                 'tipo_autor' => $a['tipo_autor'],
+                'categoria_autor' => $a['categoria_autor'] ?? null,
                 'apresentador' => (bool) ($a['apresentador'] ?? false),
                 // Sem correspondente definido, o autor principal assume
                 'correspondente' => $principal ? (bool) ($a['correspondente'] ?? false) : $a['tipo_autor'] === 'autor_principal',
@@ -279,7 +280,7 @@ class TrabalhoWorkflow
     {
         $trabalho->loadMissing(['autores', 'evento', 'submetente']);
 
-        $emails = $trabalho->autores->pluck('email')->push($trabalho->submetente->email)
+        $emails = $trabalho->autores->pluck('email')->filter()->push($trabalho->submetente->email)
             ->map(fn ($e) => mb_strtolower($e))->unique();
 
         foreach ($emails as $email) {
@@ -311,13 +312,13 @@ class TrabalhoWorkflow
             return 'é o responsável pela submissão do trabalho';
         }
 
-        $emails = $trabalho->autores->pluck('email')->map(fn ($e) => mb_strtolower($e));
+        $emails = $trabalho->autores->pluck('email')->filter()->map(fn ($e) => mb_strtolower($e));
         if ($emails->contains(mb_strtolower($avaliador->email))) {
             return 'consta como autor do trabalho (e-mail)';
         }
 
         $cpf = $avaliador->participante?->cpf;
-        if ($cpf && $trabalho->autores->pluck('cpf')->contains($cpf)) {
+        if ($cpf && $trabalho->autores->pluck('cpf')->filter()->contains($cpf)) {
             return 'consta como autor do trabalho (CPF)';
         }
 

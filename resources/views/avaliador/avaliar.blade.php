@@ -33,7 +33,7 @@
                     <div class="glass-card bg-white mb-4">
                         <h6 class="fw-bold text-success mb-3">Trabalho</h6>
                         <dl class="row small mb-2">
-                            <dt class="col-sm-4 text-secondary">Tipo</dt><dd class="col-sm-8">{{ \App\Models\TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? '—' }}</dd>
+                            <dt class="col-sm-4 text-secondary">Categoria</dt><dd class="col-sm-8">{{ \App\Models\TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Área</dt><dd class="col-sm-8">{{ $trabalho->area->nome ?? '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Modalidade</dt><dd class="col-sm-8">{{ \App\Models\Trabalho::MODALIDADES[$trabalho->modalidade_apresentacao] ?? '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Palavras-chave</dt><dd class="col-sm-8">{{ implode(', ', $trabalho->palavras_chave ?? []) ?: '—' }}</dd>

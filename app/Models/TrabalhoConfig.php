@@ -7,27 +7,28 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TrabalhoConfig extends Model
 {
+    /** Categorias do trabalho (mesmas opções do formulário utilizado na Semana de Ciência e Tecnologia). */
     public const TIPOS = [
-        'resumo' => 'Resumo',
-        'resumo_expandido' => 'Resumo Expandido',
-        'artigo_completo' => 'Artigo Completo',
+        'pesquisa' => 'Pesquisa',
+        'extensao' => 'Extensão',
+        'projeto_integrador' => 'Projeto Integrador (alunos do IFPA)',
         'relato_experiencia' => 'Relato de Experiência',
-        'poster' => 'Pôster',
     ];
 
     public const CERT_CABECALHO_PADRAO = "Ministério da Educação\nInstituto Federal do Pará - Campus Óbidos";
 
-    public const CERT_CORPO_PADRAO = 'Certificamos que <b>{AUTOR}</b>, CPF {CPF}, participou como <b>{TIPO_AUTOR}</b> do trabalho "<b>{TITULO_TRABALHO}</b>" ({TIPO_TRABALHO}, código {CODIGO_TRABALHO}), apresentado no evento <b>{EVENTO}</b>, em {DATA_APRESENTACAO}.{COAUTORES}';
+    public const CERT_CORPO_PADRAO = 'Certificamos que <b>{AUTOR}</b>, CPF {CPF}, participou como <b>{TIPO_AUTOR}</b> do trabalho "<b>{TITULO_TRABALHO}</b>" (categoria: {TIPO_TRABALHO}, código {CODIGO_TRABALHO}), apresentado no evento <b>{EVENTO}</b>, em {DATA_APRESENTACAO}.{COAUTORES}';
 
     public const CERT_VARIAVEIS = [
         '{AUTOR}', '{CPF}', '{TIPO_AUTOR}', '{TITULO_TRABALHO}', '{TIPO_TRABALHO}', '{AREA}', '{COAUTORES}',
-        '{EVENTO}', '{DATA_APRESENTACAO}', '{CODIGO_TRABALHO}',
+        '{EVENTO}', '{DATA_APRESENTACAO}', '{CODIGO_TRABALHO}', '{CATEGORIA}', '{INSTITUICAO}',
     ];
 
     protected $fillable = [
         'evento_id', 'ativo', 'submissao_inicio', 'submissao_fim', 'avaliacao_fim', 'avaliadores_por_trabalho', 'nota_minima_aprovacao', 'divergencia_maxima', 'autor_ve_notas', 'autor_ve_pareceres', 'exige_apresentacao_para_certificado', 'cert_trab_cabecalho', 'cert_trab_corpo', 'cert_trab_rodape', 'max_autores', 'max_arquivo_mb',
         'resumo_min_palavras', 'resumo_max_palavras', 'max_trabalhos_por_usuario', 'avaliacao_cega',
-        'tipos_permitidos', 'regras_texto',
+        'tipos_permitidos', 'regras_texto', 'chamada_tema', 'chamada_intro', 'template_url', 'exige_resumo',
+        'exige_palavras_chave', 'exige_cpf_apresentador',
     ];
 
     protected $casts = [
@@ -42,6 +43,9 @@ class TrabalhoConfig extends Model
         'submissao_fim' => 'datetime',
         'avaliacao_fim' => 'datetime',
         'tipos_permitidos' => 'array',
+        'exige_resumo' => 'boolean',
+        'exige_palavras_chave' => 'boolean',
+        'exige_cpf_apresentador' => 'boolean',
     ];
 
     public function evento(): BelongsTo

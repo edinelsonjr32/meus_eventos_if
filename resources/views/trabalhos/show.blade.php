@@ -26,7 +26,7 @@
                     <div class="glass-card bg-white mb-4">
                         <h6 class="fw-bold text-success mb-3">Dados do trabalho</h6>
                         <dl class="row small mb-0">
-                            <dt class="col-sm-4 text-secondary">Tipo</dt>
+                            <dt class="col-sm-4 text-secondary">Categoria</dt>
                             <dd class="col-sm-8">{{ \App\Models\TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Área temática</dt>
                             <dd class="col-sm-8">{{ $trabalho->area->nome ?? '—' }}</dd>
@@ -58,10 +58,10 @@
                                 <tbody>
                                 @foreach($trabalho->autores as $a)
                                     <tr>
-                                        <td class="ps-3 fw-bold">{{ $a->nome_completo }}<br><span class="text-muted fw-normal">{{ $gestao ? $a->cpf : 'CPF ***.' . substr($a->cpf, 4, 3) . '.***-**' }}</span></td>
-                                        <td>{{ $a->tipoRotulo() }}</td>
+                                        <td class="ps-3 fw-bold">{{ $a->nome_completo }}<br><span class="text-muted fw-normal">{{ $a->cpf ? ($gestao ? $a->cpf : 'CPF ***.' . substr($a->cpf, 4, 3) . '.***-**') : 'CPF não informado' }}</span></td>
+                                        <td>{{ $a->tipoRotulo() }}@if($a->categoriaRotulo())<br><span class="text-muted">{{ $a->categoriaRotulo() }}</span>@endif</td>
                                         <td>{{ $a->instituicao ?: '—' }}<br><span class="text-muted">{{ $a->titulacao }}</span></td>
-                                        <td>{{ $a->email }}<br>{{ $a->telefone }}</td>
+                                        <td>{{ $a->email ?: '—' }}<br>{{ $a->telefone }}</td>
                                         <td>
                                             @if($a->apresentador) <span class="badge bg-success bg-opacity-10 text-success">Apresentador</span> @endif
                                             @if($a->correspondente) <span class="badge bg-primary bg-opacity-10 text-primary">Correspondente</span> @endif

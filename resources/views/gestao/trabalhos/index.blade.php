@@ -56,7 +56,7 @@
                     </div>
                     <div class="col-md-2">
                         <select name="tipo" class="form-select form-select-sm">
-                            <option value="">Todos os tipos</option>
+                            <option value="">Todas as categorias</option>
                             @foreach(\App\Models\TrabalhoConfig::TIPOS as $v => $r) <option value="{{ $v }}" @selected(request('tipo') === $v)>{{ $r }}</option> @endforeach
                         </select>
                     </div>
@@ -103,7 +103,7 @@
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="bg-light">
-                            <tr><th class="ps-3"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.sel-trabalho').forEach(c => c.checked = this.checked)"></th><th>Protocolo</th><th>Título / Autores</th><th>Tipo</th><th>Área</th><th>Status</th><th>Aval.</th><th>Enviado em</th><th></th></tr>
+                            <tr><th class="ps-3"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.sel-trabalho').forEach(c => c.checked = this.checked)"></th><th>Protocolo</th><th>Título / Autores</th><th>Categoria</th><th>Área</th><th>Status</th><th>Aval.</th><th>Enviado em</th><th></th></tr>
                         </thead>
                         <tbody>
                         @forelse($trabalhos as $t)

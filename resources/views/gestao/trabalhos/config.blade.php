@@ -49,11 +49,47 @@
                 </div>
 
                 <div class="glass-card bg-white mb-4">
+                    <h6 class="fw-bold text-success mb-3">Abertura do formulário de submissão</h6>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary">Tema do evento</label>
+                        <input type="text" name="chamada_tema" class="form-control" maxlength="255" value="{{ old('chamada_tema', $config->chamada_tema) }}" placeholder="Ex.: Planeta Amazônia: cultura das águas para enfrentar as mudanças climáticas">
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold text-secondary">Texto de abertura</label>
+                        <textarea name="chamada_intro" rows="5" class="form-control" placeholder="Vazio usa o texto padrão: 'Este formulário destina-se à submissão de trabalhos para o evento ...'">{{ old('chamada_intro', $config->chamada_intro) }}</textarea>
+                    </div>
+                    <div>
+                        <label class="small fw-bold text-secondary">Link do template do trabalho</label>
+                        <input type="url" name="template_url" class="form-control" maxlength="500" value="{{ old('template_url', $config->template_url) }}" placeholder="https://docs.google.com/document/d/...">
+                        <div class="form-text">Aparece na abertura do formulário e junto ao envio do PDF.</div>
+                    </div>
+                </div>
+
+                <div class="glass-card bg-white mb-4">
                     <h6 class="fw-bold text-success mb-3">Regras do formulário</h6>
+                    @php $novo = !$config->exists; @endphp
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="exige_resumo" value="0">
+                            <input class="form-check-input" type="checkbox" name="exige_resumo" value="1" id="exResumo" @checked(old('exige_resumo', $novo ? false : $config->exige_resumo))>
+                            <label class="form-check-label" for="exResumo">Exigir resumo (o formulário original não pedia)</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="exige_palavras_chave" value="0">
+                            <input class="form-check-input" type="checkbox" name="exige_palavras_chave" value="1" id="exPal" @checked(old('exige_palavras_chave', $novo ? false : $config->exige_palavras_chave))>
+                            <label class="form-check-label" for="exPal">Exigir palavras-chave (3 a 5)</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="exige_cpf_apresentador" value="0">
+                            <input class="form-check-input" type="checkbox" name="exige_cpf_apresentador" value="1" id="exCpf" @checked(old('exige_cpf_apresentador', $novo ? true : $config->exige_cpf_apresentador))>
+                            <label class="form-check-label" for="exCpf">Exigir CPF do autor apresentador (usado no certificado)</label>
+                        </div>
+                        <div class="form-text">Os demais autores informam apenas nome completo e instituição de ensino.</div>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="small fw-bold text-secondary">Máx. de autores</label>
-                            <input type="number" min="1" max="30" name="max_autores" class="form-control" value="{{ old('max_autores', $config->max_autores ?? 8) }}" required>
+                            <input type="number" min="1" max="30" name="max_autores" class="form-control" value="{{ old('max_autores', $config->max_autores ?? 10) }}" required>
                         </div>
                         <div class="col-md-3">
                             <label class="small fw-bold text-secondary">Tamanho máx. do PDF (MB)</label>
@@ -81,7 +117,7 @@
                     </div>
 
                     <div class="mt-3">
-                        <label class="small fw-bold text-secondary d-block">Tipos de trabalho aceitos</label>
+                        <label class="small fw-bold text-secondary d-block">Categorias de trabalho aceitas</label>
                         @php($marcados = old('tipos_permitidos', $config->tipos_permitidos ?: array_keys(\App\Models\TrabalhoConfig::TIPOS)))
                         @foreach(\App\Models\TrabalhoConfig::TIPOS as $valor => $rotulo)
                             <div class="form-check form-check-inline">

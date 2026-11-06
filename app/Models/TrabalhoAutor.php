@@ -11,7 +11,7 @@ class TrabalhoAutor extends Model
 
     protected $fillable = [
         'trabalho_id', 'ordem', 'participante_id', 'nome_completo', 'cpf', 'email', 'telefone', 'instituicao',
-        'vinculo', 'titulacao', 'lattes', 'orcid', 'tipo_autor', 'apresentador', 'correspondente',
+        'vinculo', 'titulacao', 'lattes', 'orcid', 'tipo_autor', 'categoria_autor', 'apresentador', 'correspondente',
     ];
 
     protected $casts = ['apresentador' => 'boolean', 'correspondente' => 'boolean'];
@@ -24,6 +24,11 @@ class TrabalhoAutor extends Model
     public function participante(): BelongsTo
     {
         return $this->belongsTo(Participante::class);
+    }
+
+    public function categoriaRotulo(): ?string
+    {
+        return Trabalho::CATEGORIAS_AUTOR[$this->categoria_autor] ?? null;
     }
 
     public function tipoRotulo(): string
