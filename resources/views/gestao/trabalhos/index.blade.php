@@ -74,7 +74,7 @@
                 </div>
             </form>
 
-            <x-lote-avaliadores :action="route('gestao.trabalhos.lote', $evento)" :avaliadores="$avaliadores" :acoes="[
+            <x-lote-avaliadores :action="route('gestao.trabalhos.lote', $evento)" :avaliadores="$avaliadores" :restricoes="$restricoes" :acoes="[
                 ['valor' => 'atribuir', 'rotulo' => 'Atribuir avaliadores', 'icone' => 'fa-user-plus', 'tom' => 'btn-outline-success'],
                 ['valor' => 'triagem', 'rotulo' => 'Iniciar triagem', 'icone' => 'fa-filter', 'tom' => 'btn-outline-primary'],
             ]" />
@@ -88,7 +88,7 @@
                         <tbody>
                         @forelse($trabalhos as $t)
                             <tr>
-                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho" data-atribuir="{{ in_array($t->status, \App\Services\TrabalhoWorkflow::STATUS_ATRIBUICAO, true) ? 1 : 0 }}" data-triagem="{{ in_array($t->status, [\App\Models\Trabalho::SUBMETIDO, 'resubmetido'], true) ? 1 : 0 }}"></td>
+                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho" data-codigo="{{ $t->codigo }}" data-atribuir="{{ in_array($t->status, \App\Services\TrabalhoWorkflow::STATUS_ATRIBUICAO, true) ? 1 : 0 }}" data-triagem="{{ in_array($t->status, [\App\Models\Trabalho::SUBMETIDO, 'resubmetido'], true) ? 1 : 0 }}"></td>
                                 <td class="fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>
                                     <div class="fw-bold">{{ \Illuminate\Support\Str::limit($t->titulo, 70) }}</div>

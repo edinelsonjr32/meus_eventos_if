@@ -35,15 +35,18 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
 
         $criterios = $evento->criteriosApresentacao()->where('ativo', true)->get();
 
+        $avaliadores = $this->workflow->avaliadoresDoEvento($evento);
+
         return view('gestao.trabalhos.apresentacoes', [
             'evento' => $evento,
+            'restricoes' => $this->workflow->restricoesAvaliadores($trabalhos->load('avaliacoesApresentacao'), $avaliadores, 'apresentacao'),
             'config' => $config,
             'trabalhos' => $trabalhos,
             'atividades' => $evento->atividades()->orderBy('data_inicio')->get(),
             'atividadeId' => $atividadeId,
             'criterios' => $criterios,
             'criteriosUsados' => ApresentacaoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->pluck('criterio_id')->unique()->values()->all(),
-            'avaliadores' => $this->workflow->avaliadoresDoEvento($evento),
+            'avaliadores' => $avaliadores,
         ]);
     }
 

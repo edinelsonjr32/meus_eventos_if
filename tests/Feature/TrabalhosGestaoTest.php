@@ -420,5 +420,5 @@ it('a atribuição de avaliadores usa seleção com busca (Select2) e mostra con
     mkPapel($this->autor, $this->evento, 'avaliador');   // o autor também é avaliador: conflito
 
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $this->trabalho))->assertOk()
-        ->assertSee('js-select-avaliadores', false)->assertSee('select2', false)->assertSee('— conflito:', false)->assertSee('disabled', false);
+        ->assertSee('js-select-avaliadores', false)->assertSee('select2', false)->assertSee('Conflito de interesse (não pode avaliar)', false)->assertSee('é o responsável pela submissão', false)->assertSee('disabled', false);
 });

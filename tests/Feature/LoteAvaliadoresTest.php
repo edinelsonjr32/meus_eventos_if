@@ -114,3 +114,75 @@ it('apresentações: mesmo componente, mesmo resultado, e nada de "todos da sess
     expect($t1->avaliacoesApresentacao()->count())->toBe(2)->and($t2->avaliacoesApresentacao()->count())->toBe(2)->and($emAval->avaliacoesApresentacao()->count())->toBe(0)
         ->and(collect(session('erros_lote'))->contains(fn ($l) => str_contains($l, 'não aprovado ou não encontrado')))->toBeTrue();
 });
+
+it('detalhe do trabalho: avaliadores aparecem agrupados e o impedido (atribuído, recusou, conflito) vem desabilitado com o motivo', function () {
+    $t = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Meu trabalho'], 'em_triagem');
+    $recusou = mkUser('user', 'recusou@x.com'); mkPapel($recusou, $this->evento, 'avaliador');
+    mkPapel($this->autor, $this->evento, 'avaliador');   // o autor é avaliador do evento: conflito (não pode se autoavaliar)
+    $w = app(\App\Services\TrabalhoWorkflow::class);
+    $w->atribuirAvaliador($t, $this->av1, $this->gestor);
+    $w->atribuirAvaliador($t, $recusou, $this->gestor)->update(['status' => 'recusada']);
+
+    $html = $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $t))->assertOk()->getContent();
+
+    expect($html)->toContain('Disponíveis')->toContain('Já atribuídos a este trabalho')->toContain('Conflito de interesse (não pode avaliar)');
+    expect($html)->toMatch('/<option value="' . $this->av1->id . '" disabled data-tipo="atribuido">[^<]*já atribuído/u')
+        ->toMatch('/<option value="' . $recusou->id . '" disabled data-tipo="recusou">[^<]*recusou a avaliação/u')
+        ->toMatch('/<option value="' . $this->autor->id . '" disabled data-tipo="conflito">[^<]*é o responsável pela submissão/u')
+        ->toMatch('/<option value="' . $this->av2->id . '">/');   // o disponível segue selecionável
+    expect($html)->toContain('já atribuído(s)')->toContain('com conflito');
+});
+
+it('detalhe: sem nenhum avaliador disponível, avisa por que e bloqueia o botão', function () {
+    $t = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Sem opção'], 'em_triagem');
+    $w = app(\App\Services\TrabalhoWorkflow::class);
+    $w->atribuirAvaliador($t, $this->av1, $this->gestor);
+    $w->atribuirAvaliador($t, $this->av2, $this->gestor);
+
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $t))->assertOk()->assertSee('Nenhum avaliador disponível para este trabalho')->assertSee('2 já atribuído(s)/recusou');
+});
+
+it('restricoesAvaliadores informa conflito, já atribuído e recusou por trabalho', function () {
+    $t = mkTrabalho($this->evento, $this->autor, ['titulo' => 'R'], 'em_triagem');
+    mkPapel($this->autor, $this->evento, 'avaliador');
+    $w = app(\App\Services\TrabalhoWorkflow::class);
+    $w->atribuirAvaliador($t, $this->av1, $this->gestor);
+
+    $r = $w->restricoesAvaliadores(collect([$t->fresh(['autores', 'avaliacoes'])]), $w->avaliadoresDoEvento($this->evento))[$t->id];
+
+    expect($r[$this->av1->id]['tipo'])->toBe('atribuido')->and($r[$this->autor->id]['tipo'])->toBe('conflito')
+        ->and($r[$this->autor->id]['motivo'])->toContain('responsável')->and($r)->not->toHaveKey($this->av2->id);
+});
+
+it('lote (trabalhos): a barra recebe os impedimentos de cada par para avisar antes de confirmar', function () {
+    $t1 = mkTrabalho($this->evento, $this->autor, ['titulo' => 'L1'], 'em_triagem');
+    $t2 = mkTrabalho($this->evento, $this->autor, ['titulo' => 'L2'], 'em_triagem');
+    mkPapel($this->autor, $this->evento, 'avaliador');
+    app(\App\Services\TrabalhoWorkflow::class)->atribuirAvaliador($t2, $this->av1, $this->gestor);
+
+    $html = $this->actingAs($this->gestor)->get(route('gestao.trabalhos.index', $this->evento))->assertOk()->getContent();
+    preg_match('/data-restricoes="([^"]*)"/', $html, $m);
+    $mapa = json_decode(html_entity_decode($m[1]), true);
+
+    expect($mapa[$t1->id][$this->autor->id]['tipo'])->toBe('conflito')->and($mapa[$t2->id][$this->autor->id]['tipo'])->toBe('conflito')
+        ->and($mapa[$t2->id][$this->av1->id]['tipo'])->toBe('atribuido')->and($mapa)->not->toHaveKey("{$t1->id}.{$this->av1->id}")
+        ->and($mapa[$t1->id] ?? [])->not->toHaveKey($this->av1->id);
+    expect($html)->toContain('data-codigo="' . $t1->codigo . '"')->toContain('data-lote-impedimentos');
+});
+
+it('lote (apresentações): impedimentos usam as avaliações da apresentação; quem recusou pode ser reatribuído', function () {
+    CriterioApresentacao::create(['evento_id' => $this->evento->id, 'nome' => 'D', 'peso' => 1, 'nota_max' => 10, 'ordem' => 0]);
+    $this->evento->trabalhoConfig->update(['avaliacao_apresentacao_ativa' => true]);
+    $t = mkTrabalho($this->evento, $this->autor, ['titulo' => 'AP'], 'aprovado');
+    mkPapel($this->autor, $this->evento, 'avaliador');
+    $s = app(\App\Services\AvaliacaoApresentacaoService::class);
+    $s->atribuir($t, $this->av1, $this->gestor);
+    $s->atribuir($t, $this->av2, $this->gestor);
+    $t->avaliacoesApresentacao()->where('avaliador_id', $this->av2->id)->update(['status' => 'recusada']);
+
+    $html = $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertOk()->getContent();
+    preg_match('/data-restricoes="([^"]*)"/', $html, $m);
+    $mapa = json_decode(html_entity_decode($m[1]), true)[$t->id];
+
+    expect($mapa[$this->av1->id]['tipo'])->toBe('atribuido')->and($mapa[$this->autor->id]['tipo'])->toBe('conflito')->and($mapa)->not->toHaveKey($this->av2->id);
+});

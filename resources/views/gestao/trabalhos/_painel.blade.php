@@ -124,12 +124,37 @@
             @csrf
             <label class="small fw-bold text-secondary" for="selAvaliadores">Atribuir avaliadores</label>
             @if($avaliadores->isNotEmpty())
+                @php
+                    $livres = $avaliadores->filter(fn ($u) => !$u->impedimento);
+                    $atribuidosJa = $avaliadores->filter(fn ($u) => in_array($u->impedimento['tipo'] ?? null, ['atribuido', 'recusou'], true));
+                    $comConflito = $avaliadores->filter(fn ($u) => ($u->impedimento['tipo'] ?? null) === 'conflito');
+                @endphp
                 <select name="avaliadores[]" id="selAvaliadores" class="form-select js-select-avaliadores" multiple data-placeholder="Busque e selecione os avaliadores…" style="width:100%">
-                    @foreach($avaliadores as $u)
-                        <option value="{{ $u->id }}" @disabled($u->conflito) data-conflito="{{ $u->conflito }}">{{ $u->name }} ({{ $u->carga }} em aberto){{ $u->conflito ? ' — conflito: ' . $u->conflito : '' }}</option>
-                    @endforeach
+                    @if($livres->isNotEmpty())
+                        <optgroup label="Disponíveis">
+                            @foreach($livres as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
+                        </optgroup>
+                    @endif
+                    @if($atribuidosJa->isNotEmpty())
+                        <optgroup label="Já atribuídos a este trabalho">
+                            @foreach($atribuidosJa as $u) <option value="{{ $u->id }}" disabled data-tipo="{{ $u->impedimento['tipo'] }}">{{ $u->name }} — {{ $u->impedimento['tipo'] === 'recusou' ? 'recusou a avaliação' : 'já atribuído' }}</option> @endforeach
+                        </optgroup>
+                    @endif
+                    @if($comConflito->isNotEmpty())
+                        <optgroup label="Conflito de interesse (não pode avaliar)">
+                            @foreach($comConflito as $u) <option value="{{ $u->id }}" disabled data-tipo="conflito">{{ $u->name }} — {{ $u->impedimento['motivo'] }}</option> @endforeach
+                        </optgroup>
+                    @endif
                 </select>
-                <div class="form-text">Digite para filtrar. Quem tem conflito de interesse aparece desabilitado.</div>
+                @if($livres->isEmpty())
+                    <div class="alert alert-warning small py-2 mt-2 mb-0"><i class="fa-solid fa-triangle-exclamation me-1"></i> Nenhum avaliador disponível para este trabalho: {{ $atribuidosJa->count() }} já atribuído(s)/recusou e {{ $comConflito->count() }} com conflito de interesse.</div>
+                @elseif($atribuidosJa->isNotEmpty() || $comConflito->isNotEmpty())
+                    <div class="small mt-2">
+                        @if($atribuidosJa->isNotEmpty()) <span class="sb" style="background:#e0e7ff;color:#4338ca;border-color:#a5b4fc;"><i class="fa-solid fa-user-check"></i> {{ $atribuidosJa->count() }} já atribuído(s)</span> @endif
+                        @if($comConflito->isNotEmpty()) <span class="sb" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;"><i class="fa-solid fa-user-slash"></i> {{ $comConflito->count() }} com conflito</span> @endif
+                    </div>
+                @endif
+                <div class="form-text">Digite para filtrar. Quem já está atribuído ou tem conflito (ex.: é autor do trabalho e não pode se avaliar) aparece desabilitado, com o motivo.</div>
             @else
                 <p class="small text-muted">Não há avaliadores disponíveis. Designe avaliadores em "Papéis" do evento.</p>
             @endif
@@ -137,7 +162,7 @@
             @if($avaliadores->isNotEmpty())
                 <label class="small fw-bold text-secondary mt-2">Prazo (opcional)</label>
                 <input type="date" name="prazo" class="form-control form-control-sm mb-2" min="{{ now()->addDay()->format('Y-m-d') }}">
-                <button class="btn btn-sm btn-outline-success w-100 fw-bold"><i class="fa-solid fa-user-plus me-1"></i> Atribuir selecionados</button>
+                <button class="btn btn-sm btn-outline-success w-100 fw-bold" @disabled($livres->isEmpty())><i class="fa-solid fa-user-plus me-1"></i> Atribuir selecionados</button>
             @endif
         </form>
     @else
@@ -369,7 +394,16 @@
             window.addEventListener('load', function () {
                 if (!window.jQuery || !jQuery.fn.select2) return;
                 jQuery('.js-select-avaliadores').each(function () {
-                    jQuery(this).select2({ theme: 'bootstrap-5', language: 'pt-BR', width: '100%', closeOnSelect: false, placeholder: this.dataset.placeholder, allowClear: true });
+                    jQuery(this).select2({
+                        theme: 'bootstrap-5', language: 'pt-BR', width: '100%', closeOnSelect: false, placeholder: this.dataset.placeholder, allowClear: true,
+                        // Impedidos aparecem em cor própria, com ícone e o motivo no próprio item
+                        templateResult: function (o) {
+                            const tipo = o.element && o.element.dataset ? o.element.dataset.tipo : null;
+                            if (!tipo) return o.text;
+                            const estilo = { conflito: ['#b91c1c', 'fa-user-slash'], atribuido: ['#4338ca', 'fa-user-check'], recusou: ['#b45309', 'fa-hand'] }[tipo] || ['#64748b', 'fa-circle'];
+                            return jQuery('<span style="color:' + estilo[0] + ';"><i class="fa-solid ' + estilo[1] + ' me-1"></i></span>').append(document.createTextNode(o.text));
+                        },
+                    });
                 });
             });
         </script>

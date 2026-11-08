@@ -201,7 +201,7 @@ test('lote: resumo ao vivo, Select2 e botão só habilita com seleção válida 
   await page.locator('.lote-barra .select2-container').first().click();
   await page.locator('.select2-results__option', { hasText: 'Avaliador Teste' }).first().click();
   await page.keyboard.press('Escape');
-  await expect(page.locator('[data-lote-resumo]')).toContainText('até 2 atribuição');
+  await expect(page.locator('[data-lote-resumo]')).toContainText(/Serão feitas \d+ atribuição/);
   await expect(enviar).toBeEnabled();
 
   // trocar a ação muda o resumo e esconde os avaliadores
@@ -245,4 +245,30 @@ test('inscrição exige conta: visitante vê o convite, cria a conta e volta ao 
   await page.locator('select[name=tipo_vinculo]').selectOption('externo');
   await page.getByRole('button', { name: /Confirmar Inscri/ }).click();
   await expect(page).toHaveURL(/confirmado/);
+});
+
+test('feedback de avaliador já atribuído: no lote e no detalhe do trabalho', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Trabalhos', exact: true }).first().click();
+  const lista = page.url();
+  await page.goto(lista + '?status=em_triagem');
+
+  // lote: marca todos e escolhe todos os avaliadores; quem já está num dos trabalhos aparece como impedido
+  await page.locator('.sel-todos').check();
+  await page.locator('.lote-barra .select2-container').first().click();
+  for (const o of await page.locator('.select2-results__option').all()) await o.click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-lote-impedimentos]')).toContainText('já atribuído');
+  await expect(page.locator('[data-lote-resumo]')).toContainText('impedida');
+  await page.screenshot({ path: 'test-results/lote-impedimentos.png', fullPage: true });
+
+  // detalhe: o trabalho com avaliador atribuído mostra o grupo "Já atribuídos" desabilitado
+  await page.goto(lista + '?status=em_triagem');
+  const linhas = page.locator('tbody tr', { hasText: '1/2' });
+  await linhas.first().getByRole('link', { name: /Abrir/ }).click();
+  await page.locator('.select2-container').first().click();
+  await expect(page.locator('.select2-results__group', { hasText: 'Já atribuídos' })).toBeVisible();
+  await expect(page.locator('.select2-results__option[aria-disabled=true]').first()).toContainText('já atribuído');
+  await page.screenshot({ path: 'test-results/detalhe-impedidos.png' });
 });

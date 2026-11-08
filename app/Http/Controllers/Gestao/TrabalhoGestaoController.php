@@ -85,13 +85,16 @@ class TrabalhoGestaoController extends Controller
         $contagem = $evento->trabalhos()->where('status', '!=', Trabalho::RASCUNHO)
             ->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status');
 
+        $avaliadores = $this->workflow->avaliadoresDoEvento($evento);
+
         return view('gestao.trabalhos.index', [
             'evento' => $evento,
             'trabalhos' => $trabalhos,
+            'restricoes' => $this->workflow->restricoesAvaliadores($trabalhos->getCollection(), $avaliadores),
             'contagem' => $contagem,
             'areas' => $evento->areasTematicas,
             'config' => $evento->trabalhoConfig,
-            'avaliadores' => $this->workflow->avaliadoresDoEvento($evento),
+            'avaliadores' => $avaliadores,
             'statusTriagem' => array_keys(TrabalhoWorkflow::TRANSICOES_GESTAO),
         ]);
     }
@@ -104,10 +107,13 @@ class TrabalhoGestaoController extends Controller
 
         $trabalho->load(['evento.trabalhoConfig', 'autores', 'arquivos', 'historico.usuario', 'area', 'submetente', 'avaliacoes.avaliador']);
 
-        $atribuidos = $trabalho->avaliacoes->pluck('avaliador_id');
-        $avaliadores = $this->workflow->avaliadoresDoEvento($trabalho->evento)
-            ->reject(fn ($u) => $atribuidos->contains($u->id))
-            ->each(fn ($u) => $u->conflito = $this->workflow->conflitoDeInteresse($trabalho, $u));
+        // Todos os avaliadores do evento, cada um com seu impedimento (já atribuído, recusou ou conflito) para dar feedback na seleção
+        $avaliadores = $this->workflow->avaliadoresDoEvento($trabalho->evento);
+        $impedimentos = $this->workflow->restricoesAvaliadores(collect([$trabalho]), $avaliadores)[$trabalho->id] ?? [];
+        $avaliadores->each(function ($u) use ($impedimentos) {
+            $u->impedimento = $impedimentos[$u->id] ?? null;
+            $u->conflito = ($u->impedimento['tipo'] ?? null) === 'conflito' ? $u->impedimento['motivo'] : null;
+        });
 
         $acoesTriagem = collect(TrabalhoWorkflow::TRANSICOES_GESTAO[$trabalho->status] ?? []);
         $podeAtribuir = in_array($trabalho->status, TrabalhoWorkflow::STATUS_ATRIBUICAO, true);

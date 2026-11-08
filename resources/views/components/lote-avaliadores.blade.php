@@ -4,13 +4,15 @@
   Props: action (URL), avaliadores (coleção de User com ->carga), acoes (lista de ['valor','rotulo','icone','tom']),
          unidadeAtribuir (texto do resumo), id (id do formulário).
 --}}
-@props(['action', 'avaliadores', 'acoes' => [], 'id' => 'lote', 'etapaMinima' => null])
+@props(['action', 'avaliadores', 'acoes' => [], 'id' => 'lote', 'restricoes' => []])
 
 @php
     $acoes = $acoes ?: [['valor' => 'atribuir', 'rotulo' => 'Atribuir avaliadores', 'icone' => 'fa-user-plus', 'tom' => 'btn-outline-success']];
 @endphp
 
-<form id="{{ $id }}" action="{{ $action }}" method="POST" class="glass-card bg-white mb-3 lote-barra" data-lote>
+<form id="{{ $id }}" action="{{ $action }}" method="POST" class="glass-card bg-white mb-3 lote-barra" data-lote
+      data-restricoes="{{ json_encode($restricoes, JSON_UNESCAPED_UNICODE) }}"
+      data-avaliadores="{{ json_encode($avaliadores->mapWithKeys(fn ($u) => [$u->id => $u->name]), JSON_UNESCAPED_UNICODE) }}">
     @csrf
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
         <div class="fw-bold text-success"><i class="fa-solid fa-layer-group me-1"></i> Ação em lote</div>
@@ -52,6 +54,7 @@
     </div>
 
     <div class="alert alert-light border small mt-3 mb-2" data-lote-resumo>Selecione ao menos um trabalho.</div>
+    <div class="small mb-2 d-none" data-lote-impedimentos></div>
 
     <div class="text-end">
         <button type="submit" class="btn btn-success" data-lote-enviar disabled><i class="fa-solid fa-check"></i> <span data-lote-rotulo-botao>Confirmar</span></button>
@@ -76,6 +79,24 @@
                 const acao = () => (form.querySelector('input[name=acao]:checked') || {}).value;
                 const nAval = () => form.querySelectorAll('select[name="avaliadores[]"] option:checked').length;
                 const rotuloAcao = { atribuir: 'Atribuir avaliadores', triagem: 'Iniciar triagem' };
+                const restricoes = JSON.parse(form.dataset.restricoes || '{}');
+                const nomes = JSON.parse(form.dataset.avaliadores || '{}');
+                const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+                // Impedimentos por avaliador escolhido nos trabalhos aptos selecionados
+                function impedimentos(aptos) {
+                    const ids = Array.from(form.querySelectorAll('select[name="avaliadores[]"] option:checked')).map(o => o.value);
+                    const porAval = {}; let bloqueados = 0, total = 0;
+                    aptos.forEach(c => {
+                        ids.forEach(id => {
+                            total++;
+                            const r = (restricoes[c.value] || {})[id];
+                            if (r) { bloqueados++; (porAval[id] = porAval[id] || []).push({ codigo: c.dataset.codigo, r }); }
+                        });
+                    });
+                    return { ids, porAval, bloqueados, total };
+                }
+                const cores = { conflito: ['#fee2e2', '#b91c1c', 'fa-user-slash', 'conflito de interesse'], atribuido: ['#e0e7ff', '#4338ca', 'fa-user-check', 'já atribuído'], recusou: ['#ffedd5', '#c2410c', 'fa-hand', 'recusou'] };
 
                 function atualizar() {
                     const marcados = sel();
@@ -97,7 +118,12 @@
                             const n = nAval();
                             if (!n) texto = '<strong>' + aptos.length + '</strong> trabalho(s) apto(s). Escolha ao menos um avaliador.';
                             else if (!aptos.length) texto = 'Nenhum dos trabalhos selecionados pode receber avaliadores neste status.';
-                            else { ok = true; texto = 'Serão feitas até <strong>' + (aptos.length * n) + '</strong> atribuição(ões) (' + aptos.length + ' trabalho(s) × ' + n + ' avaliador(es)). Conflitos de interesse e avaliadores já atribuídos são ignorados.'; }
+                            else {
+                                const imp = impedimentos(aptos);
+                                const previstas = imp.total - imp.bloqueados;
+                                if (previstas === 0) texto = '<strong class="text-danger">Nenhuma atribuição possível:</strong> todos os pares avaliador × trabalho selecionados têm impedimento (veja abaixo).';
+                                else { ok = true; texto = 'Serão feitas <strong>' + previstas + '</strong> atribuição(ões) (' + aptos.length + ' trabalho(s) × ' + n + ' avaliador(es))' + (imp.bloqueados ? ', <strong class="text-warning">' + imp.bloqueados + ' impedida(s)</strong>' : '') + '.'; }
+                            }
                         } else {
                             if (!aptos.length) texto = 'Nenhum dos trabalhos selecionados está aguardando triagem (só submetidos ou resubmetidos).';
                             else { ok = true; texto = '<strong>' + aptos.length + '</strong> trabalho(s) irão para a triagem.'; }
@@ -106,6 +132,25 @@
                     }
                     resumo.innerHTML = texto;
                     botao.disabled = !ok;
+
+                    // Lista dos impedimentos: por avaliador, em quais trabalhos e por quê
+                    const caixa = form.querySelector('[data-lote-impedimentos]');
+                    let html = '';
+                    if (a === 'atribuir' && aptos.length) {
+                        const imp = impedimentos(aptos);
+                        Object.keys(imp.porAval).forEach(id => {
+                            const itens = imp.porAval[id];
+                            const grupos = {};
+                            itens.forEach(i => { (grupos[i.r.tipo] = grupos[i.r.tipo] || []).push(i.codigo); });
+                            Object.keys(grupos).forEach(tipo => {
+                                const c = cores[tipo] || ['#f1f5f9', '#334155', 'fa-circle', tipo];
+                                const motivo = (itens.find(i => i.r.tipo === tipo) || {}).r.motivo;
+                                html += '<div class="mb-1"><span class="sb" style="background:' + c[0] + ';color:' + c[1] + ';border-color:' + c[1] + '55;"><i class="fa-solid ' + c[2] + '"></i> ' + esc(nomes[id] || id) + ' — ' + c[3] + '</span> <span class="text-muted">em ' + esc(grupos[tipo].join(', ')) + (tipo === 'conflito' ? ' (' + esc(motivo) + ')' : '') + '</span></div>';
+                            });
+                        });
+                    }
+                    caixa.innerHTML = html;
+                    caixa.classList.toggle('d-none', html === '');
                     form.querySelector('[data-lote-rotulo-botao]').textContent = ok ? (rotuloAcao[a] || 'Confirmar') + ' (' + aptos.length + ')' : (rotuloAcao[a] || 'Confirmar');
                     form._aptos = aptos.length;
                 }

@@ -96,7 +96,7 @@
                 @endif
 
                 @if($config->avaliacao_apresentacao_ativa && $trabalhos->isNotEmpty())
-                    <x-lote-avaliadores :action="route('gestao.trabalhos.apresentacoes.lote', $evento)" :avaliadores="$avaliadores" />
+                    <x-lote-avaliadores :action="route('gestao.trabalhos.apresentacoes.lote', $evento)" :avaliadores="$avaliadores" :restricoes="$restricoes" />
                 @endif
                     <div class="table-responsive">
                         <table class="table table-sm align-middle small">
@@ -104,7 +104,7 @@
                             <tbody>
                             @forelse($trabalhos as $t)
                                 <tr>
-                                    <td><input type="checkbox" form="lote" class="sel-trabalho" name="trabalhos[]" value="{{ $t->id }}" data-atribuir="1" data-triagem="0"></td>
+                                    <td><input type="checkbox" form="lote" class="sel-trabalho" name="trabalhos[]" value="{{ $t->id }}" data-codigo="{{ $t->codigo }}" data-atribuir="1" data-triagem="0"></td>
                                     <td><a href="{{ route('gestao.trabalhos.show', $t) }}" class="fw-bold text-decoration-none">{{ $t->codigo }}</a><div class="text-muted">{{ \Illuminate\Support\Str::limit($t->titulo, 55) }}</div></td>
                                     <td>{{ $t->sessao?->titulo ?? '—' }}</td>
                                     <td>

@@ -392,8 +392,44 @@ class TrabalhoWorkflow
             ->whereIn('users.id', DB::table('evento_user')->where('evento_id', $evento->id)->where('role', Evento::PAPEL_AVALIADOR)->select('user_id'))
             ->withCount(['avaliacoesAtribuidas as carga' => fn ($q) => $q->whereIn('status', ['pendente', 'em_andamento'])
                 ->whereHas('trabalho', fn ($t) => $t->where('evento_id', $evento->id))])
+            ->with('participante')   // usado na checagem de conflito por CPF (sem consulta extra por avaliador)
             ->orderBy('carga')->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Por que cada avaliador NÃO pode ser atribuído a cada trabalho: já atribuído, recusou ou conflito de interesse
+     * (autor/responsável do trabalho: ninguém avalia o próprio trabalho). Só informa os impedimentos.
+     *
+     * @param  Collection<int,Trabalho>  $trabalhos  com autores e avaliacoes (ou avaliacoesApresentacao) carregados
+     * @param  Collection<int,User>  $avaliadores  com participante carregado
+     * @param  string  $fase  'texto' (avaliação do trabalho escrito) | 'apresentacao'
+     * @return array<int,array<int,array{tipo:string,motivo:string}>>  trabalho_id => [avaliador_id => impedimento]
+     */
+    public function restricoesAvaliadores(Collection $trabalhos, Collection $avaliadores, string $fase = 'texto'): array
+    {
+        $mapa = [];
+        foreach ($trabalhos as $t) {
+            $atribuicoes = $fase === 'apresentacao' ? $t->avaliacoesApresentacao : $t->avaliacoes;
+            $rodada = $fase === 'apresentacao' ? null : max(1, (int) $atribuicoes->max('rodada'));
+            $porAvaliador = $atribuicoes
+                ->when($rodada, fn ($c) => $c->where('rodada', $rodada))
+                ->keyBy('avaliador_id');
+
+            foreach ($avaliadores as $u) {
+                $existente = $porAvaliador->get($u->id);
+
+                if ($existente && $existente->status !== 'recusada') {
+                    $mapa[$t->id][$u->id] = ['tipo' => 'atribuido', 'motivo' => 'já está atribuído a este trabalho'];
+                } elseif ($existente && $fase === 'texto') {
+                    $mapa[$t->id][$u->id] = ['tipo' => 'recusou', 'motivo' => 'recusou a avaliação deste trabalho'];
+                } elseif ($motivo = $this->conflitoDeInteresse($t, $u)) {
+                    $mapa[$t->id][$u->id] = ['tipo' => 'conflito', 'motivo' => $motivo];
+                }
+            }
+        }
+
+        return $mapa;
     }
 
     /** Descreve o conflito de interesse entre o avaliador e o trabalho, ou null se não houver. */
