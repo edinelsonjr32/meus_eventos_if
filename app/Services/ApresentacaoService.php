@@ -85,7 +85,11 @@ class ApresentacaoService
             // Registro interno (de = para): não aparece para o autor
             $this->workflow->registrar(
                 $trabalho, $gestor, $trabalho->status, $trabalho->status,
-                $apresentado ? ($origem === 'frequencia' ? 'Apresentação confirmada pela presença do apresentador' : 'Apresentação registrada pela gestão') : 'Apresentação desmarcada'
+                $apresentado ? match ($origem) {
+                    'frequencia' => 'Apresentação confirmada pela presença do apresentador',
+                    'avaliacao' => 'Apresentação confirmada ao ser avaliada' . ($gestor ? " ({$gestor->name})" : ''),
+                    default => 'Apresentação registrada pela gestão',
+                } : 'Apresentação desmarcada'
             );
         });
     }

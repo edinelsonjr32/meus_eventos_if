@@ -183,7 +183,14 @@ class AvaliacaoApresentacaoService
 
         DB::transaction(function () use ($avaliacao, $criterios, $notas) {
             $avaliacao->update(['nota_final' => $this->calcularNota($notas, $criterios), 'status' => 'concluida', 'concluida_em' => now()]);
-            $this->recalcular($avaliacao->trabalho);
+            $trabalho = $avaliacao->trabalho;
+
+            // Se avaliaram a apresentação, ela aconteceu: marca como apresentado para não travar o fluxo (certificado, Anais)
+            if (!$trabalho->apresentado) {
+                app(ApresentacaoService::class)->marcar($trabalho, true, $avaliacao->avaliador, 'avaliacao');
+            }
+
+            $this->recalcular($trabalho->fresh());
         });
 
         return $avaliacao->fresh();

@@ -233,7 +233,8 @@ it('REGRA: só é Aprovado (100%) quem passa no texto E na apresentação; senã
 
     // todos concluídos, média 8 >= 7 => aprovado 100%
     $this->svc->concluir($a2, ['notas' => [$c[0] => 7, $c[1] => 7], 'parecer' => 'Cumpriu o esperado.']);
-    expect($t->fresh()->resultado_apresentacao)->toBe('aprovado')->and($t->fresh()->statusFinal())->toBe('aprovado')->and($t->fresh()->aprovadoCompleto())->toBeTrue();
+    // avaliar a apresentação a marca como apresentada: aprovado nas duas partes e apresentado = aguardando certificado
+    expect($t->fresh()->resultado_apresentacao)->toBe('aprovado')->and($t->fresh()->statusFinal())->toBe('aguardando_certificado')->and($t->fresh()->aprovadoCompleto())->toBeTrue();
 
     // subir a nota mínima para 9 reprova na apresentação: volta a ser só "aprovado na parte escrita"
     $this->actingAs($this->gestor)->put(route('gestao.trabalhos.apresentacoes.config', $this->evento), [
@@ -307,4 +308,44 @@ it('REGRA: certificado do trabalho exige aprovação nas duas partes quando a ap
     $this->evento->trabalhoConfig->update(['avaliacao_apresentacao_ativa' => false]);
     $this->trabalho->update(['resultado_apresentacao' => null]);
     expect($cert->motivoInelegivel($this->trabalho->fresh()))->toBeNull();   // sem avaliação de apresentação: regra anterior
+});
+
+it('avaliar a apresentação de um trabalho "não apresentado" o marca como apresentado (origem: avaliação)', function () {
+    expect($this->trabalho->apresentado)->toBeFalse();
+    $this->svc->atribuir($this->trabalho, $this->av1, $this->gestor);
+    $a = $this->trabalho->avaliacoesApresentacao()->first();
+    $c = $this->evento->criteriosApresentacao()->pluck('id');
+
+    // rascunho não marca
+    $this->actingAs($this->av1)->post(route('avaliador.apresentacoes.salvar', $a), ['notas' => [$c[0] => 8]])->assertSessionHas('success');
+    expect($this->trabalho->fresh()->apresentado)->toBeFalse();
+
+    // ao concluir, marca
+    $this->post(route('avaliador.apresentacoes.concluir', $a), ['notas' => [$c[0] => 8, $c[1] => 9], 'parecer' => 'Boa apresentação, clara e objetiva.'])->assertRedirect();
+    $t = $this->trabalho->fresh();
+    expect($t->apresentado)->toBeTrue()->and($t->apresentado_em)->not->toBeNull()->and($t->apresentacao_origem)->toBe('avaliacao')
+        ->and($t->historico->pluck('justificativa')->implode('|'))->toContain('Apresentação confirmada ao ser avaliada')->toContain($this->av1->name);
+
+    // a tela da gestão explica a origem
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $t))->assertSee('confirmado pela avaliação da apresentação');
+});
+
+it('quem já estava apresentado mantém a origem (manual) ao ser avaliado', function () {
+    app(\App\Services\ApresentacaoService::class)->marcar($this->trabalho, true, $this->gestor);   // origem manual
+    $this->svc->atribuir($this->trabalho->fresh(), $this->av1, $this->gestor);
+    $a = $this->trabalho->avaliacoesApresentacao()->first();
+    $c = $this->evento->criteriosApresentacao()->pluck('id');
+    $this->svc->concluir($a, ['notas' => [$c[0] => 7, $c[1] => 7], 'parecer' => 'Apresentação correta.']);
+
+    expect($this->trabalho->fresh()->apresentacao_origem)->toBe('manual')->and($this->trabalho->fresh()->apresentado)->toBeTrue();
+});
+
+it('apresentado pela avaliação habilita o resultado e o fluxo de certificado', function () {
+    $this->svc->atribuir($this->trabalho, $this->av1, $this->gestor);
+    $a = $this->trabalho->avaliacoesApresentacao()->first();
+    $c = $this->evento->criteriosApresentacao()->pluck('id');
+    $this->svc->concluir($a, ['notas' => [$c[0] => 9, $c[1] => 9], 'parecer' => 'Excelente apresentação!']);
+
+    $t = $this->trabalho->fresh();
+    expect($t->resultado_apresentacao)->toBe('aprovado')->and($t->statusFinal())->toBe('aguardando_certificado');
 });

@@ -47,7 +47,7 @@ Depois que o trabalho está **aprovado** (inclusive os "com ressalvas" depois da
 2. **Gestão de trabalhos → Apresentações**: ative a avaliação, defina o **peso da apresentação na nota geral** (padrão 30%), se o autor vê nota/pareceres e os **critérios** (há um modelo padrão: domínio, comunicação, material de apoio, arguição, tempo). Os critérios travam depois da primeira nota.
 3. Na mesma tela, marque os trabalhos (ou filtre pela sessão) e **atribua avaliadores em lote**, com prazo opcional. Conflitos de interesse são ignorados; o avaliador recebe e-mail. Também é possível por trabalho, no painel.
 4. Acompanhe status e notas por avaliador. **Nota geral = texto × (100 − peso) + apresentação × peso**, exibida no ranking e nas exportações.
-5. Avaliador que recusar pode ser reatribuído; avaliações concluídas não são removidas.
+5. **Ao concluir a avaliação da apresentação, o trabalho é marcado como apresentado automaticamente** (origem "avaliação"), se ainda não estivesse. Avaliador que recusar pode ser reatribuído; avaliações concluídas não são removidas.
 
 ## 6.5 Fim do fluxo: certificados e conclusão
 Depois de aprovado nas duas partes (e apresentado), o trabalho fica **Aguardando emissão de certificado**. Na fila de trabalhos marque os trabalhos e use a ação em lote **Emitir certificados**: cada um passa a **Concluído (certificados emitidos)**, último passo do fluxo. Há filtro e contador para essas duas situações.

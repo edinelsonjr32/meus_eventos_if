@@ -337,7 +337,7 @@
     <div class="small mb-2">
         @if($trabalho->apresentado)
             <x-badge tipo="sim-nao" valor="apresentado" />
-            <span class="text-muted">{{ $trabalho->apresentado_em?->format('d/m/Y H:i') }} · {{ $trabalho->apresentacao_origem === 'frequencia' ? 'confirmado pela frequência' : 'registrado pela gestão' }}</span>
+            <span class="text-muted">{{ $trabalho->apresentado_em?->format('d/m/Y H:i') }} · {{ match ($trabalho->apresentacao_origem) { 'frequencia' => 'confirmado pela frequência', 'avaliacao' => 'confirmado pela avaliação da apresentação', default => 'registrado pela gestão' } }}</span>
         @else
             <x-badge tipo="sim-nao" valor="nao_apresentado" />
         @endif
