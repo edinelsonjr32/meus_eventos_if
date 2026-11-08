@@ -319,3 +319,14 @@ it('valida e salva os novos campos de avaliação da chamada', function () {
     $c = TrabalhoConfig::where('evento_id', $this->evento->id)->first();
     expect($c->avaliadores_por_trabalho)->toBe(3)->and($c->avaliacao_fim->format('Y-m-d'))->toBe('2026-12-20');
 });
+
+it('o autor NÃO acessa a tela da gestão (avaliadores, notas e comentários confidenciais)', function () {
+    $this->trabalho->update(['status' => 'em_triagem']);
+    $avaliacao = $this->w->atribuirAvaliador($this->trabalho, $this->av1, $this->gestor);
+    $avaliacao->update(['status' => 'concluida', 'nota_final' => 8, 'parecer' => 'Parecer.', 'parecer_confidencial' => 'Segredo da comissão', 'recomendacao' => 'aprovar']);
+    $this->trabalho->update(['status' => 'avaliado']);
+
+    $this->actingAs($this->autor)->get(route('gestao.trabalhos.show', $this->trabalho))->assertForbidden();
+    // a visão própria do autor continua funcionando e não traz dados internos
+    $this->actingAs($this->autor)->get(route('trabalhos.show', $this->trabalho))->assertOk()->assertDontSee('Segredo da comissão')->assertDontSee($this->av1->name);
+});

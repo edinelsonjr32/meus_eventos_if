@@ -92,8 +92,9 @@ class TrabalhoGestaoController extends Controller
 
     public function show(Trabalho $trabalho)
     {
-        $this->authorize('view', $trabalho);
-        abort_if($trabalho->status === Trabalho::RASCUNHO && $trabalho->submetido_por !== auth()->id(), 404);
+        // Somente a gestão: esta tela mostra avaliadores, notas e comentários confidenciais (o autor usa trabalhos.show)
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+        abort_if($trabalho->status === Trabalho::RASCUNHO, 404);   // rascunhos são privados do autor
 
         $trabalho->load(['evento.trabalhoConfig', 'autores', 'arquivos', 'historico.usuario', 'area', 'submetente', 'avaliacoes.avaliador']);
 
