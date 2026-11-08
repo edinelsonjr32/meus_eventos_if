@@ -25,7 +25,7 @@
             @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
             @if($errors->any())     <div class="alert alert-danger small">{{ $errors->first() }}</div> @endif
             @if(session('erros_lote'))
-                <div class="alert alert-warning small"><ul class="mb-0 ps-3">@foreach(session('erros_lote') as $erro) <li>{{ $erro }}</li> @endforeach</ul></div>
+                <div class="alert alert-warning small"><strong>Ignorados:</strong><ul class="mb-0 ps-3">@foreach(session('erros_lote') as $erro) <li>{{ $erro }}</li> @endforeach</ul></div>
             @endif
 
             @php $sit = \App\Models\TrabalhoConfig::situacaoDe($config); @endphp
@@ -74,42 +74,21 @@
                 </div>
             </form>
 
-            <form id="lote" action="{{ route('gestao.trabalhos.lote', $evento) }}" method="POST" class="glass-card bg-white mb-3">
-                @csrf
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-3">
-                        <label class="small fw-bold text-secondary">Ação nos selecionados</label>
-                        <select name="acao" class="form-select form-select-sm">
-                            <option value="triagem">Iniciar triagem</option>
-                            <option value="atribuir">Atribuir avaliadores</option>
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="small fw-bold text-secondary">Avaliadores <span class="fw-normal">(somente ao atribuir)</span></label>
-                        <select name="avaliadores[]" class="form-select form-select-sm" multiple size="3">
-                            @foreach($avaliadores as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="small fw-bold text-secondary">Prazo</label>
-                        <input type="date" name="prazo" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}">
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-sm w-100 fw-bold btn-success"><i class="fa-solid fa-check"></i> Aplicar</button>
-                    </div>
-                </div>
-            </form>
+            <x-lote-avaliadores :action="route('gestao.trabalhos.lote', $evento)" :avaliadores="$avaliadores" :acoes="[
+                ['valor' => 'atribuir', 'rotulo' => 'Atribuir avaliadores', 'icone' => 'fa-user-plus', 'tom' => 'btn-outline-success'],
+                ['valor' => 'triagem', 'rotulo' => 'Iniciar triagem', 'icone' => 'fa-filter', 'tom' => 'btn-outline-primary'],
+            ]" />
 
             <div class="glass-card bg-white p-0 overflow-hidden">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="bg-light">
-                            <tr><th class="ps-3"><input type="checkbox" class="form-check-input" onclick="document.querySelectorAll('.sel-trabalho').forEach(c => c.checked = this.checked)"></th><th>Protocolo</th><th>Título / Autores</th><th>Categoria</th><th>Área</th><th>Status</th><th>Aval.</th><th>Enviado em</th><th></th></tr>
+                            <tr><th class="ps-3"><input type="checkbox" class="form-check-input sel-todos" title="Marcar todos desta página"></th><th>Protocolo</th><th>Título / Autores</th><th>Categoria</th><th>Área</th><th>Status</th><th>Aval.</th><th>Enviado em</th><th></th></tr>
                         </thead>
                         <tbody>
                         @forelse($trabalhos as $t)
                             <tr>
-                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho"></td>
+                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho" data-atribuir="{{ in_array($t->status, \App\Services\TrabalhoWorkflow::STATUS_ATRIBUICAO, true) ? 1 : 0 }}" data-triagem="{{ in_array($t->status, [\App\Models\Trabalho::SUBMETIDO, 'resubmetido'], true) ? 1 : 0 }}"></td>
                                 <td class="fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>
                                     <div class="fw-bold">{{ \Illuminate\Support\Str::limit($t->titulo, 70) }}</div>

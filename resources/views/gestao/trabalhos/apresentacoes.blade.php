@@ -14,6 +14,9 @@
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
             @if(session('warning')) <div class="alert alert-warning">{{ session('warning') }}</div> @endif
             @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
+            @if(session('erros_lote'))
+                <div class="alert alert-warning small"><strong>Ignorados:</strong><ul class="mb-0 ps-3">@foreach(session('erros_lote') as $erro) <li>{{ $erro }}</li> @endforeach</ul></div>
+            @endif
             @if($errors->any()) <div class="alert alert-danger"><ul class="mb-0 small">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div> @endif
 
             @unless($config)
@@ -92,16 +95,16 @@
                     <div class="alert alert-secondary small">A avaliação das apresentações está <strong>desativada</strong>. Ative e salve a configuração acima para atribuir avaliadores.</div>
                 @endif
 
-                <form action="{{ route('gestao.trabalhos.apresentacoes.lote', $evento) }}" method="POST" id="formLote">
-                    @csrf
-                    @if($atividadeId) <input type="hidden" name="atividade" value="{{ $atividadeId }}"> @endif
+                @if($config->avaliacao_apresentacao_ativa && $trabalhos->isNotEmpty())
+                    <x-lote-avaliadores :action="route('gestao.trabalhos.apresentacoes.lote', $evento)" :avaliadores="$avaliadores" />
+                @endif
                     <div class="table-responsive">
                         <table class="table table-sm align-middle small">
-                            <thead><tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.chk-trab').forEach(c => c.checked = this.checked)"></th><th>Trabalho</th><th>Sessão</th><th>Apresentação</th><th>Avaliadores</th><th class="text-end">Texto</th><th class="text-end">Apresentação</th><th class="text-end">Geral</th><th>Resultado</th></tr></thead>
+                            <thead><tr><th style="width:30px"><input type="checkbox" class="sel-todos" title="Marcar todos"></th><th>Trabalho</th><th>Sessão</th><th>Apresentação</th><th>Avaliadores</th><th class="text-end">Texto</th><th class="text-end">Apresentação</th><th class="text-end">Geral</th><th>Resultado</th></tr></thead>
                             <tbody>
                             @forelse($trabalhos as $t)
                                 <tr>
-                                    <td><input type="checkbox" class="chk-trab" name="trabalhos[]" value="{{ $t->id }}"></td>
+                                    <td><input type="checkbox" form="lote" class="sel-trabalho" name="trabalhos[]" value="{{ $t->id }}" data-atribuir="1" data-triagem="0"></td>
                                     <td><a href="{{ route('gestao.trabalhos.show', $t) }}" class="fw-bold text-decoration-none">{{ $t->codigo }}</a><div class="text-muted">{{ \Illuminate\Support\Str::limit($t->titulo, 55) }}</div></td>
                                     <td>{{ $t->sessao?->titulo ?? '—' }}</td>
                                     <td>
@@ -135,22 +138,6 @@
                         </table>
                     </div>
 
-                    @if($config->avaliacao_apresentacao_ativa && $trabalhos->isNotEmpty())
-                        <div class="border rounded-3 p-3 bg-light">
-                            <div class="fw-bold small mb-2">Atribuir avaliadores aos trabalhos marcados{{ $atividadeId ? ' (ou, sem marcar nenhum, a todos desta sessão)' : '' }}</div>
-                            <div class="row g-2">
-                                @forelse($avaliadores as $u)
-                                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="avaliadores[]" value="{{ $u->id }}" id="lav{{ $u->id }}"><label class="form-check-label small" for="lav{{ $u->id }}">{{ $u->name }} <span class="text-muted">({{ $u->carga }} pendente(s))</span></label></div></div>
-                                @empty <div class="col-12 small text-muted">Nenhum avaliador designado neste evento (use Papéis do evento).</div> @endforelse
-                            </div>
-                            <div class="d-flex flex-wrap gap-2 align-items-end mt-3">
-                                <div><label class="small fw-bold text-secondary">Prazo (opcional)</label><input type="date" name="prazo" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}"></div>
-                                <button class="btn btn-primary-custom btn-sm fw-bold"><i class="fa-solid fa-user-plus me-1"></i> Atribuir</button>
-                            </div>
-                            <div class="form-text">Quem tem conflito de interesse com o trabalho (autor/responsável) é ignorado automaticamente.</div>
-                        </div>
-                    @endif
-                </form>
                 @foreach($trabalhos as $t)
                     <form id="ap{{ $t->id }}" action="{{ route('gestao.trabalhos.apresentacao', $t) }}" method="POST" class="d-none">@csrf</form>
                 @endforeach

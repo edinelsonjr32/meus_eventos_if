@@ -7,6 +7,7 @@ use App\Models\ApresentacaoAvaliacao;
 use App\Models\Evento;
 use App\Models\Trabalho;
 use App\Models\User;
+use App\Support\ResultadoLote;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -93,28 +94,27 @@ class AvaliacaoApresentacaoService
     }
 
     /**
-     * Atribui os avaliadores a vários trabalhos de uma vez (ex.: todos os da sessão "Feira de Trabalhos").
+     * Atribui os avaliadores a vários trabalhos de uma vez (ex.: os da "Feira de Trabalhos").
+     * Cada recusa (conflito, duplicado, status) vira um item ignorado com motivo.
      *
      * @param  Collection<int,Trabalho>  $trabalhos
      * @param  Collection<int,User>  $avaliadores
-     * @return array{atribuidos:int,ignorados:array<int,string>}
      */
-    public function atribuirEmLote(Collection $trabalhos, Collection $avaliadores, User $gestor, ?Carbon $prazo = null): array
+    public function atribuirEmLote(Collection $trabalhos, Collection $avaliadores, User $gestor, ?Carbon $prazo = null): ResultadoLote
     {
-        $atribuidos = 0;
-        $ignorados = [];
+        $resultado = new ResultadoLote();
         foreach ($trabalhos as $t) {
             foreach ($avaliadores as $a) {
                 try {
                     $this->atribuir($t, $a, $gestor, $prazo);
-                    $atribuidos++;
+                    $resultado->ok();
                 } catch (\DomainException $e) {
-                    $ignorados[] = $e->getMessage();
+                    $resultado->ignorar($t->codigo, $e->getMessage());
                 }
             }
         }
 
-        return ['atribuidos' => $atribuidos, 'ignorados' => $ignorados];
+        return $resultado;
     }
 
     /** @throws \DomainException */

@@ -86,8 +86,8 @@ it('atribui em lote a todos os aprovados de uma sessão, ignorando conflitos', f
     $outro = mkTrabalho($this->evento, $this->av1, ['titulo' => 'Do próprio avaliador'], 'aprovado');   // av1 é o responsável: conflito
     $outro->update(['atividade_id' => $this->feira->id]);
 
-    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.apresentacoes.lote', $this->evento), ['avaliadores' => [$this->av1->id, $this->av2->id], 'atividade' => $this->feira->id])
-        ->assertSessionHas('success')->assertSessionHas('warning');
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.apresentacoes.lote', $this->evento), ['trabalhos' => [$this->trabalho->id, $outro->id], 'avaliadores' => [$this->av1->id, $this->av2->id]])
+        ->assertSessionHas('success')->assertSessionHas('erros_lote');
 
     expect(ApresentacaoAvaliacao::count())->toBe(3)   // 2 no trabalho da feira + 1 (av2) no do av1
         ->and($outro->avaliacoesApresentacao()->pluck('avaliador_id')->all())->toBe([$this->av2->id]);

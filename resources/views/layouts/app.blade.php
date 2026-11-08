@@ -136,6 +136,13 @@
         .btn-light:has(> .fa-download, > .fa-file-pdf, > .fa-file-excel, > .fa-file-csv, > .fa-upload, > .fa-qrcode, > .fa-print), .btn-outline-secondary:has(> .fa-download, > .fa-upload) { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
         .btn-light:has(> .fa-arrow-left, > .fa-arrow-right) { background: #fff; }
 
+        /* Opções em formato de botão (radio): a escolhida fica cheia e com contorno, as demais claras */
+        .btn-check:checked + .btn-outline-success { background: #16a34a; border-color: #16a34a; color: #fff; box-shadow: 0 0 0 .2rem rgba(22,163,74,.25); }
+        .btn-check:checked + .btn-outline-primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; box-shadow: 0 0 0 .2rem rgba(29,78,216,.25); }
+        .btn-check:checked + .btn-outline-warning { background: #d97706; border-color: #d97706; color: #fff; box-shadow: 0 0 0 .2rem rgba(217,119,6,.25); }
+        .btn-check:checked + .btn-outline-secondary { background: #475569; border-color: #475569; color: #fff; box-shadow: 0 0 0 .2rem rgba(71,85,105,.25); }
+        .btn-check:focus-visible + .btn { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+
         /* Tons extras para distinguir ações lado a lado (barras de ferramentas) */
         .btn-tone-indigo { color: #4338ca; background: #eef2ff; border: 1px solid #c7d2fe; } .btn-tone-indigo:hover { background: #4338ca; color: #fff; border-color: #4338ca; }
         .btn-tone-purple { color: #7e22ce; background: #faf5ff; border: 1px solid #e9d5ff; } .btn-tone-purple:hover { background: #7e22ce; color: #fff; border-color: #7e22ce; }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Gestao;
 
 use App\Http\Controllers\Controller;
+use App\Support\ResultadoLote;
 use App\Models\AreaTematica;
 use App\Models\Evento;
 use App\Models\Trabalho;
@@ -237,11 +238,7 @@ class TrabalhoGestaoController extends Controller
             'prazo' => ['nullable', 'date', 'after:today'],
         ], ['avaliadores.required' => 'Selecione ao menos um avaliador.']);
 
-        [$ok, $erros] = $this->atribuirVarios($trabalho, $request, $dados['avaliadores'], $dados['prazo'] ?? null);
-
-        return back()
-            ->with($ok ? 'success' : 'error', $ok ? "{$ok} avaliador(es) atribuído(s)." : 'Nenhuma atribuição realizada.')
-            ->with('erros_lote', $erros);
+        return $this->atribuirVarios($trabalho, $request, $dados['avaliadores'], $dados['prazo'] ?? null)->aplicar(back(), 'atribuição(ões)');
     }
 
     public function removerAvaliador(Request $request, Trabalho $trabalho, TrabalhoAvaliacao $avaliacao)
@@ -342,51 +339,51 @@ class TrabalhoGestaoController extends Controller
         // Somente trabalhos deste evento (ignora ids de outros eventos)
         $trabalhos = $evento->trabalhos()->whereIn('id', $dados['trabalhos'])->with('evento.trabalhoConfig')->get();
 
-        $ok = 0;
-        $erros = [];
+        $resultado = new ResultadoLote();
 
         foreach ($trabalhos as $trabalho) {
             if ($dados['acao'] === 'triagem') {
                 // "Iniciar triagem" em lote nunca cancela envios: só vale para submetidos/resubmetidos
                 if (!in_array($trabalho->status, [Trabalho::SUBMETIDO, 'resubmetido'], true)) {
-                    $erros[] = "{$trabalho->codigo}: não é possível iniciar a triagem (status atual: {$trabalho->statusRotulo()}).";
+                    $resultado->ignorar($trabalho->codigo, "Não está aguardando triagem (status: {$trabalho->statusRotulo()})");
                     continue;
                 }
                 try {
                     $this->workflow->transicionar($trabalho, $request->user(), 'em_triagem');
-                    $ok++;
+                    $resultado->ok();
                 } catch (\DomainException $e) {
-                    $erros[] = "{$trabalho->codigo}: {$e->getMessage()}";
+                    $resultado->ignorar($trabalho->codigo, $e->getMessage());
                 }
             } else {
-                [$feitos, $falhas] = $this->atribuirVarios($trabalho, $request, $dados['avaliadores'], $dados['prazo'] ?? null);
-                $ok += $feitos;
-                $erros = array_merge($erros, $falhas);
+                $resultado->mesclar($this->atribuirVarios($trabalho, $request, $dados['avaliadores'], $dados['prazo'] ?? null));
             }
         }
 
-        return back()
-            ->with($ok ? 'success' : 'error', $ok ? "{$ok} operação(ões) realizada(s)." : 'Nenhuma operação realizada.')
-            ->with('erros_lote', $erros);
+        // Ids que não pertencem ao evento (ou não existem) são reportados, nunca ignorados em silêncio
+        $faltando = count($dados['trabalhos']) - $trabalhos->count();
+        if ($faltando > 0) {
+            $resultado->ignorar("{$faltando} item(ns)", 'Trabalho não encontrado neste evento');
+        }
+
+        return $resultado->aplicar(back(), $dados['acao'] === 'triagem' ? 'triagem(ns) iniciada(s)' : 'atribuição(ões)');
     }
 
-    /** @return array{0:int,1:array<int,string>} [quantidade atribuída, mensagens de erro] */
-    private function atribuirVarios(Trabalho $trabalho, Request $request, array $ids, ?string $prazo): array
+    /** Atribui os avaliadores ao trabalho; cada recusa (conflito, duplicado, status) vira um item ignorado com motivo. */
+    private function atribuirVarios(Trabalho $trabalho, Request $request, array $ids, ?string $prazo): ResultadoLote
     {
-        $ok = 0;
-        $erros = [];
+        $resultado = new ResultadoLote();
         $prazo = $prazo ? Carbon::parse($prazo)->endOfDay() : null;
 
         foreach (\App\Models\User::whereIn('id', $ids)->get() as $avaliador) {
             try {
                 $this->workflow->atribuirAvaliador($trabalho, $avaliador, $request->user(), $prazo);
-                $ok++;
+                $resultado->ok();
             } catch (\DomainException $e) {
-                $erros[] = "{$trabalho->codigo}: {$e->getMessage()}";
+                $resultado->ignorar($trabalho->codigo, $e->getMessage());
             }
         }
 
-        return [$ok, $erros];
+        return $resultado;
     }
 
     /** Ranking de notas dos trabalhos (somente gestão). */

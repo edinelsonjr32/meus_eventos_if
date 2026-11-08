@@ -118,31 +118,32 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
         $dados = $request->validate(['avaliadores' => ['required', 'array', 'min:1'], 'avaliadores.*' => ['integer'], 'prazo' => ['nullable', 'date', 'after:today']],
             ['avaliadores.required' => 'Selecione ao menos um avaliador.']);
 
-        $r = $this->servico->atribuirEmLote(collect([$trabalho]), User::whereIn('id', $dados['avaliadores'])->get(), $request->user(), $this->prazo($dados));
-
-        return $this->resposta($r);
+        return $this->servico->atribuirEmLote(collect([$trabalho]), User::whereIn('id', $dados['avaliadores'])->get(), $request->user(), $this->prazo($dados))
+            ->aplicar(back(), 'atribuição(ões)');
     }
 
     public function lote(Request $request, Evento $evento)
     {
         $this->authorize('gerirTrabalhos', $evento);
         $dados = $request->validate([
+            'acao' => ['nullable', 'in:atribuir'],
+            'trabalhos' => ['required', 'array', 'min:1'], 'trabalhos.*' => ['integer'],
             'avaliadores' => ['required', 'array', 'min:1'], 'avaliadores.*' => ['integer'],
-            'trabalhos' => ['nullable', 'array'], 'trabalhos.*' => ['integer'],
-            'atividade' => ['nullable', 'integer'],
             'prazo' => ['nullable', 'date', 'after:today'],
-        ], ['avaliadores.required' => 'Selecione ao menos um avaliador.']);
+        ], ['trabalhos.required' => 'Selecione ao menos um trabalho.', 'avaliadores.required' => 'Selecione ao menos um avaliador.']);
 
-        $trabalhos = $evento->trabalhos()->where('status', 'aprovado')
-            ->when(!empty($dados['trabalhos']), fn ($q) => $q->whereIn('id', $dados['trabalhos']))
-            ->when(empty($dados['trabalhos']) && !empty($dados['atividade']), fn ($q) => $q->where('atividade_id', $dados['atividade']))
+        // Seleção sempre explícita (nada de "todos da sessão" implícito); ids de outro evento ou não aprovados são reportados
+        $trabalhos = $evento->trabalhos()->where('status', 'aprovado')->whereIn('id', $dados['trabalhos'])
             ->with(['evento.trabalhoConfig', 'sessao', 'autores'])->get();
 
-        if ($trabalhos->isEmpty()) {
-            return back()->with('error', 'Nenhum trabalho aprovado selecionado (marque trabalhos na lista ou escolha a sessão).');
+        $resultado = $this->servico->atribuirEmLote($trabalhos, User::whereIn('id', $dados['avaliadores'])->get(), $request->user(), $this->prazo($dados));
+
+        $faltando = count($dados['trabalhos']) - $trabalhos->count();
+        if ($faltando > 0) {
+            $resultado->ignorar("{$faltando} item(ns)", 'Trabalho não aprovado ou não encontrado neste evento');
         }
 
-        return $this->resposta($this->servico->atribuirEmLote($trabalhos, User::whereIn('id', $dados['avaliadores'])->get(), $request->user(), $this->prazo($dados)));
+        return $resultado->aplicar(back(), 'atribuição(ões)');
     }
 
     public function remover(ApresentacaoAvaliacao $avaliacao)
@@ -160,19 +161,5 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
     private function prazo(array $dados): ?Carbon
     {
         return !empty($dados['prazo']) ? Carbon::parse($dados['prazo'])->endOfDay() : null;
-    }
-
-    private function resposta(array $r)
-    {
-        $resp = back();
-        if ($r['atribuidos'] > 0) {
-            $resp = $resp->with('success', "{$r['atribuidos']} atribuição(ões) feita(s). Os avaliadores foram avisados por e-mail.");
-        }
-        if ($r['ignorados']) {
-            $lista = collect($r['ignorados'])->unique()->take(6)->implode(' · ');
-            $resp = $resp->with($r['atribuidos'] > 0 ? 'warning' : 'error', ($r['atribuidos'] > 0 ? 'Algumas atribuições foram ignoradas: ' : 'Nenhuma atribuição feita: ') . $lista);
-        }
-
-        return $resp;
     }
 }

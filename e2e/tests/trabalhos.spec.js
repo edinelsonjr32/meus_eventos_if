@@ -181,3 +181,35 @@ test('detalhe do trabalho: avaliadores com Select2 e bloqueio de envio sem o mí
   await expect(page.locator('.select2-results__option').first()).toBeVisible();
   await page.screenshot({ path: 'test-results/select2-avaliadores.png' });
 });
+
+test('lote: resumo ao vivo, Select2 e botão só habilita com seleção válida (tela de trabalhos)', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Trabalhos', exact: true }).first().click();
+  await page.goto(page.url() + '?status=em_triagem');
+
+  const enviar = page.locator('[data-lote-enviar]');
+  await expect(page.locator('[data-lote-contagem]')).toContainText('0 selecionado');
+  await expect(enviar).toBeDisabled();
+
+  await page.locator('.sel-trabalho').nth(0).check();
+  await page.locator('.sel-trabalho').nth(1).check();
+  await expect(page.locator('[data-lote-contagem]')).toContainText('2 selecionado');
+  await expect(page.locator('[data-lote-resumo]')).toContainText('Escolha ao menos um avaliador');
+  await expect(enviar).toBeDisabled();
+
+  await page.locator('.lote-barra .select2-container').first().click();
+  await page.locator('.select2-results__option', { hasText: 'Avaliador Teste' }).first().click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-lote-resumo]')).toContainText('até 2 atribuição');
+  await expect(enviar).toBeEnabled();
+
+  // trocar a ação muda o resumo e esconde os avaliadores
+  await page.locator('label[for="lote-a1"]').click();
+  await expect(page.locator('[data-lote-painel="atribuir"]')).toBeHidden();
+  await expect(page.locator('[data-lote-resumo]')).toContainText('triagem');
+  await page.screenshot({ path: 'test-results/lote.png' });
+
+  await page.locator('[data-lote-limpar]').click();
+  await expect(page.locator('[data-lote-contagem]')).toContainText('0 selecionado');
+});
