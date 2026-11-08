@@ -34,6 +34,12 @@ class Trabalho extends Model
         'resubmetido' => 'Resubmetido',
     ];
 
+    /** Rótulos extras de exibição (não são status gravados): ver statusFinal(). */
+    public const STATUS_FINAL_EXTRA = [
+        'aprovado_escrita' => 'Aprovado na parte escrita',
+        'aprovado_apresentacao' => 'Aprovado na apresentação',
+    ];
+
     public const TIPOS_AUTOR = [
         'autor_principal' => 'Autor principal',
         'coautor' => 'Coautor',
@@ -54,7 +60,7 @@ class Trabalho extends Model
     protected $fillable = [
         'evento_id', 'codigo', 'submetido_por', 'titulo', 'resumo', 'abstract', 'palavras_chave', 'tipo_trabalho',
         'area_tematica_id', 'atividade_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
-        'status', 'nota_final', 'nota_apresentacao', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
+        'status', 'nota_final', 'nota_apresentacao', 'resultado_apresentacao', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
         'apresentado', 'apresentado_em', 'apresentacao_origem',
         'autoriza_publicacao', 'autorizou_em', 'submetido_em',
     ];
@@ -117,6 +123,35 @@ class Trabalho extends Model
     public function avaliacoes(): HasMany
     {
         return $this->hasMany(TrabalhoAvaliacao::class)->orderBy('id');
+    }
+
+    /**
+     * Situação para exibição. Regra de negócio: o trabalho só é "Aprovado" (100%) se foi aprovado na parte escrita
+     * E na apresentação. Aprovado só no texto (aguardando ou reprovado na apresentação) = "Aprovado na parte escrita".
+     * Na prática só se apresenta quem foi aprovado no texto, então "aprovado_apresentacao" (sem o texto) não ocorre;
+     * a chave existe apenas por completude. Sem avaliação de apresentação ativa no evento, vale a aprovação do texto.
+     */
+    public function statusFinal(): string
+    {
+        if ($this->status !== 'aprovado') {
+            return $this->status;
+        }
+        if (!$this->evento->trabalhoConfig?->avaliacao_apresentacao_ativa) {
+            return 'aprovado';
+        }
+
+        return $this->resultado_apresentacao === 'aprovado' ? 'aprovado' : 'aprovado_escrita';
+    }
+
+    public function statusFinalRotulo(): string
+    {
+        return self::STATUS[$this->statusFinal()] ?? self::STATUS_FINAL_EXTRA[$this->statusFinal()] ?? $this->statusFinal();
+    }
+
+    /** Aprovado nas duas partes (ou apenas no texto, quando o evento não avalia apresentações). */
+    public function aprovadoCompleto(): bool
+    {
+        return $this->statusFinal() === 'aprovado';
     }
 
     /** Avaliações da apresentação (feira de trabalhos), feitas por avaliadores após a aprovação. */

@@ -47,7 +47,7 @@ class NotasExport implements FromCollection, WithHeadings, ShouldAutoSize
             RelatorioNotas::categoria($t->tipo_trabalho),
             $t->area->nome ?? '',
             Trabalho::MODALIDADES[$t->modalidade_apresentacao] ?? '',
-            $t->statusRotulo(),
+            $t->statusFinalRotulo(),
             ['aprovado' => 'Aprovado', 'aprovado_com_ressalvas' => 'Aprovado com ressalvas', 'reprovado' => 'Reprovado'][$t->decisao] ?? '',
             $l['nota'],
             "{$l['concluidas']}/{$l['atribuidas']}",

@@ -52,8 +52,8 @@ class AnaisGestaoController extends Controller
             'doi_prefixo' => ['nullable', 'regex:/^10\.\d{4,9}$/'],
             'apresentacao' => ['nullable', 'string', 'max:10000'],
             'comissao' => ['nullable', 'string', 'max:10000'],
-            'local_publicacao' => ['required', 'string', 'max:255'],
-            'editora' => ['required', 'string', 'max:255'],
+            'local_publicacao' => ['nullable', 'string', 'max:255'],
+            'editora' => ['nullable', 'string', 'max:255'],
             'ano' => ['required', 'integer', 'min:2000', 'max:2100'],
         ], [
             'issn.regex' => 'ISSN inválido (formato 0000-0000).',
@@ -110,15 +110,28 @@ class AnaisGestaoController extends Controller
             return back()->with('error', 'Salve os dados dos Anais antes de publicar.');
         }
 
-        $publicaveis = Anais::elegiveis($evento)->with(['arquivoAnais', 'arquivoAtual', 'evento.trabalhoConfig'])->get()
-            ->filter(fn ($t) => $this->pdf->arquivoPublico($t) !== null);
-        if ($publicaveis->isEmpty()) {
-            return back()->with('error', 'Nenhum trabalho elegível possui PDF publicável. Em avaliação cega, envie o PDF final de cada trabalho.');
-        }
+        $anais->update(['status' => 'publicado', 'publicado_em' => $anais->publicado_em ?? now(), 'publicado_por' => $request->user()->id]);
 
-        $anais->update(['status' => 'publicado', 'publicado_em' => now(), 'publicado_por' => $request->user()->id]);
+        $total = Anais::elegiveis($evento)->count();
+        $aviso = $total === 0 ? ' Ainda não há trabalhos elegíveis: eles aparecem na página conforme forem apresentados.' : " {$total} trabalho(s) listado(s).";
 
-        return back()->with('success', 'Anais publicados com ' . $publicaveis->count() . ' trabalho(s).');
+        return back()->with('success', 'Anais visíveis ao público.' . $aviso . ($anais->dadosVisiveis() ? '' : ' Os dados de publicação continuam ocultos.'));
+    }
+
+    /** Libera ou oculta os dados de publicação (ISBN/ISSN/DOI, editora, local, ano, citação ABNT e PDF compilado). */
+    public function dadosPublicacao(Request $request, Evento $evento)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        $dados = $request->validate(['acao' => ['required', 'in:exibir,ocultar']]);
+        $anais = $evento->anais;
+        abort_unless($anais, 404);
+
+        $anais->update(['dados_publicacao_visiveis' => $dados['acao'] === 'exibir']);
+
+        return back()->with('success', $dados['acao'] === 'exibir'
+            ? 'Dados de publicação liberados na página pública.'
+            : 'Dados de publicação ocultados. A página pública mostra apenas os trabalhos.');
     }
 
     public function despublicar(Evento $evento)

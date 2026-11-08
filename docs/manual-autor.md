@@ -30,7 +30,10 @@ Os **pareceres** aparecem na página do trabalho quando a decisão é liberada.
 ## 4. Corrigir e reenviar
 Em **Aguardando correção**: abra o trabalho → **Editar**, ajuste o PDF/dados e reenvie antes do prazo. O trabalho volta aos mesmos avaliadores (nova rodada). Perdeu o prazo? Peça prorrogação à gestão.
 
-## 4.1 Apresentação na feira
+## 4.1 Aprovação: texto + apresentação
+Quando o evento avalia apresentações, o seu trabalho só fica **Aprovado** (completo) se for aprovado na **parte escrita** e na **apresentação**. Se apenas o texto foi aprovado, o status é **Aprovado na parte escrita** até a apresentação ser avaliada. Só os trabalhos aprovados nas duas partes entram nos Anais.
+
+## 4.2 Apresentação na feira
 Trabalho aprovado é apresentado na sessão indicada pela organização (ex.: *Feira de Trabalhos*). Se o evento avaliar apresentações, depois dela você vê a **nota da apresentação**, a **nota geral** e os pareceres (anônimos) na página do trabalho, quando a gestão liberar.
 
 ## 5. Certificado e Anais

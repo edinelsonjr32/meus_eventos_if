@@ -7,33 +7,17 @@
                     <h3 class="fw-bold m-0">Trabalhos submetidos</h3>
                     <small class="text-secondary">{{ $evento->titulo }}</small>
                 </div>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('gestao.trabalhos.exportar', array_merge(['evento' => $evento->id, 'formato' => 'xlsx'], request()->only(['status', 'tipo', 'area', 'q']))) }}" class="btn btn-outline-success fw-bold">
-                        <i class="fa-solid fa-file-excel me-1"></i> Excel
-                    </a>
-                    <a href="{{ route('gestao.trabalhos.exportar', array_merge(['evento' => $evento->id, 'formato' => 'csv'], request()->only(['status', 'tipo', 'area', 'q']))) }}" class="btn btn-outline-secondary fw-bold">
-                        <i class="fa-solid fa-file-csv me-1"></i> CSV
-                    </a>
-                    <a href="{{ route('gestao.trabalhos.anais.edit', $evento) }}" class="btn btn-outline-success fw-bold">
-                        <i class="fa-solid fa-book me-1"></i> Anais
-                    </a>
-                    <a href="{{ route('gestao.trabalhos.apresentacoes.index', $evento) }}" class="btn btn-outline-success fw-bold">
-                        <i class="fa-solid fa-person-chalkboard me-1"></i> Apresentações
-                    </a>
-                    <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-outline-success fw-bold">
-                        <i class="fa-solid fa-ranking-star me-1"></i> Notas e ranking
-                    </a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('gestao.trabalhos.exportar', array_merge(['evento' => $evento->id, 'formato' => 'xlsx'], request()->only(['status', 'tipo', 'area', 'q']))) }}" class="btn btn-outline-success"><i class="fa-solid fa-file-excel"></i> Excel</a>
+                    <a href="{{ route('gestao.trabalhos.exportar', array_merge(['evento' => $evento->id, 'formato' => 'csv'], request()->only(['status', 'tipo', 'area', 'q']))) }}" class="btn btn-tone-teal"><i class="fa-solid fa-file-csv"></i> CSV</a>
+                    <a href="{{ route('gestao.trabalhos.anais.edit', $evento) }}" class="btn btn-tone-indigo"><i class="fa-solid fa-book"></i> Anais</a>
+                    <a href="{{ route('gestao.trabalhos.apresentacoes.index', $evento) }}" class="btn btn-outline-primary"><i class="fa-solid fa-person-chalkboard"></i> Apresentações</a>
+                    <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-tone-amber"><i class="fa-solid fa-ranking-star"></i> Notas e ranking</a>
+                    <a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}" class="btn btn-tone-purple"><i class="fa-solid fa-award"></i> Certificados</a>
+                    <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-tone-slate"><i class="fa-solid fa-sliders"></i> {{ $config ? 'Editar chamada' : 'Criar chamada' }}</a>
                     @if($config)
-                        <a href="{{ route('gestao.trabalhos.novo', $evento) }}" class="btn btn-outline-success fw-bold" title="Cadastrar um trabalho recebido por outro meio">
-                            <i class="fa-solid fa-file-circle-plus me-1"></i> Cadastrar trabalho
-                        </a>
+                        <a href="{{ route('gestao.trabalhos.novo', $evento) }}" class="btn btn-success" title="Cadastrar um trabalho recebido por outro meio"><i class="fa-solid fa-file-circle-plus"></i> Cadastrar trabalho</a>
                     @endif
-                    <a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}" class="btn btn-outline-success fw-bold">
-                        <i class="fa-solid fa-award me-1"></i> Certificados
-                    </a>
-                    <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-outline-secondary fw-bold">
-                        <i class="fa-solid fa-sliders me-1"></i> {{ $config ? 'Editar chamada' : 'Criar chamada' }}
-                    </a>
                 </div>
             </div>
 
@@ -84,8 +68,8 @@
                         </select>
                     </div>
                     <div class="col-md-2 d-flex gap-1">
-                        <button class="btn btn-sm btn-dark flex-fill">Filtrar</button>
-                        <a href="{{ route('gestao.trabalhos.index', $evento) }}" class="btn btn-sm btn-light">Limpar</a>
+                        <button class="btn btn-sm btn-dark flex-fill"><i class="fa-solid fa-filter"></i> Filtrar</button>
+                        <a href="{{ route('gestao.trabalhos.index', $evento) }}" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-eraser"></i> Limpar</a>
                     </div>
                 </div>
             </form>
@@ -111,7 +95,7 @@
                         <input type="date" name="prazo" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}">
                     </div>
                     <div class="col-md-2">
-                        <button class="btn btn-sm btn-dark w-100 fw-bold">Aplicar</button>
+                        <button class="btn btn-sm w-100 fw-bold btn-success"><i class="fa-solid fa-check"></i> Aplicar</button>
                     </div>
                 </div>
             </form>
@@ -126,18 +110,18 @@
                         @forelse($trabalhos as $t)
                             <tr>
                                 <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho"></td>
-                                <td class="fw-bold">{{ $t->codigo }}</td>
+                                <td class="fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>
                                     <div class="fw-bold">{{ \Illuminate\Support\Str::limit($t->titulo, 70) }}</div>
                                     <span class="text-muted">{{ $t->autores->pluck('nome_completo')->take(3)->implode(', ') }}{{ $t->autores->count() > 3 ? ' +' . ($t->autores->count() - 3) : '' }}</span>
                                 </td>
                                 <td>{{ \App\Models\TrabalhoConfig::TIPOS[$t->tipo_trabalho] ?? '—' }}</td>
                                 <td>{{ $t->area->nome ?? '—' }}</td>
-                                <td><x-badge tipo="trabalho" :valor="$t->status" /></td>
+                                <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->resultado_apresentacao === 'reprovado' && $t->statusFinal() === 'aprovado_escrita' ? 'apresentação não aprovada' : null" /></td>
                                 <td>{{ $t->avaliacoes->where('status', '!=', 'recusada')->count() }}/{{ $config?->avaliadores_por_trabalho ?? 2 }}</td>
                                 <td>{{ $t->submetido_em?->format('d/m/Y H:i') }}</td>
                                 <td class="text-end pe-3">
-                                    <a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-light">Abrir</a>
+                                    <a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-folder-open"></i> Abrir</a>
                                     @if($t->arquivoAtual) <a href="{{ route('trabalhos.arquivo', $t) }}" target="_blank" class="btn btn-sm btn-outline-danger" title="PDF"><i class="fa-solid fa-file-pdf"></i></a> @endif
                                 </td>
                             </tr>

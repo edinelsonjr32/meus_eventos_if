@@ -89,7 +89,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end pt-4 border-top mt-4 mb-5">
-                    <a href="{{ route('admin.eventos.index') }}" class="btn btn-light me-2">Cancelar</a>
+                    <a href="{{ route('admin.eventos.index') }}" class="btn me-2 btn-outline-secondary"><i class="fa-solid fa-xmark"></i> Cancelar</a>
                     <button type="submit" class="btn btn-primary-custom px-5 py-3 shadow fw-bold">
                         <i class="fa-solid fa-save me-2"></i> Salvar Alterações
                     </button>

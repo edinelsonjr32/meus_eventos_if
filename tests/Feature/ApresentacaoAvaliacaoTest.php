@@ -36,17 +36,17 @@ it('gestão configura critérios, peso e ativação da avaliação da apresenta�
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertOk()->assertSee('Avaliação das apresentações');
 
     $this->actingAs($this->gestor)->put(route('gestao.trabalhos.apresentacoes.config', $this->evento), [
-        'avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 40, 'autor_ve_nota_apresentacao' => 1,
+        'avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 40, 'nota_minima_apresentacao' => 6.5, 'autor_ve_nota_apresentacao' => 1,
         'criterios' => [['nome' => 'Domínio', 'peso' => 2, 'nota_max' => 10], ['nome' => 'Tempo', 'peso' => 1, 'nota_max' => 5]],
     ])->assertSessionHasNoErrors()->assertRedirect();
 
     $cfg = $this->evento->trabalhoConfig->fresh();
-    expect($cfg->avaliacao_apresentacao_ativa)->toBeTrue()->and($cfg->peso_apresentacao)->toBe(40)
+    expect($cfg->avaliacao_apresentacao_ativa)->toBeTrue()->and($cfg->peso_apresentacao)->toBe(40)->and($cfg->nota_minima_apresentacao)->toBe(6.5)
         ->and($this->evento->criteriosApresentacao()->pluck('nome')->all())->toBe(['Domínio', 'Tempo']);
 
     // ativar sem nenhum critério é recusado
     $this->evento->criteriosApresentacao()->delete();
-    $this->actingAs($this->gestor)->put(route('gestao.trabalhos.apresentacoes.config', $this->evento), ['avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 30])
+    $this->actingAs($this->gestor)->put(route('gestao.trabalhos.apresentacoes.config', $this->evento), ['avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 30, 'nota_minima_apresentacao' => 7])
         ->assertSessionHasErrors('criterios');
 });
 
@@ -205,7 +205,7 @@ it('critérios da apresentação: remover um já usado o desativa e preserva as 
     $this->svc->concluir($a, ['notas' => [$crits[0]->id => 9, $crits[1]->id => 7], 'parecer' => 'Boa apresentação geral.']);
 
     $this->actingAs($this->gestor)->put(route('gestao.trabalhos.apresentacoes.config', $this->evento), [
-        'avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 25,
+        'avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 25, 'nota_minima_apresentacao' => 7,
         'criterios' => [['id' => $crits[0]->id, 'nome' => 'Mudou?', 'peso' => 5, 'nota_max' => 3], ['nome' => 'Novo critério', 'peso' => 1, 'nota_max' => 10]],
     ])->assertSessionHas('warning');
 
@@ -215,4 +215,68 @@ it('critérios da apresentação: remover um já usado o desativa e preserva as 
         ->and($a->fresh()->notas()->count())->toBe(2)->and($a->fresh()->nota_final)->toBe(8.0);
 
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertOk()->assertSee('Novo crit', false)->assertDontSee('Comunica', false);
+});
+
+
+it('REGRA: só é Aprovado (100%) quem passa no texto E na apresentação; senão "Aprovado na parte escrita"', function () {
+    $t = $this->trabalho;   // aprovado no texto, apresentação ativa, nota mínima 7
+    expect($t->statusFinal())->toBe('aprovado_escrita')->and($t->statusFinalRotulo())->toBe('Aprovado na parte escrita')->and($t->aprovadoCompleto())->toBeFalse();
+
+    $this->svc->atribuir($t, $this->av1, $this->gestor);
+    $this->svc->atribuir($t, $this->av2, $this->gestor);
+    [$a1, $a2] = $t->avaliacoesApresentacao()->get()->all();
+    $c = $this->evento->criteriosApresentacao()->pluck('id');
+
+    // com avaliador pendente o resultado fica em aberto
+    $this->svc->concluir($a1, ['notas' => [$c[0] => 9, $c[1] => 9], 'parecer' => 'Muito boa apresentação.']);
+    expect($t->fresh()->resultado_apresentacao)->toBeNull()->and($t->fresh()->statusFinal())->toBe('aprovado_escrita');
+
+    // todos concluídos, média 8 >= 7 => aprovado 100%
+    $this->svc->concluir($a2, ['notas' => [$c[0] => 7, $c[1] => 7], 'parecer' => 'Cumpriu o esperado.']);
+    expect($t->fresh()->resultado_apresentacao)->toBe('aprovado')->and($t->fresh()->statusFinal())->toBe('aprovado')->and($t->fresh()->aprovadoCompleto())->toBeTrue();
+
+    // subir a nota mínima para 9 reprova na apresentação: volta a ser só "aprovado na parte escrita"
+    $this->actingAs($this->gestor)->put(route('gestao.trabalhos.apresentacoes.config', $this->evento), [
+        'avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 30, 'nota_minima_apresentacao' => 9,
+    ])->assertSessionHasNoErrors();
+    expect($t->fresh()->resultado_apresentacao)->toBe('reprovado')->and($t->fresh()->statusFinal())->toBe('aprovado_escrita');
+});
+
+it('REGRA: sem avaliação de apresentação ativa, a aprovação do texto continua valendo como Aprovado', function () {
+    $this->evento->trabalhoConfig->update(['avaliacao_apresentacao_ativa' => false]);
+    expect($this->trabalho->fresh()->statusFinal())->toBe('aprovado');
+});
+
+it('REGRA: só trabalhos aprovados no texto vão à apresentação; reprovado/em avaliação não entram', function () {
+    foreach (['reprovado', 'em_avaliacao', 'aguardando_correcao', 'avaliado'] as $status) {
+        $t = mkTrabalho($this->evento, $this->autor, ['titulo' => "T {$status}"], $status);
+        expect(fn () => $this->svc->atribuir($t, $this->av1, $this->gestor))->toThrow(DomainException::class);
+        expect(fn () => app(\App\Services\ApresentacaoService::class)->marcar($t, true, $this->gestor))->toThrow(DomainException::class);
+    }
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertOk()->assertDontSee('T reprovado')->assertDontSee('T em_avaliacao');
+});
+
+it('REGRA: nos Anais só entra quem foi aprovado nas duas partes', function () {
+    $this->trabalho->update(['apresentado' => true, 'autoriza_publicacao' => true]);
+    expect(\App\Models\Anais::elegiveis($this->evento)->count())->toBe(0);      // só texto: fora
+
+    $this->trabalho->update(['resultado_apresentacao' => 'reprovado']);
+    expect(\App\Models\Anais::elegiveis($this->evento)->count())->toBe(0);
+
+    $this->trabalho->update(['resultado_apresentacao' => 'aprovado']);
+    expect(\App\Models\Anais::elegiveis($this->evento)->count())->toBe(1);       // texto + apresentação
+
+    $this->evento->trabalhoConfig->update(['avaliacao_apresentacao_ativa' => false]);
+    $this->trabalho->update(['resultado_apresentacao' => null]);
+    expect(\App\Models\Anais::elegiveis($this->evento->fresh())->count())->toBe(1);   // sem avaliação de apresentação: regra anterior
+});
+
+it('REGRA: a situação aparece tipificada para gestão e autor', function () {
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.index', $this->evento))->assertOk()->assertSee('Aprovado na parte escrita');
+    $this->actingAs($this->autor)->get(route('trabalhos.index'))->assertOk()->assertSee('Aprovado na parte escrita');
+    $this->actingAs($this->autor)->get(route('trabalhos.show', $this->trabalho))->assertOk()->assertSee('depende da avaliação da sua apresentação');
+
+    $this->trabalho->update(['resultado_apresentacao' => 'aprovado']);
+    $this->actingAs($this->autor)->get(route('trabalhos.show', $this->trabalho))->assertSee('Aprovado (parte escrita e apresentação)');
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.ranking', $this->evento))->assertOk()->assertDontSee('Aprovado na parte escrita');
 });

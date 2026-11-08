@@ -26,7 +26,7 @@
             @forelse($concluidas as $a)
                 <div class="glass-card bg-white mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div><div class="fw-bold">{{ $a->trabalho->titulo }}</div><small class="text-muted">{{ $a->trabalho->codigo }} · nota {{ number_format($a->nota_final, 2, ',', '.') }} · {{ $a->concluida_em?->format('d/m/Y') }}</small></div>
-                    <a href="{{ route('avaliador.apresentacoes.show', $a) }}" class="btn btn-light btn-sm">Ver</a>
+                    <a href="{{ route('avaliador.apresentacoes.show', $a) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i> Ver</a>
                 </div>
             @empty
                 <div class="glass-card bg-white text-center text-muted py-4">Nenhuma avaliação concluída ainda.</div>

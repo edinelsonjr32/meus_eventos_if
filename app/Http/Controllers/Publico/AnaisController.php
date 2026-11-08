@@ -88,7 +88,7 @@ class AnaisController extends Controller
             'evento' => $evento,
             'anais' => $anais,
             'trabalho' => $trabalho,
-            'citacao' => $this->citacao->gerar($trabalho, $anais),
+            'citacao' => $anais->dadosVisiveis() ? $this->citacao->gerar($trabalho, $anais) : null,
             'temPdf' => $this->pdf->arquivoPublico($trabalho) !== null,
         ]);
     }
@@ -110,7 +110,7 @@ class AnaisController extends Controller
     public function pdfAnais(string $slug)
     {
         [, $anais] = $this->publicados($slug);
-        abort_unless($anais->pdfPronto() && Storage::disk('trabalhos')->exists($anais->pdf_path), 404);
+        abort_unless($anais->dadosVisiveis() && $anais->pdfPronto() && Storage::disk('trabalhos')->exists($anais->pdf_path), 404);
 
         return Storage::disk('trabalhos')->response($anais->pdf_path, 'anais-' . Str::slug($anais->evento->titulo) . '.pdf', [
             'Content-Type' => 'application/pdf',

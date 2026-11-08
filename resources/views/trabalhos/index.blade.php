@@ -91,11 +91,11 @@
                                             </div>
                                         </td>
                                         <td>{{ $t->evento->titulo }}</td>
-                                        <td><x-badge tipo="trabalho" :valor="$t->status" /></td>
+                                        <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->resultado_apresentacao === 'reprovado' && $t->statusFinal() === 'aprovado_escrita' ? 'apresentação não aprovada' : null" /></td>
                                         <td class="text-end pe-4">
-                                            <a href="{{ route('trabalhos.show', $t) }}" class="btn btn-sm btn-light">Ver</a>
+                                            <a href="{{ route('trabalhos.show', $t) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i> Ver</a>
                                             @can('update', $t)
-                                                <a href="{{ route('trabalhos.edit', $t) }}" class="btn btn-sm btn-outline-success">Editar</a>
+                                                <a href="{{ route('trabalhos.edit', $t) }}" class="btn btn-sm btn-outline-warning"><i class="fa-solid fa-pen"></i> Editar</a>
                                             @endcan
                                         </td>
                                     </tr>

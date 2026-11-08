@@ -1,4 +1,5 @@
 <x-app-layout>
+    <x-badge tipo="trabalho" valor="rascunho" class="d-none" />
     <div class="row justify-content-center">
         <div class="col-xl-10">
 
@@ -10,12 +11,15 @@
                         <small class="text-secondary">{{ $evento->titulo }}</small>
                     </div>
                 </div>
-                <div>
+                <div class="d-flex flex-wrap align-items-center gap-2">
                     @if($anais->exists && $anais->publicado())
-                        <span class="badge bg-success fs-6">Publicado</span>
-                        <a href="{{ route('anais.index', $evento->slug) }}" target="_blank" class="btn btn-sm btn-outline-success ms-2">Ver página pública</a>
+                        <span class="sb" style="background:#16a34a;color:#fff;border-color:#16a34a;"><i class="fa-solid fa-eye"></i> Visível ao público</span>
+                        <span class="sb" style="{{ $anais->dadosVisiveis() ? 'background:#dcfce7;color:#15803d;border-color:#86efac;' : 'background:#fef3c7;color:#b45309;border-color:#fcd34d;' }}">
+                            <i class="fa-solid {{ $anais->dadosVisiveis() ? 'fa-book' : 'fa-eye-slash' }}"></i> Dados de publicação {{ $anais->dadosVisiveis() ? 'liberados' : 'ocultos' }}
+                        </span>
+                        <a href="{{ route('anais.index', $evento->slug) }}" target="_blank" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-arrow-up-right-from-square"></i> Ver página pública</a>
                     @else
-                        <span class="badge bg-secondary fs-6">Rascunho</span>
+                        <span class="sb" style="background:#f1f3f5;color:#495057;border-color:#ced4da;"><i class="fa-solid fa-eye-slash"></i> Oculto (rascunho)</span>
                     @endif
                 </div>
             </div>
@@ -30,7 +34,8 @@
                 <div class="col-lg-7">
                     <form action="{{ route('gestao.trabalhos.anais.update', $evento) }}" method="POST" class="glass-card bg-white">
                         @csrf @method('PUT')
-                        <h6 class="fw-bold text-success mb-3">Dados da edição</h6>
+                        <h6 class="fw-bold text-success mb-1"><i class="fa-solid fa-book-open me-1"></i> Dados da edição</h6>
+                        <p class="small text-muted mb-3">Título, edição, apresentação e comissão podem ser preenchidos agora. <strong>ISSN, ISBN, DOI, editora, local e ano</strong> só vão ao público quando você liberar os dados de publicação (normalmente após o evento).</p>
                         <div class="row g-3">
                             <div class="col-12"><label class="small fw-bold text-secondary">Título *</label>
                                 <input type="text" name="titulo" class="form-control" value="{{ old('titulo', $anais->titulo) }}" required></div>
@@ -44,10 +49,10 @@
                                 <input type="text" name="isbn" class="form-control" value="{{ old('isbn', $anais->isbn) }}"></div>
                             <div class="col-md-4"><label class="small fw-bold text-secondary">Prefixo DOI</label>
                                 <input type="text" name="doi_prefixo" class="form-control" value="{{ old('doi_prefixo', $anais->doi_prefixo) }}" placeholder="10.12345"></div>
-                            <div class="col-md-5"><label class="small fw-bold text-secondary">Local de publicação *</label>
-                                <input type="text" name="local_publicacao" class="form-control" value="{{ old('local_publicacao', $anais->local_publicacao) }}" required></div>
-                            <div class="col-md-7"><label class="small fw-bold text-secondary">Editora / instituição *</label>
-                                <input type="text" name="editora" class="form-control" value="{{ old('editora', $anais->editora) }}" required></div>
+                            <div class="col-md-5"><label class="small fw-bold text-secondary">Local de publicação</label>
+                                <input type="text" name="local_publicacao" class="form-control" value="{{ old('local_publicacao', $anais->local_publicacao) }}"></div>
+                            <div class="col-md-7"><label class="small fw-bold text-secondary">Editora / instituição</label>
+                                <input type="text" name="editora" class="form-control" value="{{ old('editora', $anais->editora) }}"></div>
                             <div class="col-12"><label class="small fw-bold text-secondary">Apresentação</label>
                                 <textarea name="apresentacao" rows="4" class="form-control">{{ old('apresentacao', $anais->apresentacao) }}</textarea></div>
                             <div class="col-12"><label class="small fw-bold text-secondary">Comissão organizadora</label>
@@ -84,18 +89,46 @@
                     </div>
 
                     <div class="glass-card bg-white mb-4">
-                        <h6 class="fw-bold text-success mb-3">Publicação</h6>
-                        @if($anais->exists && $anais->publicado())
-                            <p class="small mb-2">Publicado em {{ $anais->publicado_em->format('d/m/Y H:i') }}.</p>
-                            <form action="{{ route('gestao.trabalhos.anais.despublicar', $evento) }}" method="POST">
-                                @csrf <button class="btn btn-sm btn-outline-danger w-100 fw-bold" onclick="return confirm('Despublicar os Anais? A página pública sairá do ar.')">Despublicar</button>
-                            </form>
-                        @else
-                            <p class="small text-muted">A página pública só aparece depois de publicar.</p>
-                            <form action="{{ route('gestao.trabalhos.anais.publicar', $evento) }}" method="POST">
-                                @csrf <button class="btn btn-sm btn-success w-100 fw-bold" @disabled(!$anais->exists || $elegiveis->isEmpty()) onclick="return confirm('Publicar os Anais agora?')">Publicar Anais</button>
-                            </form>
-                        @endif
+                        <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-bullhorn me-1"></i> Publicação e visibilidade</h6>
+
+                        {{-- 1) página dos Anais --}}
+                        <div class="border rounded-3 p-3 mb-3 {{ $anais->exists && $anais->publicado() ? 'border-success bg-success bg-opacity-10' : '' }}">
+                            <div class="fw-bold small mb-1"><i class="fa-solid fa-eye me-1"></i> 1. Página dos Anais</div>
+                            @if($anais->exists && $anais->publicado())
+                                <p class="small mb-2">Visível desde {{ $anais->publicado_em?->format('d/m/Y H:i') }}. Lista os trabalhos aprovados, apresentados e autorizados.</p>
+                                <form action="{{ route('gestao.trabalhos.anais.despublicar', $evento) }}" method="POST">
+                                    @csrf <button class="btn btn-sm btn-outline-danger w-100" data-confirmar="Ocultar os Anais? A página pública sairá do ar."><i class="fa-solid fa-eye-slash"></i> Ocultar Anais</button>
+                                </form>
+                            @else
+                                <p class="small text-muted mb-2">Oculta ao público. Pode ser tornada visível a qualquer momento, mesmo antes do fim do evento e sem os dados de publicação.</p>
+                                <form action="{{ route('gestao.trabalhos.anais.publicar', $evento) }}" method="POST">
+                                    @csrf <button class="btn btn-sm btn-success w-100" @disabled(!$anais->exists) data-confirmar="Tornar os Anais visíveis ao público agora?"><i class="fa-solid fa-eye"></i> Tornar visível</button>
+                                </form>
+                                @unless($anais->exists) <div class="form-text">Salve os dados da edição primeiro.</div> @endunless
+                            @endif
+                        </div>
+
+                        {{-- 2) dados de publicação --}}
+                        <div class="border rounded-3 p-3 {{ $anais->dadosVisiveis() ? 'border-success bg-success bg-opacity-10' : '' }}">
+                            <div class="fw-bold small mb-1"><i class="fa-solid fa-book me-1"></i> 2. Dados de publicação</div>
+                            <p class="small text-muted mb-2">ISSN, ISBN, DOI, editora, local, ano, citação ABNT e o PDF compilado dos Anais. Libere somente depois que o evento terminar e esses dados existirem.</p>
+                            @if(!$anais->exists || !$anais->publicado())
+                                <div class="small text-muted"><i class="fa-solid fa-lock me-1"></i> Disponível depois de tornar a página visível.</div>
+                            @elseif($anais->dadosVisiveis())
+                                <form action="{{ route('gestao.trabalhos.anais.dados-publicacao', $evento) }}" method="POST">
+                                    @csrf <input type="hidden" name="acao" value="ocultar">
+                                    <button class="btn btn-sm btn-outline-warning w-100"><i class="fa-solid fa-eye-slash"></i> Ocultar dados de publicação</button>
+                                </form>
+                            @else
+                                @if(!($anais->isbn || $anais->issn || $anais->doi_prefixo))
+                                    <div class="alert alert-warning small py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Nenhum ISSN, ISBN ou DOI informado ainda.</div>
+                                @endif
+                                <form action="{{ route('gestao.trabalhos.anais.dados-publicacao', $evento) }}" method="POST">
+                                    @csrf <input type="hidden" name="acao" value="exibir">
+                                    <button class="btn btn-sm btn-primary-custom w-100" data-confirmar="Liberar os dados de publicação na página pública?"><i class="fa-solid fa-book-open"></i> Liberar dados de publicação</button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -108,7 +141,7 @@
                         <tbody>
                         @forelse($elegiveis as $t)
                             <tr>
-                                <td class="ps-3 fw-bold">{{ $t->codigo }}</td>
+                                <td class="ps-3 fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>{{ \Illuminate\Support\Str::limit($t->titulo, 60) }}</td>
                                 <td>{{ $t->area->nome ?? '—' }}</td>
                                 <td>

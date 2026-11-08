@@ -20,7 +20,7 @@
                 <div class="alert alert-warning">Crie a chamada de trabalhos antes de configurar a avaliação das apresentações.</div>
             @else
             <div class="alert alert-light border small">
-                <strong>Como funciona:</strong> 1) o trabalho é <em>aprovado</em> (texto); 2) ele é apresentado na sessão/feira — marque <strong>Apresentado</strong> aqui na tabela (ou deixe a frequência do autor marcar sozinha); 3) os avaliadores lançam a nota da <strong>apresentação</strong>; 4) o ranking soma texto e apresentação. Marcar "apresentado" só serve ao certificado; a nota da apresentação é separada.
+                <strong>Regra de aprovação:</strong> o trabalho só é <strong>Aprovado (100%)</strong> quando é aprovado na <em>parte escrita</em> <u>e</u> na <em>apresentação</em> (média ≥ nota mínima). Aprovado só no texto aparece como <strong>Aprovado na parte escrita</strong>; apenas esses trabalhos vão à apresentação e só os aprovados nas duas partes entram nos Anais.<br><strong>Como funciona:</strong> 1) o trabalho é <em>aprovado</em> (texto); 2) ele é apresentado na sessão/feira — marque <strong>Apresentado</strong> aqui na tabela (ou deixe a frequência do autor marcar sozinha); 3) os avaliadores lançam a nota da <strong>apresentação</strong>; 4) o ranking soma texto e apresentação. Marcar "apresentado" só serve ao certificado; a nota da apresentação é separada.
             </div>
 
             {{-- Configuração e critérios --}}
@@ -40,6 +40,10 @@
                             <input class="form-check-input" type="checkbox" name="autor_ve_nota_apresentacao" value="1" id="apVe" @checked(old('autor_ve_nota_apresentacao', $config->autor_ve_nota_apresentacao))>
                             <label class="form-check-label" for="apVe">Autor vê a nota e os pareceres da apresentação (anônimos)</label>
                         </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small fw-bold text-secondary">Nota mínima para aprovar (0–10)</label>
+                        <input type="number" step="0.1" min="0" max="10" name="nota_minima_apresentacao" data-nome="Nota mínima da apresentação" class="form-control" value="{{ old('nota_minima_apresentacao', $config->nota_minima_apresentacao ?? 7) }}" required>
                     </div>
                     <div class="col-md-3">
                         <label class="small fw-bold text-secondary">Peso da apresentação na nota geral (%)</label>
@@ -93,7 +97,7 @@
                     @if($atividadeId) <input type="hidden" name="atividade" value="{{ $atividadeId }}"> @endif
                     <div class="table-responsive">
                         <table class="table table-sm align-middle small">
-                            <thead><tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.chk-trab').forEach(c => c.checked = this.checked)"></th><th>Trabalho</th><th>Sessão</th><th>Apresentação</th><th>Avaliadores</th><th class="text-end">Texto</th><th class="text-end">Apresentação</th><th class="text-end">Geral</th></tr></thead>
+                            <thead><tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.chk-trab').forEach(c => c.checked = this.checked)"></th><th>Trabalho</th><th>Sessão</th><th>Apresentação</th><th>Avaliadores</th><th class="text-end">Texto</th><th class="text-end">Apresentação</th><th class="text-end">Geral</th><th>Resultado</th></tr></thead>
                             <tbody>
                             @forelse($trabalhos as $t)
                                 <tr>
@@ -122,9 +126,10 @@
                                     <td class="text-end">{{ $fmt($t->nota_final) }}</td>
                                     <td class="text-end fw-bold">{{ $fmt($t->nota_apresentacao) }}</td>
                                     <td class="text-end fw-bold text-success">{{ $fmt($t->notaGeral()) }}</td>
+                                    <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->resultado_apresentacao === 'reprovado' ? 'apresentação não aprovada' : ($t->resultado_apresentacao === null ? 'aguardando apresentação' : null)" /></td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="text-center text-muted py-4">Nenhum trabalho aprovado{{ $atividadeId ? ' nesta sessão' : '' }}. Trabalhos com ressalvas entram aqui depois da correção e da aprovação.</td></tr>
+                                <tr><td colspan="9" class="text-center text-muted py-4">Nenhum trabalho aprovado{{ $atividadeId ? ' nesta sessão' : '' }}. Trabalhos com ressalvas entram aqui depois da correção e da aprovação.</td></tr>
                             @endforelse
                             </tbody>
                         </table>

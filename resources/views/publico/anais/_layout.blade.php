@@ -21,8 +21,12 @@
             <a href="{{ route('evento.publico.show', $evento->slug) }}" class="text-white-50 small text-decoration-none"><i class="fa-solid fa-arrow-left me-1"></i> {{ $evento->titulo }}</a>
             <h1 class="fw-bold mt-2 mb-1">{{ $anais->titulo }}</h1>
             <div class="opacity-75">
-                {{ $anais->edicao }} @if($anais->edicao) · @endif {{ $anais->local_publicacao }}, {{ $anais->ano }}
-                @if($anais->issn) · ISSN {{ $anais->issn }} @endif @if($anais->isbn) · ISBN {{ $anais->isbn }} @endif
+                @if($anais->dadosVisiveis())
+                    {{ $anais->edicao }} @if($anais->edicao) · @endif {{ collect([$anais->local_publicacao, $anais->ano])->filter()->implode(', ') }}
+                    @if($anais->issn) · ISSN {{ $anais->issn }} @endif @if($anais->isbn) · ISBN {{ $anais->isbn }} @endif
+                @else
+                    {{ $anais->edicao ?: $evento->titulo }}
+                @endif
             </div>
         </div>
     </header>

@@ -13,11 +13,11 @@ class Anais extends Model
 
     protected $fillable = [
         'evento_id', 'titulo', 'edicao', 'issn', 'isbn', 'doi_prefixo', 'apresentacao', 'comissao', 'local_publicacao',
-        'editora', 'ano', 'status', 'publicado_em', 'publicado_por', 'pdf_status', 'pdf_erro', 'pdf_aviso', 'pdf_path',
+        'editora', 'ano', 'status', 'dados_publicacao_visiveis', 'publicado_em', 'publicado_por', 'pdf_status', 'pdf_erro', 'pdf_aviso', 'pdf_path',
         'pdf_gerado_em', 'pdf_paginas', 'pdf_tamanho',
     ];
 
-    protected $casts = ['publicado_em' => 'datetime', 'pdf_gerado_em' => 'datetime'];
+    protected $casts = ['publicado_em' => 'datetime', 'pdf_gerado_em' => 'datetime', 'dados_publicacao_visiveis' => 'boolean'];
 
     public function evento(): BelongsTo
     {
@@ -27,6 +27,12 @@ class Anais extends Model
     public function publicado(): bool
     {
         return $this->status === 'publicado';
+    }
+
+    /** Os dados de publicação (ISBN/ISSN/DOI, editora, local, ano, citação ABNT e PDF compilado) estão liberados ao público? */
+    public function dadosVisiveis(): bool
+    {
+        return $this->publicado() && $this->dados_publicacao_visiveis;
     }
 
     public function pdfPronto(): bool
@@ -39,9 +45,16 @@ class Anais extends Model
      */
     public static function elegiveis(Evento $evento): Builder
     {
-        return $evento->trabalhos()->getQuery()
+        $query = $evento->trabalhos()->getQuery()
             ->where('status', 'aprovado')
             ->where('apresentado', true)
             ->where('autoriza_publicacao', true);
+
+        // Com avaliação de apresentação ativa, só entra quem foi aprovado também na apresentação (aprovação 100%)
+        if ($evento->trabalhoConfig?->avaliacao_apresentacao_ativa) {
+            $query->where('resultado_apresentacao', 'aprovado');
+        }
+
+        return $query;
     }
 }

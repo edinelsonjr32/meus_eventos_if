@@ -38,7 +38,7 @@ class TrabalhoGestaoController extends Controller
     {
         $query = $evento->trabalhos()
             ->where('status', '!=', Trabalho::RASCUNHO) // rascunhos são privados do autor
-            ->with(['autores', 'area', 'arquivoAtual', 'avaliacoes']);
+            ->with(['autores', 'area', 'arquivoAtual', 'avaliacoes', 'evento.trabalhoConfig']);
 
         if ($status = $request->input('status')) {
             $query->where('status', $status);

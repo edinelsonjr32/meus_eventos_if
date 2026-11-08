@@ -8,13 +8,13 @@
     @foreach($trabalho->autores->whereIn('tipo_autor', ['autor_principal', 'coautor']) as $a)
         <meta name="citation_author" content="{{ $a->nome_completo }}">
     @endforeach
-    <meta name="citation_publication_date" content="{{ $anais->ano }}">
+    @if($anais->dadosVisiveis()) <meta name="citation_publication_date" content="{{ $anais->ano }}"> @endif
     <meta name="citation_conference_title" content="{{ $evento->titulo }}">
     <meta name="citation_abstract_html_url" content="{{ route('anais.show', [$evento->slug, $trabalho->codigo]) }}">
     @if($temPdf) <meta name="citation_pdf_url" content="{{ route('anais.trabalho.pdf', [$evento->slug, $trabalho->codigo]) }}"> @endif
     @if($trabalho->palavras_chave) <meta name="citation_keywords" content="{{ implode('; ', $trabalho->palavras_chave) }}"> @endif
-    @if($anais->issn) <meta name="citation_issn" content="{{ $anais->issn }}"> @endif
-    @if($anais->isbn) <meta name="citation_isbn" content="{{ $anais->isbn }}"> @endif
+    @if($anais->dadosVisiveis() && $anais->issn) <meta name="citation_issn" content="{{ $anais->issn }}"> @endif
+    @if($anais->dadosVisiveis() && $anais->isbn) <meta name="citation_isbn" content="{{ $anais->isbn }}"> @endif
     <meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags($trabalho->resumo), 200) }}">
 @endsection
 
@@ -51,6 +51,7 @@
         @endif
     </article>
 
+    @if($citacao)
     <div class="card-trabalho">
         <h6 class="fw-bold"><i class="fa-solid fa-quote-left me-1 text-success"></i> Como citar (ABNT)</h6>
         <div class="citacao mb-2" id="citacao">{{ $citacao }}</div>
@@ -59,6 +60,9 @@
             <i class="fa-regular fa-copy me-1"></i> Copiar citação
         </button>
     </div>
+    @else
+    <div class="card-trabalho text-secondary small"><i class="fa-solid fa-quote-left me-1 text-success"></i> A referência para citação (ABNT) será disponibilizada junto com os dados de publicação, após o encerramento do evento.</div>
+    @endif
 
     <div class="card-trabalho">
         <h6 class="fw-bold"><i class="fa-solid fa-award me-1 text-success"></i> Certificado do autor</h6>

@@ -42,7 +42,7 @@ function criarAnais($ctx, array $extra = []): Anais
 {
     return Anais::create(array_merge([
         'evento_id' => $ctx->evento->id, 'titulo' => 'Anais da Semana Teste', 'ano' => 2026, 'local_publicacao' => 'Óbidos',
-        'editora' => 'IFPA Campus Óbidos', 'status' => 'publicado', 'publicado_em' => now(),
+        'editora' => 'IFPA Campus Óbidos', 'status' => 'publicado', 'publicado_em' => now(), 'dados_publicacao_visiveis' => true,
     ], $extra));
 }
 
@@ -291,26 +291,68 @@ it('gestor edita os dados dos Anais com validação', function () {
     $this->put($url, array_merge($base, ['isbn' => 'abc']))->assertSessionHasErrors('isbn');
     $this->put($url, array_merge($base, ['doi_prefixo' => '11.1']))->assertSessionHasErrors('doi_prefixo');
     $this->put($url, array_merge($base, ['ano' => 1999]))->assertSessionHasErrors('ano');
-    $this->put($url, ['titulo' => ''])->assertSessionHasErrors(['titulo', 'ano', 'editora']);
+    $this->put($url, ['titulo' => ''])->assertSessionHasErrors(['titulo', 'ano']);
 });
 
-it('publica e despublica; publicar exige trabalho elegível com PDF', function () {
-    $anais = criarAnais($this, ['status' => 'rascunho', 'publicado_em' => null]);
+it('publica e despublica os Anais, mesmo antes de haver trabalhos apresentados', function () {
+    $anais = criarAnais($this, ['status' => 'rascunho', 'publicado_em' => null, 'dados_publicacao_visiveis' => false]);
     $this->actingAs($this->gestor);
 
-    $this->post(route('gestao.trabalhos.anais.publicar', $this->evento))->assertSessionHas('error');   // nada elegível
-    expect($anais->fresh()->publicado())->toBeFalse();
-
-    trabalhoPublicavel($this, [], 1, false);                                                          // elegível, mas sem PDF
-    $this->post(route('gestao.trabalhos.anais.publicar', $this->evento))->assertSessionHas('error');
-
-    trabalhoPublicavel($this);
+    // antes do evento terminar: pode publicar (tornar visível) sem trabalhos elegíveis; a página avisa
     $this->post(route('gestao.trabalhos.anais.publicar', $this->evento))->assertSessionHas('success');
     expect($anais->fresh()->publicado())->toBeTrue()->and($anais->fresh()->publicado_por)->toBe($this->gestor->id);
-    $this->get(route('anais.index', 'semana-teste'))->assertOk();
+    $this->get(route('anais.index', 'semana-teste'))->assertOk()->assertSee('serão divulgados após o encerramento do evento')->assertSee('conforme forem apresentados');
+
+    trabalhoPublicavel($this);
+    $this->get(route('anais.index', 'semana-teste'))->assertOk()->assertSee('1 trabalho(s) publicado(s)');
 
     $this->post(route('gestao.trabalhos.anais.despublicar', $this->evento))->assertSessionHas('success');
     $this->get(route('anais.index', 'semana-teste'))->assertNotFound();
+});
+
+it('dados de publicação ficam ocultos até a gestão liberar: ISBN, ISSN, editora, citação e PDF compilado', function () {
+    $anais = criarAnais($this, ['isbn' => '978-85-1234-567-8', 'issn' => '1234-5678', 'editora' => 'Editora Secreta', 'dados_publicacao_visiveis' => false,
+        'pdf_status' => 'pronto', 'pdf_path' => 'anais.pdf', 'pdf_paginas' => 3, 'pdf_tamanho' => 100]);
+    Storage::disk('trabalhos')->put('anais.pdf', pdfComPaginas(1));
+    $t = trabalhoPublicavel($this, ['titulo' => 'Trabalho visível']);
+
+    // oculto: trabalhos aparecem, dados de publicação não
+    $this->get(route('anais.index', 'semana-teste'))->assertOk()->assertSee('Trabalho visível')
+        ->assertDontSee('978-85-1234-567-8')->assertDontSee('1234-5678')->assertDontSee('Editora Secreta')->assertDontSee('Baixar os Anais completos');
+    $this->get(route('anais.pdf', 'semana-teste'))->assertNotFound();
+    $this->get(route('anais.show', ['semana-teste', $t->codigo]))->assertOk()->assertDontSee('Como citar (ABNT)')->assertDontSee('citation_isbn', false)
+        ->assertDontSee('citation_publication_date', false)->assertSee('será disponibilizada junto com os dados de publicação');
+
+    // a gestão libera
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.anais.dados-publicacao', $this->evento), ['acao' => 'exibir'])->assertSessionHas('success');
+    expect($anais->fresh()->dadosVisiveis())->toBeTrue();
+    auth()->logout();
+    $this->get(route('anais.index', 'semana-teste'))->assertSee('978-85-1234-567-8')->assertSee('Baixar os Anais completos');
+    $this->get(route('anais.pdf', 'semana-teste'))->assertOk();
+    $this->get(route('anais.show', ['semana-teste', $t->codigo]))->assertSee('Como citar (ABNT)')->assertSee('citation_isbn', false);
+
+    // e pode ocultar de novo
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.anais.dados-publicacao', $this->evento), ['acao' => 'ocultar'])->assertSessionHas('success');
+    auth()->logout();
+    $this->get(route('anais.index', 'semana-teste'))->assertDontSee('978-85-1234-567-8');
+});
+
+it('dados de publicação só são liberados por quem gere trabalhos e despublicar também os esconde', function () {
+    $anais = criarAnais($this, ['dados_publicacao_visiveis' => false]);
+    $this->actingAs($this->autorUser)->post(route('gestao.trabalhos.anais.dados-publicacao', $this->evento), ['acao' => 'exibir'])->assertForbidden();
+    expect($anais->fresh()->dados_publicacao_visiveis)->toBeFalse();
+
+    $anais->update(['dados_publicacao_visiveis' => true]);
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.anais.despublicar', $this->evento));
+    expect($anais->fresh()->dadosVisiveis())->toBeFalse();   // despublicado: nada visível
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.anais.dados-publicacao', $this->evento), ['acao' => 'x'])->assertSessionHasErrors('acao');
+});
+
+it('a citação usa S. l. e s. n. quando local e editora não foram informados', function () {
+    $anais = criarAnais($this, ['local_publicacao' => null, 'editora' => null]);
+    $t = trabalhoPublicavel($this, ['titulo' => 'Sem editora']);
+    $c = app(\App\Services\CitacaoAbnt::class)->gerar($t, $anais->fresh());
+    expect($c)->toContain('S. l.')->toContain('s. n.');
 });
 
 it('página do evento mostra o botão Anais somente quando publicados', function () {

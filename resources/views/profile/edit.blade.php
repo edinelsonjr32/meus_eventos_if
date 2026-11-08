@@ -162,7 +162,7 @@
                 </div>
 
                 <div class="flex justify-end gap-3">
-                    <button type="button" @click="show = false" class="btn btn-light">Cancelar</button>
+                    <button type="button" @click="show = false" class="btn btn-outline-secondary"><i class="fa-solid fa-xmark"></i> Cancelar</button>
                     <button type="submit" class="btn btn-danger font-bold">Sim, Excluir</button>
                 </div>
             </form>

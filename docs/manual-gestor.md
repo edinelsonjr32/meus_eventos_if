@@ -35,6 +35,9 @@ Use filtros (status, categoria, busca) e **ações em lote**.
 
 > **Onde marco "apresentado"?** Em dois lugares: na página do trabalho, cartão **Apresentação → Marcar como apresentado** (há um atalho no cartão *Etapas*, no topo), ou em **Gestão de trabalhos → Apresentações**, botão **Marcar** na linha do trabalho. Se o trabalho tem sessão, a presença do autor apresentador na atividade também marca sozinha. "Apresentado" serve ao certificado; a **nota** da apresentação é separada.
 
+## 6.0 Regra de aprovação (texto + apresentação)
+Com a avaliação de apresentações **ativada**, o trabalho só é **Aprovado (100%)** se for aprovado na **parte escrita** *e* na **apresentação** (média dos avaliadores ≥ *nota mínima da apresentação*, configurável). Aprovado só no texto aparece como **Aprovado na parte escrita** (aguardando ou não aprovado na apresentação). Só vai à apresentação quem foi aprovado no texto, e **apenas os aprovados nas duas partes entram nos Anais**. O resultado da apresentação só sai quando todos os avaliadores atribuídos concluíram. Com a avaliação de apresentações desativada, vale a aprovação do texto, como antes.
+
 ## 6.1 Avaliação da apresentação (feira de trabalhos)
 Depois que o trabalho está **aprovado** (inclusive os "com ressalvas" depois da correção), a apresentação pode ser avaliada por avaliadores — os mesmos do texto ou **novos** (designe em *Papéis*).
 1. Crie a **atividade** do evento (ex.: "Feira de Trabalhos") e vincule os trabalhos a ela na página de cada trabalho (*Apresentação → Sessão*).
@@ -44,6 +47,9 @@ Depois que o trabalho está **aprovado** (inclusive os "com ressalvas" depois da
 5. Avaliador que recusar pode ser reatribuído; avaliações concluídas não são removidas.
 
 ## 7. Anais
+**Visibilidade:** a página dos Anais pode ser tornada **visível a qualquer momento** (mesmo antes do fim do evento) e os **dados de publicação** (ISSN, ISBN, DOI, editora, local, ano, citação ABNT e PDF compilado) ficam **ocultos** até você clicar em *Liberar dados de publicação* — normalmente depois do evento. A página avisa o público de que esses dados serão divulgados depois.
+
+
 **Anais**: título, ano, local, editora, ISBN/DOI, apresentação; **Gerar PDF** compilado (requer Ghostscript no servidor) e **Publicar**. A página pública lista só trabalhos **aprovados + apresentados + com autorização de publicação**, mostra nome/instituição dos autores (nunca CPF/e-mail) e citação ABNT. **Arquivo final** pode substituir o PDF original. **Despublicar** retira do ar.
 
 ## 8. LGPD no dia a dia

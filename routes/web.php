@@ -145,6 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/evento/{evento}/anais/pdf', [$n, 'pdf'])->name('anais.pdf');
         Route::post('/evento/{evento}/anais/publicar', [$n, 'publicar'])->name('anais.publicar');
         Route::post('/evento/{evento}/anais/despublicar', [$n, 'despublicar'])->name('anais.despublicar');
+        Route::post('/evento/{evento}/anais/dados-publicacao', [$n, 'dadosPublicacao'])->name('anais.dados-publicacao');
         Route::get('/evento/{evento}/exportar', [$c, 'exportar'])->name('exportar');
         Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
         Route::get('/evento/{evento}/ranking', [$c, 'ranking'])->name('ranking');

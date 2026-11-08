@@ -21,7 +21,7 @@
                             <i class="fa-solid fa-pen me-1"></i> Editar dados
                         </a>
                     @endif
-                    <x-badge tipo="trabalho" :valor="$trabalho->status" style="font-size:.85rem; padding:.35rem .8rem;" />
+                    <x-badge tipo="trabalho" :valor="$trabalho->statusFinal()" :extra="$trabalho->resultado_apresentacao === 'reprovado' && $trabalho->statusFinal() === 'aprovado_escrita' ? 'apresentação não aprovada' : null" style="font-size:.85rem; padding:.35rem .8rem;" />
                 </div>
             </div>
 
@@ -123,6 +123,17 @@
                             $cfgAp = $trabalho->evento->trabalhoConfig;
                             $paresAp = $trabalho->avaliacoesApresentacao()->where('status', 'concluida')->get();
                         @endphp
+                        @if($cfgAp?->avaliacao_apresentacao_ativa && $trabalho->status === 'aprovado')
+                            <div class="alert alert-{{ $trabalho->statusFinal() === 'aprovado' ? 'success' : 'info' }} small">
+                                @if($trabalho->statusFinal() === 'aprovado')
+                                    <i class="fa-solid fa-circle-check me-1"></i> <strong>Aprovado (parte escrita e apresentação).</strong> Seu trabalho entra nos Anais, se houver autorização de publicação.
+                                @elseif($trabalho->resultado_apresentacao === 'reprovado')
+                                    <i class="fa-solid fa-circle-exclamation me-1"></i> Aprovado na <strong>parte escrita</strong>, mas não aprovado na apresentação.
+                                @else
+                                    <i class="fa-solid fa-circle-info me-1"></i> Aprovado na <strong>parte escrita</strong>. A aprovação completa depende da avaliação da sua apresentação.
+                                @endif
+                            </div>
+                        @endif
                         @if($cfgAp?->avaliacao_apresentacao_ativa && ($cfgAp->autor_ve_nota_apresentacao ?? true) && $trabalho->nota_apresentacao !== null)
                             <div class="glass-card bg-white mb-4">
                                 <h6 class="fw-bold text-success mb-3">Avaliação da apresentação</h6>

@@ -47,8 +47,8 @@
                         </select>
                     </div>
                     <div class="col-md-3 d-flex gap-1">
-                        <button class="btn btn-sm btn-dark flex-fill">Filtrar</button>
-                        <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-sm btn-light">Limpar</a>
+                        <button class="btn btn-sm btn-dark flex-fill"><i class="fa-solid fa-filter"></i> Filtrar</button>
+                        <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-eraser"></i> Limpar</a>
                     </div>
                 </div>
             </form>
@@ -67,7 +67,7 @@
                             @php $t = $l['trabalho']; @endphp
                             <tr>
                                 <td class="ps-3 fw-bold">{{ $l['posicao'] ?? '—' }}</td>
-                                <td class="fw-bold">{{ $t->codigo }}</td>
+                                <td class="fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>{{ \Illuminate\Support\Str::limit($t->titulo, 60) }}</td>
                                 <td>{{ \App\Services\RelatorioNotas::categoria($t->tipo_trabalho) ?: '—' }}</td>
                                 <td class="text-center">
@@ -84,10 +84,10 @@
                                 </td>
                                 <td>{{ \App\Services\RelatorioNotas::rotuloRecomendacoes($l['recomendacoes']) ?: '—' }}</td>
                                 <td>
-                                    <x-badge tipo="trabalho" :valor="$t->status" />
+                                    <x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->resultado_apresentacao === 'reprovado' && $t->statusFinal() === 'aprovado_escrita' ? 'apresentação não aprovada' : null" />
                                     @if($t->decisao) <div class="text-muted">{{ ['aprovado' => 'Aprovado', 'aprovado_com_ressalvas' => 'Com ressalvas', 'reprovado' => 'Reprovado'][$t->decisao] }}</div> @endif
                                 </td>
-                                <td class="text-end pe-3"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-light">Abrir</a></td>
+                                <td class="text-end pe-3"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-folder-open"></i> Abrir</a></td>
                             </tr>
                         @empty
                             <tr><td colspan="11" class="text-center text-muted py-5">Nenhum trabalho encontrado.</td></tr>

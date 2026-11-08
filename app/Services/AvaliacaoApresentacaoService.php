@@ -82,6 +82,7 @@ class AvaliacaoApresentacaoService
             $dados = ['status' => 'pendente', 'atribuido_por' => $gestor->id, 'prazo' => $prazo, 'parecer_confidencial' => null];
             $a = $existente ? tap($existente)->update($dados) : $trabalho->avaliacoesApresentacao()->create($dados + ['avaliador_id' => $avaliador->id]);
             $this->workflow->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, 'Avaliador da apresentação atribuído');
+            $this->recalcular($trabalho);   // novo avaliador pendente: o resultado volta a ficar em aberto
 
             return $a;
         });
@@ -195,6 +196,7 @@ class AvaliacaoApresentacaoService
             throw new \DomainException('Informe o motivo da recusa.');
         }
         $avaliacao->update(['status' => 'recusada', 'parecer_confidencial' => trim($motivo)]);
+        $this->recalcular($avaliacao->trabalho);
     }
 
     private function garantirEditavel(ApresentacaoAvaliacao $avaliacao): void
@@ -219,8 +221,20 @@ class AvaliacaoApresentacaoService
     {
         $notas = $this->concluidas($trabalho)->pluck('nota_final');
         $media = $notas->isEmpty() ? null : round($notas->avg(), 2);
-        $trabalho->update(['nota_apresentacao' => $media]);
+
+        // O resultado só sai quando não há mais avaliador pendente: média >= nota mínima => aprovado
+        $pendentes = $trabalho->avaliacoesApresentacao()->whereIn('status', ['pendente', 'em_andamento'])->exists();
+        $minima = (float) ($trabalho->evento->trabalhoConfig?->nota_minima_apresentacao ?? 7);
+        $resultado = ($media === null || $pendentes) ? null : ($media >= $minima ? 'aprovado' : 'reprovado');
+
+        $trabalho->update(['nota_apresentacao' => $media, 'resultado_apresentacao' => $resultado]);
 
         return $media;
+    }
+
+    /** Recalcula todos os trabalhos do evento (ex.: depois de mudar a nota mínima). */
+    public function recalcularEvento(Evento $evento): void
+    {
+        $evento->trabalhos()->where('status', 'aprovado')->with('evento.trabalhoConfig')->get()->each(fn ($t) => $this->recalcular($t));
     }
 }

@@ -55,6 +55,7 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
         $dados = $request->validate([
             'avaliacao_apresentacao_ativa' => ['nullable', 'boolean'],
             'peso_apresentacao' => ['required', 'integer', 'min:0', 'max:100'],
+            'nota_minima_apresentacao' => ['required', 'numeric', 'min:0', 'max:10'],
             'autor_ve_nota_apresentacao' => ['nullable', 'boolean'],
             'criterios' => ['nullable', 'array', 'max:15'],
             'criterios.*.id' => ['nullable', 'integer'],
@@ -75,6 +76,7 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
             $evento->trabalhoConfig->update([
                 'avaliacao_apresentacao_ativa' => $ativa,
                 'peso_apresentacao' => $dados['peso_apresentacao'],
+                'nota_minima_apresentacao' => $dados['nota_minima_apresentacao'],
                 'autor_ve_nota_apresentacao' => (bool) ($dados['autor_ve_nota_apresentacao'] ?? false),
             ]);
 
@@ -103,7 +105,8 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
             }
         });
 
-        // Recalcula notas se o peso/critérios mudaram (a nota da apresentação independe do peso, mas a geral não)
+        $this->servico->recalcularEvento($evento->fresh());   // a nota mínima pode ter mudado o resultado
+
         return redirect()->route('gestao.trabalhos.apresentacoes.index', $evento)
             ->with('success', 'Configuração da avaliação das apresentações salva.')
             ->with('warning', $aviso);

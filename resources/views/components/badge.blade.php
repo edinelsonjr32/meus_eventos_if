@@ -25,6 +25,7 @@
             'resubmetido' => ['rosa', 'fa-arrows-rotate', 'Resubmetido'], 'aprovado' => ['verde-forte', 'fa-circle-check', 'Aprovado'],
             'aprovado_com_ressalvas' => ['lima', 'fa-circle-exclamation', 'Aprovado com ressalvas'], 'reprovado' => ['vermelho-forte', 'fa-circle-xmark', 'Reprovado'],
             'retirado' => ['ardosia', 'fa-box-archive', 'Retirado'],
+            'aprovado_escrita' => ['lima', 'fa-file-circle-check', 'Aprovado na parte escrita'], 'aprovado_apresentacao' => ['azul', 'fa-person-chalkboard', 'Aprovado na apresentação'],
         ],
         'avaliacao' => [
             'pendente' => ['ambar', 'fa-hourglass-half', 'Pendente'], 'em_andamento' => ['azul', 'fa-pen', 'Em andamento'],

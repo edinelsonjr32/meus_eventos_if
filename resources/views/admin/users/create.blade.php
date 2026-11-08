@@ -44,7 +44,7 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-light">Cancelar</a>
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary"><i class="fa-solid fa-xmark"></i> Cancelar</a>
                         <button type="submit" class="btn btn-primary-custom fw-bold">
                             <i class="fa-solid fa-save me-1"></i> Criar Usuário
                         </button>

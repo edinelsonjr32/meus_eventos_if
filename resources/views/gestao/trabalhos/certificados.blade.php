@@ -34,7 +34,7 @@
                             <option value="nao" @selected(request('apresentado') === 'nao')>Não apresentados</option>
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex gap-1"><button class="btn btn-sm btn-dark flex-fill">Filtrar</button><a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}" class="btn btn-sm btn-light">Limpar</a></div>
+                    <div class="col-md-4 d-flex gap-1"><button class="btn btn-sm btn-dark flex-fill"><i class="fa-solid fa-filter"></i> Filtrar</button><a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-eraser"></i> Limpar</a></div>
                 </div>
             </form>
 
@@ -58,7 +58,7 @@
                         </select>
                     </div>
                     <div class="col-md-5 d-flex gap-2 flex-wrap">
-                        <button class="btn btn-sm btn-dark fw-bold">Aplicar</button>
+                        <button class="btn btn-sm fw-bold btn-success"><i class="fa-solid fa-check"></i> Aplicar</button>
                         <button name="acao" value="sincronizar" class="btn btn-sm btn-outline-secondary fw-bold" title="Confirma apresentações com base na frequência das sessões">Sincronizar com frequência</button>
                         <button name="acao" value="emitir_todos" class="btn btn-sm btn-outline-success fw-bold" onclick="return confirm('Emitir certificados de todos os trabalhos elegíveis e avisar os autores por e-mail?')">Emitir todos elegíveis</button>
                     </div>
@@ -78,7 +78,7 @@
                         @forelse($trabalhos as $t)
                             <tr>
                                 <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho"></td>
-                                <td class="fw-bold">{{ $t->codigo }}</td>
+                                <td class="fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>
                                     <div class="fw-bold">{{ \Illuminate\Support\Str::limit($t->titulo, 60) }}</div>
                                     <span class="text-muted">{{ $t->autores->pluck('nome_completo')->take(3)->implode(', ') }}</span>
@@ -87,7 +87,7 @@
                                 <td><x-badge tipo="sim-nao" :valor="$t->apresentado ? 'apresentado' : 'nao_apresentado'" /></td>
                                 <td>{{ $t->certificados->whereNull('revogado_em')->count() }}/{{ $t->autores->count() }}
                                     @if($t->motivo) <div class="text-muted">({{ $t->motivo }})</div> @endif</td>
-                                <td class="text-end pe-3"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-light">Abrir</a></td>
+                                <td class="text-end pe-3"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-folder-open"></i> Abrir</a></td>
                             </tr>
                         @empty
                             <tr><td colspan="7" class="text-center text-muted py-5">Nenhum trabalho aprovado encontrado.</td></tr>

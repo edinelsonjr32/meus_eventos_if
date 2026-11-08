@@ -20,15 +20,19 @@ class CitacaoAbnt
         $autores = $this->autores($trabalho);
         $evento = mb_strtoupper(trim($trabalho->evento->titulo ?? $anais->evento->titulo));
 
+        // Convenção ABNT para dados ausentes: "S. l." (sem local) e "s. n." (sem editora)
+        $local = filled($anais->local_publicacao) ? $anais->local_publicacao : 'S. l.';
+        $editora = filled($anais->editora) ? $anais->editora : 's. n.';
+
         return sprintf(
             '%s %s. In: %s, %d, %s. Anais [...]. %s: %s, %d.',
             $autores,
             rtrim(trim($trabalho->titulo), '.'),
             $evento,
             $anais->ano,
-            $anais->local_publicacao,
-            $anais->local_publicacao,
-            $anais->editora,
+            $local,
+            $local,
+            $editora,
             $anais->ano
         );
     }

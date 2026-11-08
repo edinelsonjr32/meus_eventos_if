@@ -174,6 +174,7 @@ it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Anai
         ->assertSessionHasNoErrors();
     $this->get(route('anais.index', $evento->slug))->assertNotFound();   // ainda não publicado
     $this->post(route('gestao.trabalhos.anais.publicar', $evento))->assertSessionHas('success');
+    $this->post(route('gestao.trabalhos.anais.dados-publicacao', $evento), ['acao' => 'exibir'])->assertSessionHas('success');
 
     auth()->logout();
     $this->get(route('anais.index', $evento->slug))->assertOk()->assertSee('Monitoramento de igarapés')->assertSee('1 trabalho(s) publicado(s)');

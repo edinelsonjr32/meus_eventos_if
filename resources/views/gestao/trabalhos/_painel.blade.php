@@ -26,7 +26,11 @@
     if ($apAtiva) {
         $etapas[] = ['5. Avaliação da apresentação', $trabalho->nota_apresentacao !== null && $concluidasAp >= $totalAp && $totalAp > 0 ? 'ok' : ($aprovado ? 'atual' : 'futuro'), $totalAp ? "{$concluidasAp}/{$totalAp} concluída(s)" : ($aprovado ? 'atribuir avaliadores' : null)];
     }
-    $etapas[] = [($apAtiva ? '6' : '5') . '. Certificado', $trabalho->certificados->whereNull('revogado_em')->isNotEmpty() ? 'ok' : 'futuro', null];
+    if ($apAtiva) {
+        $etapas[] = [($apAtiva ? '6' : '5') . '. Resultado final', $trabalho->statusFinal() === 'aprovado' && $aprovado ? 'ok' : ($aprovado && $trabalho->resultado_apresentacao === 'reprovado' ? 'atual' : 'futuro'),
+            $aprovado ? ($trabalho->statusFinal() === 'aprovado' ? 'Aprovado (texto + apresentação)' : ($trabalho->resultado_apresentacao === 'reprovado' ? 'apresentação não aprovada' : 'aprovado só na parte escrita')) : null];
+    }
+    $etapas[] = [($apAtiva ? '7' : '5') . '. Certificado', $trabalho->certificados->whereNull('revogado_em')->isNotEmpty() ? 'ok' : 'futuro', null];
 @endphp
 <div class="glass-card bg-white mb-4">
     <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-route me-1"></i> Etapas</h6>
@@ -240,7 +244,7 @@
         <form action="{{ route('gestao.trabalhos.prorrogar', $trabalho) }}" method="POST" class="d-flex gap-2">
             @csrf
             <input type="date" name="prazo_correcao" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}" required>
-            <button class="btn btn-sm btn-outline-secondary fw-bold text-nowrap">Prorrogar</button>
+            <button class="btn btn-sm fw-bold text-nowrap btn-outline-warning"><i class="fa-solid fa-calendar-plus"></i> Prorrogar</button>
         </form>
     @endif
 </div>
@@ -272,7 +276,7 @@
                         <option value="{{ $at->id }}" @selected($trabalho->atividade_id === $at->id)>{{ $at->titulo }} ({{ $at->data_inicio->format('d/m H:i') }})</option>
                     @endforeach
                 </select>
-                <button name="acao" value="sessao" class="btn btn-sm btn-outline-secondary fw-bold">Salvar</button>
+                <button name="acao" value="sessao" class="btn btn-sm fw-bold btn-outline-success"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
             </div>
             <div class="form-text">Com sessão definida, a presença do autor apresentador na atividade confirma a apresentação automaticamente.</div>
         </form>
@@ -323,7 +327,7 @@
                 <form action="{{ route('gestao.trabalhos.certificados.revogar', $c) }}" method="POST" class="d-flex gap-1 mt-1">
                     @csrf
                     <input type="text" name="motivo" class="form-control form-control-sm" placeholder="Motivo da revogação" maxlength="250" required>
-                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Revogar este certificado?')">Revogar</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Revogar este certificado?')"><i class="fa-solid fa-ban"></i> Revogar</button>
                 </form>
             @endunless
         </div>

@@ -3,9 +3,16 @@
 @section('titulo', 'Anais')
 
 @section('conteudo')
+    @unless($anais->dadosVisiveis())
+        <div class="alert alert-success border-0 small" style="background:#dcfce7;"><i class="fa-solid fa-circle-info me-1"></i>
+            Os dados de publicação (ISBN, ISSN, DOI, editora) e o PDF completo dos Anais serão divulgados após o encerramento do evento.
+            @if($trabalhos->total() === 0) Os trabalhos aparecem aqui conforme forem apresentados. @endif
+        </div>
+    @endunless
+
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="text-secondary">{{ $trabalhos->total() }} trabalho(s) publicado(s)</div>
-        @if($anais->pdfPronto())
+        @if($anais->dadosVisiveis() && $anais->pdfPronto())
             <a href="{{ route('anais.pdf', $evento->slug) }}" class="btn btn-success fw-bold">
                 <i class="fa-solid fa-file-pdf me-1"></i> Baixar os Anais completos (PDF)
             </a>
