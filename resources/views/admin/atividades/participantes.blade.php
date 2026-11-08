@@ -139,6 +139,10 @@
                                             <i class="fa-solid fa-check me-1"></i> Dar Presença
                                         </button>
                                     </form>
+                                    <form action="{{ route('admin.atividades.inscritos.destroy', ['atividade' => $atividade->id, 'participante' => $item->participante->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Remover {{ addslashes($item->participante->nome_completo) }} desta atividade? Ele(a) ainda não registrou presença.');">
+                                        @csrf @method('DELETE')
+                                        <button class="btn btn-sm btn-outline-danger" title="Remover da atividade"><i class="fa-solid fa-user-minus"></i> Remover</button>
+                                    </form>
                                 @endif
                             </td>
                         </tr>

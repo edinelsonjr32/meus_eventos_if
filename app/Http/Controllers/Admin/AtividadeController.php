@@ -219,6 +219,23 @@ class AtividadeController extends Controller
         return back()->with('success', 'Presença removida.');
     }
 
+    /** Remove da atividade um participante inscrito que ainda não registrou presença. */
+    public function destroyInscrito(Atividade $atividade, Participante $participante)
+    {
+        $this->authorize('gerenciar', $atividade->evento);
+
+        if ($atividade->frequencias()->where('participante_id', $participante->id)->exists()) {
+            return back()->with('error', 'Este participante já registrou presença: remova a presença primeiro.');
+        }
+        if (!$atividade->inscritos()->where('participantes.id', $participante->id)->exists()) {
+            return back()->with('error', 'Este participante não está inscrito nesta atividade.');
+        }
+
+        $atividade->inscritos()->detach($participante->id);
+
+        return back()->with('success', "{$participante->nome_completo} foi removido(a) da atividade.");
+    }
+
     public function destroy(Atividade $atividade)
     {
         $this->authorize('gerenciar', $atividade->evento);

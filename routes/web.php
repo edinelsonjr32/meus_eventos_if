@@ -216,6 +216,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::prefix('atividades/{atividade}')->name('atividades.')->group(function () {
         // Visualizar Lista
         Route::get('/participantes', [AtividadeController::class, 'participantes'])->name('participantes');
+        // Remover da atividade quem se inscreveu e ainda não registrou presença
+        Route::delete('/inscritos/{participante}', [AtividadeController::class, 'destroyInscrito'])->name('inscritos.destroy');
         // Cadastro Manual (POST)
         Route::post('/participantes', [AtividadeController::class, 'storeManual'])->name('participantes.store');
         // Tela de Cadastro Manual (GET)
