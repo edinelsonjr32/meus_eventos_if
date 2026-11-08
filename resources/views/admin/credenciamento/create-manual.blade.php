@@ -1,108 +1,72 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-bold text-2xl text-gray-800 leading-tight">
-            Cadastro Manual e Credenciamento
-        </h2>
-    </x-slot>
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-
-    <div class="py-8">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <div class="d-flex align-items-center gap-3">
-                    <a href="{{ route('admin.eventos.credenciamento.index', $evento->id) }}" class="btn btn-light rounded-circle shadow-sm" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-arrow-left"></i>
-                    </a>
-                    <div>
-                        <h3 class="fw-bold m-0">Cadastrar e Credenciar</h3>
-                        <small class="text-secondary">Evento: {{ $evento->titulo }}</small>
-                    </div>
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <a href="{{ route('admin.eventos.credenciamento.index', $evento->id) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
+                <div>
+                    <h3 class="fw-bold m-0"><i class="fa-solid fa-user-plus text-success me-1"></i> Cadastrar e credenciar</h3>
+                    <small class="text-secondary">{{ $evento->titulo }}</small>
                 </div>
             </div>
 
-            <div class="glass-card p-6 bg-white shadow-lg" x-data="{ tipoVinculo: '{{ old('tipo_vinculo', 'aluno') }}' }">
+            <div class="alert alert-light border small"><i class="fa-solid fa-circle-info me-1 text-primary"></i> O participante será cadastrado, inscrito no evento e terá o <strong>check-in confirmado na hora</strong>.</div>
 
-                <p class="text-sm text-gray-500 mb-6">Preencha os dados. O participante será cadastrado, inscrito no evento e terá o check-in confirmado imediatamente.</p>
+            @if(session('error')) <div class="alert alert-danger small"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ session('error') }}</div> @endif
 
-                @if(session('error'))
-                    <div class="alert alert-danger small p-2 mb-3">{{ session('error') }}</div>
-                @endif
-                @if ($errors->any())
-                    <div class="alert alert-danger small border-0 bg-danger bg-opacity-10 text-danger rounded-3 mb-4">
-                        <ul class="mb-0 ps-3">
-                            @foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach
-                        </ul>
-                    </div>
-                @endif
+            <form method="post" action="{{ route('admin.eventos.credenciamento.storeManual', $evento->id) }}" data-validar x-data="{ tipoVinculo: '{{ old('tipo_vinculo', 'aluno') }}' }">
+                @csrf
 
-                <form method="post" action="{{ route('admin.eventos.credenciamento.storeManual', $evento->id) }}" class="space-y-4">
-                    @csrf
-
+                <div class="glass-card bg-white mb-4">
+                    <h6 class="fw-bold text-success mb-3"><i class="fa-regular fa-id-card me-1"></i> Dados pessoais</h6>
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Nome Completo *</label>
-                            <input type="text" name="nome_completo" class="form-control" value="{{ old('nome_completo') }}" required>
+                        <div class="col-md-7">
+                            <label class="small fw-bold text-secondary" for="nome">Nome completo *</label>
+                            <input id="nome" type="text" name="nome_completo" class="form-control" data-nome="Nome completo" value="{{ old('nome_completo') }}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">CPF *</label>
-                            <input type="text" name="cpf" class="form-control cpf-mask" value="{{ old('cpf') }}" placeholder="000.000.000-00" required>
+                        <div class="col-md-5">
+                            <label class="small fw-bold text-secondary" for="cpf">CPF *</label>
+                            <input id="cpf" type="text" name="cpf" class="form-control" data-mascara="cpf" data-nome="CPF" maxlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" title="Informe o CPF completo (000.000.000-00)" value="{{ old('cpf') }}" placeholder="000.000.000-00" required>
                         </div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Email *</label>
-                            <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
+                        <div class="col-md-7">
+                            <label class="small fw-bold text-secondary" for="email">E-mail *</label>
+                            <input id="email" type="email" name="email" class="form-control" data-nome="E-mail" value="{{ old('email') }}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Tipo de Vínculo *</label>
-                            <select name="tipo_vinculo" x-model="tipoVinculo" class="form-select" required>
+                        <div class="col-md-5">
+                            <label class="small fw-bold text-secondary" for="vinculo">Vínculo *</label>
+                            <select id="vinculo" name="tipo_vinculo" x-model="tipoVinculo" class="form-select" required>
                                 <option value="aluno">Aluno (IFPA)</option>
                                 <option value="servidor">Servidor (IFPA)</option>
-                                <option value="externo">Externo (Comunidade)</option>
+                                <option value="externo">Externo (comunidade)</option>
                             </select>
                         </div>
                     </div>
+                </div>
 
-                    <div x-show="tipoVinculo !== 'externo'" class="mt-4 p-4 bg-light rounded-lg border border-gray-200" style="display: none;">
-                        <h5 class="text-md font-bold text-gray-700 mb-3">Dados Institucionais</h5>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Matrícula</label>
-                            <input type="text" name="matricula" class="form-control" value="{{ old('matricula') }}">
+                <div class="glass-card bg-white mb-4" x-show="tipoVinculo !== 'externo'" x-cloak>
+                    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-building-columns me-1"></i> Dados institucionais</h6>
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="small fw-bold text-secondary" for="matricula">Matrícula *</label>
+                            <input id="matricula" type="text" name="matricula" class="form-control" data-nome="Matrícula" value="{{ old('matricula') }}" :required="tipoVinculo !== 'externo'" :disabled="tipoVinculo === 'externo'">
                         </div>
-
-                        <div x-show="tipoVinculo === 'aluno'">
-                            <label class="form-label small fw-bold text-secondary text-uppercase">Turma *</label>
-                            <select name="turma_id" class="form-select">
-                                <option value="">Selecione a Turma/Curso...</option>
+                        <div class="col-md-7" x-show="tipoVinculo === 'aluno'">
+                            <label class="small fw-bold text-secondary" for="turma">Turma / curso *</label>
+                            <select id="turma" name="turma_id" class="form-select" data-nome="Turma" :required="tipoVinculo === 'aluno'" :disabled="tipoVinculo !== 'aluno'">
+                                <option value="">Selecione a turma…</option>
                                 @foreach($turmas as $turma)
-                                    <option value="{{ $turma->id }}" @selected(old('turma_id') == $turma->id)>
-                                        {{ $turma->nome_completo }} ({{ $turma->curso->nome ?? 'Sem Curso' }})
-                                    </option>
+                                    <option value="{{ $turma->id }}" @selected(old('turma_id') == $turma->id)>{{ $turma->nome_completo }} ({{ $turma->curso->nome ?? 'Sem curso' }})</option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
+                </div>
 
-                    <div class="pt-4 d-flex justify-content-end">
-                        <button type="submit" class="btn btn-success px-4 py-2 font-bold shadow-sm">
-                            <i class="fa-solid fa-user-plus me-2"></i> Cadastrar e Credenciar
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div class="d-flex flex-wrap justify-content-end gap-2 mb-5">
+                    <a href="{{ route('admin.eventos.credenciamento.index', $evento->id) }}" class="btn btn-outline-secondary"><i class="fa-solid fa-xmark"></i> Cancelar</a>
+                    <button type="submit" class="btn btn-success fw-bold px-4"><i class="fa-solid fa-user-check"></i> Cadastrar e credenciar</button>
+                </div>
+            </form>
         </div>
     </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-    <script>
-        $(document).ready(function(){
-            $('.cpf-mask').mask('000.000.000-00');
-        });
-    </script>
 </x-app-layout>

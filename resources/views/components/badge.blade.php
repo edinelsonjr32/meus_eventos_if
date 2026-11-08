@@ -33,7 +33,7 @@
         ],
         'papel' => [
             'gestor_trabalhos' => ['roxo', 'fa-inbox', 'Gestor de Trabalhos'], 'avaliador' => ['indigo', 'fa-clipboard-check', 'Avaliador'],
-            'editor' => ['ciano', 'fa-user-gear', 'Co-administrador'],
+            'editor' => ['ciano', 'fa-user-gear', 'Co-administrador'], 'recepcao' => ['verde', 'fa-id-badge', 'Recepção'],
         ],
         'autor' => [
             'autor_principal' => ['indigo', 'fa-user-pen', 'Autor principal'], 'coautor' => ['cinza', 'fa-user', 'Coautor'],
@@ -66,6 +66,9 @@
         ],
         'certificado' => [
             'valido' => ['verde', 'fa-award', 'Válido'], 'revogado' => ['vermelho-forte', 'fa-ban', 'Revogado'],
+        ],
+        'checkin' => [
+            'feito' => ['verde-forte', 'fa-circle-check', 'Check-in feito'], 'pendente' => ['ambar', 'fa-hourglass-half', 'Pendente'],
         ],
         'sim-nao' => [
             'sim' => ['verde', 'fa-check', 'Sim'], 'nao' => ['cinza', 'fa-minus', 'Não'],

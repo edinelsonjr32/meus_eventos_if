@@ -32,6 +32,8 @@ class AtividadeController extends Controller
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
             'tipo' => 'required|string',
+            'responsavel' => 'nullable|string|max:255',
+            'local' => 'nullable|string|max:255',
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1',
             'vagas' => 'nullable|integer|min:0',
@@ -47,6 +49,8 @@ class AtividadeController extends Controller
         $evento->atividades()->create([
             'titulo' => $validated['titulo'],
             'tipo' => $validated['tipo'],
+            'responsavel' => $validated['responsavel'] ?? null,
+            'local' => $validated['local'] ?? null,
             'data_inicio' => $validated['data_inicio'],
             'data_fim' => $fim, // Agora o Model aceitará este campo
             'carga_horaria' => $horas,
@@ -55,6 +59,25 @@ class AtividadeController extends Controller
         ]);
 
         return back()->with('success', 'Atividade adicionada com sucesso à programação!');
+    }
+
+    /** PDF com uma página por atividade: cabeçalho do evento, QR Code de frequência, título e responsável. */
+    public function qrcodesPdf(Evento $evento)
+    {
+        $this->authorize('gerenciar', $evento);
+
+        $paginas = $evento->atividades()->orderBy('data_inicio')->get()->map(fn (Atividade $a) => [
+            'atividade' => $a,
+            'qr' => 'data:image/svg+xml;base64,' . base64_encode((string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(360)->margin(0)->generate(route('frequencia.form', $a->token_frequencia))),
+        ]);
+
+        if ($paginas->isEmpty()) {
+            return back()->with('error', 'Este evento ainda não tem atividades para gerar QR Codes.');
+        }
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.atividades.qrcodes-pdf', ['evento' => $evento, 'paginas' => $paginas])
+            ->setPaper('a4', 'portrait')
+            ->download('QRCodes-frequencia-' . Str::slug($evento->titulo) . '.pdf');
     }
 
     /**

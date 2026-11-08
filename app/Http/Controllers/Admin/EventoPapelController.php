@@ -17,6 +17,7 @@ class EventoPapelController extends Controller
     public const PAPEIS = [
         Evento::PAPEL_GESTOR_TRABALHOS => 'Gestor de Trabalhos',
         Evento::PAPEL_AVALIADOR => 'Avaliador',
+        Evento::PAPEL_RECEPCAO => 'Recepção (check-in e credenciamento)',
         Evento::PAPEL_EDITOR => 'Co-administrador',
     ];
 

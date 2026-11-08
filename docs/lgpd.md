@@ -99,3 +99,7 @@ o pedido (data, quem atendeu) além da trilha automática.
 - [ ] Texto de `/privacidade` revisado pelo jurídico.
 - [ ] Cron do agendador ativo e `sistema:verificar` sem alertas.
 - [ ] Rotina de backup com rotação ≤ `PRIVACIDADE_DIAS_BACKUP`.
+
+## Papel Recepção
+
+O papel "Recepção" (por evento) acessa a lista de inscritos do evento (nome, CPF, e-mail, vínculo, status de check-in) apenas para credenciamento. Conceda-o somente a quem atua na recepção e remova ao fim do evento.

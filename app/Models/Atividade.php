@@ -14,6 +14,8 @@ class Atividade extends Model
         'evento_id',
         'titulo',
         'tipo',
+        'responsavel',
+        'local',
         'carga_horaria',
         'vagas',
         'data_inicio',

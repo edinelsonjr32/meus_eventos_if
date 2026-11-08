@@ -36,4 +36,12 @@ $pronto->update(['status' => 'em_avaliacao']);
 $reenviado = $novo('reenviado');                                         // reenviado após correção: precisa do botão "Aprovar"
 $reenviado->update(['status' => 'resubmetido']);
 
+// Credenciamento: deixa 'Thiago Moura' como inscrito pendente (sem check-in) para o teste da recepção
+\App\Models\Inscricao::where('evento_id', $evento->id)->whereHas('participante', fn ($q) => $q->where('nome_completo', 'Thiago Moura'))->update(['checkin_at' => null]);
+
+// Papel "Recepção": usuário comum (sem perfil de administrador) com o papel de recepção neste evento
+$recepcao = User::firstOrCreate(['email' => 'recepcao@teste.com'], ['name' => 'Recepção Teste', 'password' => 'Recepcao@12345']);
+$recepcao->forceFill(['role' => 'user', 'email_verified_at' => now()])->save();
+DB::table('evento_user')->updateOrInsert(['evento_id' => $evento->id, 'user_id' => $recepcao->id, 'role' => 'recepcao'], ['created_at' => now(), 'updated_at' => now()]);
+
 echo "preparado\n";

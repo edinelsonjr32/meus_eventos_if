@@ -19,7 +19,7 @@ class CredenciamentoController extends Controller
      */
     public function index(Evento $evento)
     {
-        $this->authorize('gerenciar', $evento);
+        $this->authorize('credenciar', $evento);
 
         $totalInscritos = $evento->inscricoes()->count();
         $totalCredenciados = $evento->inscricoes()->whereNotNull('checkin_at')->count();
@@ -33,7 +33,7 @@ class CredenciamentoController extends Controller
 
     public function create(Evento $evento)
     {
-        $this->authorize('gerenciar', $evento);
+        $this->authorize('credenciar', $evento);
 
         // Carrega todas as turmas e cursos
         $turmas = Turma::with('curso')->get()->sortBy('nome_completo');
@@ -43,7 +43,7 @@ class CredenciamentoController extends Controller
 
     public function storeManual(Request $request, Evento $evento)
     {
-        $this->authorize('gerenciar', $evento);
+        $this->authorize('credenciar', $evento);
 
         // 1. Validação Completa (Igual à que estava no modal)
         $request->validate([
@@ -100,7 +100,7 @@ class CredenciamentoController extends Controller
      */
     public function search(Request $request, Evento $evento)
     {
-        $this->authorize('gerenciar', $evento);
+        $this->authorize('credenciar', $evento);
 
         $term = trim((string) $request->get('q'));
         // Somente dígitos, para comparar CPF independente de máscara (123.456.789-00 / 12345678900)
@@ -132,26 +132,53 @@ class CredenciamentoController extends Controller
     }
 
     /**
+     * Marca a chegada de forma ATÔMICA: só o primeiro check-in grava; repetir (duplo clique, outra aba, outro operador)
+     * não muda a hora nem conta de novo. Devolve se foi realmente novo e quando o participante chegou.
+     *
+     * @return array{novo:bool,checkin_at:\Illuminate\Support\Carbon}
+     */
+    private function registrarChegada(Evento $evento, Participante $participante): array
+    {
+        $inscricao = Inscricao::where('evento_id', $evento->id)->where('participante_id', $participante->id)->firstOrFail();
+
+        $novo = Inscricao::whereKey($inscricao->id)->whereNull('checkin_at')->update(['checkin_at' => now()]) === 1;
+
+        return ['novo' => $novo, 'checkin_at' => $inscricao->fresh()->checkin_at];
+    }
+
+    /** Contadores do evento (sempre do banco: a tela não conta sozinha). */
+    private function contadores(Evento $evento): array
+    {
+        $total = $evento->inscricoes()->count();
+        $feitos = $evento->inscricoes()->whereNotNull('checkin_at')->count();
+
+        return ['total' => $total, 'credenciados' => $feitos, 'pendentes' => $total - $feitos];
+    }
+
+    /**
      * Realiza o Check-in Global (Chegou no evento)
      */
     public function checkin(Evento $evento, Participante $participante)
     {
-        $this->authorize('gerenciar', $evento);
+        $this->authorize('credenciar', $evento);
 
-        $inscricao = Inscricao::where('evento_id', $evento->id)
-            ->where('participante_id', $participante->id)
-            ->firstOrFail();
-
-        // Marca a hora da chegada se ainda não marcou
-        if (!$inscricao->checkin_at) {
-            $inscricao->update(['checkin_at' => now()]);
-        }
+        ['novo' => $novo, 'checkin_at' => $quando] = $this->registrarChegada($evento, $participante);
 
         return response()->json([
             'success' => true,
-            'message' => 'Check-in realizado!',
-            'checkin_at' => $inscricao->checkin_at->format('H:i')
-        ]);
+            'novo' => $novo,
+            'ja_realizado' => !$novo,
+            'message' => $novo ? 'Check-in realizado!' : "{$participante->nome_completo} já havia feito check-in às {$quando->format('H:i')}.",
+            'checkin_at' => $quando->format('H:i'),
+        ] + $this->contadores($evento));
+    }
+
+    /** Contadores atuais (a tela os consulta após cada ação). */
+    public function stats(Evento $evento)
+    {
+        $this->authorize('credenciar', $evento);
+
+        return response()->json($this->contadores($evento));
     }
 
     /**
@@ -159,25 +186,78 @@ class CredenciamentoController extends Controller
      */
     public function etiqueta(Evento $evento, Participante $participante)
     {
-        $this->authorize('gerenciar', $evento);
+        $this->authorize('credenciar', $evento);
 
-        // Se ainda não fez checkin, faz agora
-        $inscricao = Inscricao::where('evento_id', $evento->id)
-            ->where('participante_id', $participante->id)
-            ->firstOrFail();
-
-        if (!$inscricao->checkin_at) {
-            $inscricao->update(['checkin_at' => now()]);
-        }
+        // Imprimir a etiqueta também credencia (uma única vez, sem alterar a hora de quem já chegou)
+        $this->registrarChegada($evento, $participante);
 
         return view('admin.credenciamento.etiqueta', compact('evento', 'participante'));
+    }
+
+    /**
+     * Lista de TODOS os inscritos com o status (check-in ou pendente), filtros e busca.
+     */
+    public function lista(Request $request, Evento $evento)
+    {
+        $this->authorize('credenciar', $evento);
+
+        $status = in_array($request->input('status'), ['checkin', 'pendente'], true) ? $request->input('status') : null;
+        $inscricoes = $this->consultaLista($request, $evento, $status)->paginate(50)->withQueryString();
+
+        return view('admin.credenciamento.lista', [
+            'evento' => $evento,
+            'inscricoes' => $inscricoes,
+            'status' => $status,
+            'busca' => trim((string) $request->input('q')),
+        ] + $this->contadores($evento));
+    }
+
+    /** Exporta a lista (CSV) respeitando status e busca. */
+    public function exportarLista(Request $request, Evento $evento)
+    {
+        $this->authorize('credenciar', $evento);
+
+        $status = in_array($request->input('status'), ['checkin', 'pendente'], true) ? $request->input('status') : null;
+        $linhas = $this->consultaLista($request, $evento, $status)->get();
+
+        return response()->streamDownload(function () use ($linhas) {
+            $f = fopen('php://output', 'w');
+            fwrite($f, "\xEF\xBB\xBF");
+            fputcsv($f, ['Nome', 'CPF', 'E-mail', 'Vínculo', 'Matrícula', 'Curso / Turma', 'Status', 'Check-in em', 'Inscrito em'], ';');
+            foreach ($linhas as $i) {
+                $p = $i->participante;
+                fputcsv($f, [$p->nome_completo, $p->cpf, $p->email, $p->tipo_vinculo, $p->matricula, $p->turma ? ($p->turma->curso->nome ?? '') . ' ' . $p->turma->nome_completo : '',
+                    $i->checkin_at ? 'Check-in' : 'Pendente', $i->checkin_at?->format('d/m/Y H:i'), $i->data_inscricao ? \Illuminate\Support\Carbon::parse($i->data_inscricao)->format('d/m/Y H:i') : ''], ';');
+            }
+            fclose($f);
+        }, 'inscritos-' . \Illuminate\Support\Str::slug($evento->titulo) . '-' . now()->format('Ymd_His') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    private function consultaLista(Request $request, Evento $evento, ?string $status)
+    {
+        $busca = trim((string) $request->input('q'));
+        $digitos = preg_replace('/\D/', '', $busca);
+        $like = '%' . addcslashes($busca, '%_\\') . '%';
+
+        return $evento->inscricoes()->with(['participante.turma.curso'])
+            ->join('participantes', 'participantes.id', '=', 'inscricoes.participante_id')
+            ->select('inscricoes.*')
+            ->when($status === 'checkin', fn ($q) => $q->whereNotNull('inscricoes.checkin_at'))
+            ->when($status === 'pendente', fn ($q) => $q->whereNull('inscricoes.checkin_at'))
+            ->when($busca !== '', fn ($q) => $q->where(function ($w) use ($like, $digitos) {
+                $w->where('participantes.nome_completo', 'like', $like)->orWhere('participantes.email', 'like', $like)->orWhere('participantes.matricula', 'like', $like)->orWhere('participantes.cpf', 'like', $like);
+                if ($digitos !== '') {
+                    $w->orWhereRaw("REPLACE(REPLACE(REPLACE(TRIM(participantes.cpf), '.', ''), '-', ''), ' ', '') LIKE ?", ["%{$digitos}%"]);
+                }
+            }))
+            ->orderBy('participantes.nome_completo');
     }
     /**
      * Cadastra um novo participante na hora (Check-in Imediato).
      */
     public function store(Request $request, Evento $evento)
     {
-        $this->authorize('gerenciar', $evento);
+        $this->authorize('credenciar', $evento);
 
         // 1. Validação (Adicionando campos e regras condicionais)
         $validated = $request->validate([

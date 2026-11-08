@@ -70,3 +70,10 @@ Pedidos de titulares (acesso, correção, eliminação): `php artisan lgpd:expor
 
 ## Checklist de encerramento do evento
 - [ ] Todos os trabalhos com decisão. - [ ] Apresentações registradas. - [ ] Certificados emitidos em lote. - [ ] Anais gerados e publicados. - [ ] Exportação das notas arquivada.
+
+## Recepção, credenciamento e QR Codes de frequência
+
+- **Papel "Recepção"**: em *Papéis do evento*, vincule um perfil como Recepção para que a pessoa faça check-in e credenciamento sem acesso administrativo. Ela vê o menu **Recepção**, a busca de participantes e a **Lista de inscritos** (check-in feito / pendente), com nome, CPF e e-mail dos inscritos (ver `docs/lgpd.md`).
+- **Check-in repetido**: o servidor decide se o check-in é novo; clicar de novo em quem já chegou apenas avisa, sem alterar o contador.
+- **Frequência**: quem já registrou presença em uma atividade vê o aviso "Presença já registrada" e não consegue registrar de novo.
+- **PDF dos QR Codes**: na programação do evento, o botão *PDF dos QR Codes* gera uma página por atividade com cabeçalho do evento, QR Code, título, responsável e local. Preencha *Responsável* e *Local* ao cadastrar a atividade.

@@ -35,7 +35,12 @@ class FrequenciaController extends Controller
 
         $participanteLogado = Auth::check() ? app(ParticipanteDaConta::class)->daConta(Auth::user()) : null;
 
-        return view('publico.registrar-frequencia', compact('atividade', 'turmas', 'participanteLogado'));
+        // Quem já registrou presença nesta atividade não preenche de novo
+        $frequenciaExistente = $participanteLogado
+            ? Frequencia::where('atividade_id', $atividade->id)->where('participante_id', $participanteLogado->id)->first()
+            : null;
+
+        return view('publico.registrar-frequencia', compact('atividade', 'turmas', 'participanteLogado', 'frequenciaExistente'));
     }
 
     /** Guarda a página do QR como destino e leva ao login ou ao cadastro (a presença exige conta). */
@@ -89,6 +94,12 @@ class FrequenciaController extends Controller
 
         // 2. Validação dos dados: a presença exige conta logada; CPF, nome e e-mail vêm do cadastro da conta
         $contas = app(ParticipanteDaConta::class);
+
+        // 1.1 Presença já registrada por esta conta: não permite registrar outra vez
+        $existente = $contas->daConta($request->user());
+        if ($existente && Frequencia::where('atividade_id', $atividade->id)->where('participante_id', $existente->id)->exists()) {
+            return $this->falha($request, 'Você já registrou presença nesta atividade.', 409);
+        }
         $request->validate($contas->regras($contas->daConta($request->user()) !== null, $request->tipo_vinculo));
 
         // 2.1 Validação de localização (somente se o evento tiver coordenadas configuradas)

@@ -108,6 +108,12 @@
         }
 
 
+        /* Selo base (também usado por telas montadas no navegador, onde não dá para usar o componente de selo) */
+        .sb { display: inline-flex; align-items: center; gap: .35rem; padding: .22rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 700; line-height: 1.2; border: 1px solid transparent; white-space: nowrap; vertical-align: middle; }
+        .sb i { font-size: .72rem; }
+        .sb-ok { background: #16a34a; color: #fff; border-color: #16a34a; } .sb-pend { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
+        .sb-aluno { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; } .sb-servidor { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; } .sb-externo { background: #e2e8f0; color: #334155; border-color: #94a3b8; }
+
         /* ===== Botões: ícone + texto alinhados, cores por significado ===== */
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; font-weight: 600; border-radius: 10px; transition: all .15s; }
         .btn-sm { padding: .32rem .7rem; font-size: .78rem; border-radius: 8px; }
@@ -224,6 +230,12 @@
                 </a>
                 <a href="{{ route('avaliador.apresentacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.apresentacoes.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-person-chalkboard w-25 text-center"></i> Apresentações
+                </a>
+            @endif
+
+            @if(Auth::user()->role !== 'admin' && \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'recepcao')->exists())
+                <a href="{{ route('recepcao.index') }}" class="nav-link {{ request()->routeIs('recepcao.*') || request()->routeIs('admin.eventos.credenciamento.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-id-badge w-25 text-center"></i> Recepção
                 </a>
             @endif
 

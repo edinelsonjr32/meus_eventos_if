@@ -30,6 +30,10 @@
             @endif
 
             @php $sit = \App\Models\TrabalhoConfig::situacaoDe($config); @endphp
+            {{-- Estados normais (aberta/encerrada) viram um selo discreto; só o que pede ação vira alerta --}}
+            @if(in_array($sit['chave'], ['aberta', 'encerrada']))
+                <div class="mb-3 small text-secondary d-flex flex-wrap align-items-center gap-2"><x-badge tipo="chamada" :valor="$sit['chave']" /> <span>{{ $sit['descricao'] }}</span></div>
+            @else
             <div class="alert alert-{{ $sit['cor'] === 'dark' ? 'secondary' : $sit['cor'] }} d-flex flex-wrap justify-content-between align-items-center gap-2 small">
                 <div><strong>{{ $sit['rotulo'] }}.</strong> {{ $sit['descricao'] }}</div>
                 @if(!$config)
@@ -38,6 +42,7 @@
                     <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-sm btn-dark fw-bold">Revisar e publicar</a>
                 @endif
             </div>
+            @endif
 
             <div class="d-flex flex-wrap gap-2 mb-3">
                 @foreach($contagem as $status => $total)

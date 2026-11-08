@@ -108,6 +108,16 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">RESPONSÁVEL / PALESTRANTE</label>
+                        <input type="text" name="responsavel" class="form-control" placeholder="Ex: Profa. Maria Silva" maxlength="255">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">LOCAL DA ATIVIDADE</label>
+                        <input type="text" name="local" class="form-control" placeholder="Ex: Auditório, Sala 3" maxlength="255">
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label small fw-bold text-secondary">TIPO</label>
                         <select name="tipo" class="form-select">
                             <option value="palestra">Palestra</option>
@@ -144,7 +154,12 @@
             <div class="glass-card p-0 overflow-hidden">
                 <div class="p-4 border-bottom bg-light d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold m-0">Programação Oficial</h5>
-                    <span class="badge bg-secondary">{{ $evento->atividades->count() }} Atividades</span>
+                    <div class="d-flex align-items-center gap-2">
+                        @if($evento->atividades->isNotEmpty())
+                            <a href="{{ route('admin.eventos.atividades.qrcodes', $evento->id) }}" class="btn btn-sm btn-outline-danger fw-bold"><i class="fa-solid fa-file-pdf"></i> PDF dos QR Codes</a>
+                        @endif
+                        <span class="badge bg-secondary">{{ $evento->atividades->count() }} Atividades</span>
+                    </div>
                 </div>
 
                 @if($evento->atividades->isEmpty())
@@ -186,6 +201,7 @@
                                     </div>
 
                                     <h6 class="fw-bold mb-2 text-dark fs-5">{{ $atividade->titulo }}</h6>
+                                    @if($atividade->responsavel || $atividade->local)<div class="small text-secondary mb-2 d-flex flex-wrap gap-3">@if($atividade->responsavel)<span><i class="fa-solid fa-user-tie me-1"></i> {{ $atividade->responsavel }}</span>@endif @if($atividade->local)<span><i class="fa-solid fa-location-dot me-1"></i> {{ $atividade->local }}</span>@endif</div>@endif
 
                                     <div class="d-flex align-items-center gap-3 text-secondary small">
                                         <span>

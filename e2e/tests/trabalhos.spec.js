@@ -135,6 +135,7 @@ test('máscara numérica descarta letras nos campos inteiros', async ({ page }) 
 });
 
 async function idDoEvento(page) {
+  if (process.env.E2E_EVENTO_ID) return process.env.E2E_EVENTO_ID;   // evento de teste (o ambiente local pode ter outros)
   await page.goto('/admin/eventos');
   const hrefs = await page.locator('a').evaluateAll((as) => as.map((a) => a.getAttribute('href') || ''));
   return hrefs.map((h) => h.match(/\/admin\/eventos\/(\d+)/)).find(Boolean)[1];
@@ -389,4 +390,61 @@ test('premiação: tela com categorias do evento, apuração pelo ranking e mode
   await page.getByText('Modelo do certificado de premiação').click();
   await expect(page.locator('textarea[name=cert_premio_corpo]')).toBeVisible();
   await page.screenshot({ path: 'test-results/premiacao.png', fullPage: true });
+});
+
+test('credenciamento: check-in repetido não conta de novo (tela desatualizada) e a lista mostra o status de todos', async ({ page }) => {
+  await entrar(page, 'admin@teste.com', 'Admin@12345');
+  const id = await idDoEvento(page);
+  await page.goto(`/admin/eventos/${id}/credenciamento`);
+
+  const lerContador = async () => (await page.locator('text=Comparecimento').locator('..').innerText()).replace(/\s+/g, ' ');
+  const antes = await lerContador();
+  const feitosAntes = parseInt(antes.match(/(\d+)\s*\/\s*\d+/)[1], 10);
+
+  await page.fill('input[placeholder*="Digite o nome"]', 'Thiago');
+  const linha = page.locator('tbody tr', { hasText: 'Thiago Moura' }).first();
+  await expect(linha.getByText('Pendente')).toBeVisible();
+
+  // outro operador faz o check-in da mesma pessoa (a tela continua mostrando "pendente")
+  const resp = await page.evaluate(async (evento) => {
+    const token = document.documentElement.innerHTML.match(/X-CSRF-TOKEN': '([^']+)'/)[1];
+    const alvo = (await (await fetch(`/admin/eventos/${evento}/credenciamento/search?q=Thiago`, { headers: { Accept: 'application/json' } })).json())[0];
+    const r = await fetch(`/admin/eventos/${evento}/credenciamento/checkin/${alvo.participante_id}`, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, Accept: 'application/json' } });
+    return r.json();
+  }, id);
+  expect(resp.novo).toBe(true);
+
+  // clique na tela desatualizada: o servidor diz que já foi feito; o contador sobe só 1 (o do outro operador), nunca 2
+  await linha.getByRole('button', { name: 'Fazer check-in' }).click();
+  await expect(page.locator('.fb-toast.warning')).toContainText('já havia feito check-in');
+  await expect(linha.getByText('Check-in feito')).toBeVisible();
+  const depois = await lerContador();
+  expect(parseInt(depois.match(/(\d+)\s*\/\s*\d+/)[1], 10)).toBe(feitosAntes + 1);
+
+  // lista de todos os inscritos com o status
+  await page.getByRole('link', { name: /Lista de inscritos/ }).click();
+  await expect(page.getByRole('heading', { name: 'Lista de inscritos' })).toBeVisible();
+  await expect(page.locator('tbody tr', { hasText: 'Thiago Moura' }).getByText('Check-in feito')).toBeVisible();
+  await page.getByRole('button', { name: /Pendentes/ }).click();
+  await expect(page.locator('tbody tr', { hasText: 'Thiago Moura' })).toHaveCount(0);
+});
+
+test('papel Recepção: usuário comum vê o menu Recepção, faz check-in e não entra na administração', async ({ page }) => {
+  await entrar(page, 'recepcao@teste.com', 'Recepcao@12345');
+  await page.goto('/recepcao');
+  await expect(page.getByRole('heading', { name: /Recepção/ })).toBeVisible();
+  await expect(page.locator('aside, nav').getByRole('link', { name: 'Recepção' }).first()).toBeVisible();
+  await expect(page.getByText('Semana de Tecnologia').first()).toBeVisible();
+
+  await page.getByRole('link', { name: /Recepção \(check-in\)/ }).first().click();
+  await expect(page.getByRole('heading', { name: /Credenciamento/ })).toBeVisible();
+  await page.fill('input[placeholder*="Digite o nome"]', 'Ana');
+  await expect(page.locator('tbody tr').first()).toBeVisible();
+
+  await page.getByRole('link', { name: /Lista de inscritos/ }).click();
+  await expect(page.getByRole('heading', { name: 'Lista de inscritos' })).toBeVisible();
+
+  // administração geral: redirecionada
+  await page.goto('/admin/dashboard');
+  await expect(page).not.toHaveURL(/\/admin\/dashboard/);
 });

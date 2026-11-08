@@ -68,6 +68,12 @@
                     <a href="{{ route('frequencia.acesso', [$atividade->token_frequencia, 'entrar']) }}" class="btn btn-success-custom w-100 mb-2 text-center text-decoration-none d-block"><i class="fa-solid fa-right-to-bracket me-1"></i> Já tenho conta — Entrar</a>
                     <a href="{{ route('frequencia.acesso', [$atividade->token_frequencia, 'cadastrar']) }}" class="btn btn-outline-success w-100 fw-bold py-2"><i class="fa-solid fa-user-plus me-1"></i> Criar minha conta</a>
                 </div>
+            @elseif($frequenciaExistente)
+                <div class="text-center">
+                    <div class="mb-3"><i class="fa-solid fa-circle-check fs-1 text-success"></i></div>
+                    <h6 class="fw-bold text-success">Presença já registrada</h6>
+                    <p class="small text-muted mb-0">Você já registrou presença nesta atividade em {{ $frequenciaExistente->data_registro?->format('d/m/Y \à\s H:i') }}. Não é necessário preencher novamente.</p>
+                </div>
             @else
             <form id="formPresenca" action="{{ route('frequencia.store', $atividade->token_frequencia) }}" method="POST">
                 @csrf

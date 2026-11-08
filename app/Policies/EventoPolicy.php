@@ -11,6 +11,7 @@ use App\Models\User;
  * - gerenciar:       administrador dono do evento ou co-administrador (pivô evento_user, role "editor")
  * - gerirTrabalhos:  quem gerencia o evento OU é gestor de trabalhos do evento
  * - avaliar:         avaliador designado ao evento
+ * - credenciar:      quem gerencia o evento OU é da recepção do evento (check-in, credenciamento, lista de inscritos)
  */
 class EventoPolicy
 {
@@ -28,6 +29,13 @@ class EventoPolicy
     {
         return $this->gerenciar($user, $evento)
             || $user->papelNoEvento($evento, [Evento::PAPEL_GESTOR_TRABALHOS]);
+    }
+
+    /** A recepção só faz check-in/credenciamento do(s) evento(s) a que foi designada; não acessa o restante da administração. */
+    public function credenciar(User $user, Evento $evento): bool
+    {
+        return $this->gerenciar($user, $evento)
+            || $user->papelNoEvento($evento, [Evento::PAPEL_RECEPCAO]);
     }
 
     public function avaliar(User $user, Evento $evento): bool

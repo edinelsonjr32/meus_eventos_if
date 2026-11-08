@@ -203,6 +203,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Credenciamento / recepção (check-in): administrador do evento OU usuário com o papel "Recepção" no evento.
+| Mantém as URLs /admin/eventos/{evento}/credenciamento/* e os nomes admin.*; a autorização é a Policy "credenciar".
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    // --- Credenciamento (Modo Quiosque) ---
+    Route::prefix('eventos/{evento}/credenciamento')->name('eventos.credenciamento.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'index'])->name('index');
+        Route::get('/search', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'search'])->name('search');
+        Route::get('/stats', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'stats'])->name('stats');
+        Route::get('/lista', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'lista'])->name('lista');
+        Route::get('/lista/exportar', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'exportarLista'])->name('lista.exportar');
+        Route::post('/store', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'store'])->name('store');
+
+        // Ações
+        Route::post('/checkin/{participante}', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'checkin'])->name('checkin');
+        Route::get('/etiqueta/{participante}', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'etiqueta'])->name('etiqueta');
+
+        // NOVIDADES (Substitui o Modal)
+        Route::get('/cadastrar', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'create'])->name('create');
+        Route::post('/cadastrar', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'storeManual'])->name('storeManual');
+    });
+});
+
+Route::middleware(['auth', 'verified'])->get('/recepcao', [\App\Http\Controllers\RecepcaoController::class, 'index'])->name('recepcao.index');
+
+/*
+|--------------------------------------------------------------------------
 | Rotas Administrativas (Apenas Role 'admin')
 |--------------------------------------------------------------------------
 */
@@ -230,6 +258,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Gestão de Atividades (Aninhada em Eventos)
     // Ex: admin.eventos.atividades.store
+    Route::get('eventos/{evento}/atividades/qrcodes/pdf', [AtividadeController::class, 'qrcodesPdf'])->name('eventos.atividades.qrcodes');
     Route::resource('eventos.atividades', AtividadeController::class)->shallow();
 
     // --- Gestão de Participantes (Lista de Presença) ---
@@ -261,21 +290,6 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('eventos/{evento}/equipe', [EquipeController::class, 'index'])->name('eventos.equipe.index');
     Route::post('eventos/{evento}/equipe', [EquipeController::class, 'store'])->name('eventos.equipe.store');
     Route::delete('equipe/{equipe}', [EquipeController::class, 'destroy'])->name('equipe.destroy');
-
-    // --- Credenciamento (Modo Quiosque) ---
-    Route::prefix('eventos/{evento}/credenciamento')->name('eventos.credenciamento.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'index'])->name('index');
-        Route::get('/search', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'search'])->name('search');
-        Route::post('/store', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'store'])->name('store');
-
-        // Ações
-        Route::post('/checkin/{participante}', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'checkin'])->name('checkin');
-        Route::get('/etiqueta/{participante}', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'etiqueta'])->name('etiqueta');
-
-        // NOVIDADES (Substitui o Modal)
-        Route::get('/cadastrar', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'create'])->name('create');
-        Route::post('/cadastrar', [\App\Http\Controllers\Admin\CredenciamentoController::class, 'storeManual'])->name('storeManual');
-    });
 
     // --- Papéis por evento (co-administrador, gestor de trabalhos, avaliador) ---
     Route::get('eventos/{evento}/papeis', [\App\Http\Controllers\Admin\EventoPapelController::class, 'index'])->name('eventos.papeis.index');

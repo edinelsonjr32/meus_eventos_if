@@ -13,7 +13,10 @@ docker compose exec -T laravel.test php artisan tinker --execute="require base_p
 docker compose exec -T laravel.test php artisan tinker --execute="App\\Models\\Equipe::whereHas('participante', fn(\$q) => \$q->where('nome_completo', 'Thiago Moura'))->delete();" >/dev/null
 
 echo "› Rodando Playwright…"
+EVENTO_ID=$(docker compose exec -T laravel.test php artisan tinker --execute='echo App\Models\Evento::where("slug","semana-de-tecnologia-2026")->value("id");' | tail -1 | tr -dc 0-9)
+
 docker run --rm --ipc=host \
+  -e E2E_EVENTO_ID="$EVENTO_ID" \
   -e E2E_URL="${E2E_URL:-http://host.docker.internal:8080}" \
   -v "$PWD/e2e:/work" -w /work \
   mcr.microsoft.com/playwright:v1.49.1-noble \

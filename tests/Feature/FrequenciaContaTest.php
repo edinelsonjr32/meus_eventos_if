@@ -51,8 +51,9 @@ it('registra a presença usando o participante da conta (CPF, nome e e-mail da c
         ->and(Inscricao::where('evento_id', $this->evento->id)->where('participante_id', $p->id)->exists())->toBeTrue()
         ->and($p->fresh()->cpf)->toBe('111.444.777-35')->and($p->fresh()->email)->toBe('conta@x.com');
 
-    // escanear de novo não duplica
-    $this->post($this->url, ['tipo_vinculo' => 'externo'], ['Accept' => 'application/json'])->assertOk();
+    // quem já registrou não preenche de novo: a tela avisa e o envio é recusado (sem duplicar)
+    $this->actingAs($user)->get(route('frequencia.form', 'QR-TESTE'))->assertOk()->assertSee('Presença já registrada')->assertDontSee('id="formPresenca"', false);
+    $this->post($this->url, ['tipo_vinculo' => 'externo'], ['Accept' => 'application/json'])->assertStatus(409)->assertJsonPath('message', 'Você já registrou presença nesta atividade.');
     expect(Frequencia::count())->toBe(1)->and(Inscricao::count())->toBe(1);
 });
 
@@ -81,4 +82,15 @@ it('mantém a validação de localização quando o evento tem coordenadas', fun
     $this->post($this->url, ['tipo_vinculo' => 'externo', 'user_lat' => '10', 'user_lng' => '10'], ['Accept' => 'application/json'])->assertStatus(403); // longe
     $this->post($this->url, ['tipo_vinculo' => 'externo', 'user_lat' => '-1.9183', 'user_lng' => '-55.5186'], ['Accept' => 'application/json'])->assertOk();
     expect(Frequencia::count())->toBe(1);
+});
+
+it('gera o PDF dos QR Codes de frequência com uma página por atividade', function () {
+    $admin = $this->dono;
+    $this->atividade->update(['responsavel' => 'Profa. Teste', 'local' => 'Auditório']);
+
+    $resp = $this->actingAs($admin)->get(route('admin.eventos.atividades.qrcodes', $this->evento->id));
+    $resp->assertOk();
+    expect($resp->headers->get('content-type'))->toContain('pdf');
+
+    $this->actingAs(mkUser('user', 'comum-qr@x.com'))->get(route('admin.eventos.atividades.qrcodes', $this->evento->id))->assertRedirect();
 });
