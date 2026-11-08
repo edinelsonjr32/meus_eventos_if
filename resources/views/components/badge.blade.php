@@ -45,10 +45,14 @@
             'aberta' => ['verde-forte', 'fa-door-open', 'Chamada aberta'], 'em_breve' => ['ambar', 'fa-clock', 'Em breve'],
             'encerrada' => ['ardosia', 'fa-lock', 'Encerrada'], 'rascunho' => ['cinza', 'fa-pencil', 'Rascunho'], 'nao_criada' => ['cinza', 'fa-circle-plus', 'Não criada'],
         ],
+        'premio' => [
+            '1' => ['dourado', 'fa-trophy', 'Premiado · 1º lugar'], '2' => ['cinza', 'fa-medal', 'Premiado · 2º lugar'], '3' => ['laranja', 'fa-medal', 'Premiado · 3º lugar'],
+        ],
         'pendencia' => [
             'vincular_apresentador' => ['ambar', 'fa-user-tag', 'Aguardando vincular apresentador'],
             'vincular_sessao' => ['ciano', 'fa-calendar-plus', 'Aguardando definir sessão'],
             'atribuir_avaliadores' => ['indigo', 'fa-user-plus', 'Aguardando avaliadores'],
+            'encaminhar_avaliacao' => ['azul', 'fa-share', 'Aguardando encaminhar para avaliação'],
             'aguardando_decisao' => ['roxo', 'fa-gavel', 'Aguardando decisão da gestão'],
             'aguardando_reenvio_aprovacao' => ['rosa', 'fa-rotate', 'Aguardando aprovação do reenvio'],
             'aguardando_autor' => ['laranja', 'fa-user-pen', 'Aguardando ajustes do autor'],

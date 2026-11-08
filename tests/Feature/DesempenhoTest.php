@@ -95,6 +95,7 @@ it('as telas principais não fazem consultas repetidas conforme os dados crescem
 })->with([
     'fila da gestão' => ['fila da gestão', fn ($c) => $c->actingAs($c->gestor)->get(route('gestao.trabalhos.index', $c->evento))],
     'fila com filtros' => ['fila filtrada', fn ($c) => $c->actingAs($c->gestor)->get(route('gestao.trabalhos.index', [$c->evento, 'q' => 'carga', 'tipo' => 'pesquisa']))],
+    'premiação' => ['premiação', fn ($c) => $c->actingAs($c->gestor)->get(route('gestao.trabalhos.premiacao.index', $c->evento))],
     'ranking' => ['ranking', fn ($c) => $c->actingAs($c->gestor)->get(route('gestao.trabalhos.ranking', $c->evento))],
     'apresentações e certificados' => ['certificados', fn ($c) => $c->actingAs($c->gestor)->get(route('gestao.trabalhos.certificados.index', $c->evento))],
     'montagem dos Anais' => ['anais gestão', fn ($c) => $c->actingAs($c->gestor)->get(route('gestao.trabalhos.anais.edit', $c->evento))],

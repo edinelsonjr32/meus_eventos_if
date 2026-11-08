@@ -13,6 +13,7 @@
                     <a href="{{ route('gestao.trabalhos.anais.edit', $evento) }}" class="btn btn-tone-indigo"><i class="fa-solid fa-book"></i> Anais</a>
                     <a href="{{ route('gestao.trabalhos.apresentacoes.index', $evento) }}" class="btn btn-outline-primary"><i class="fa-solid fa-person-chalkboard"></i> Apresentações</a>
                     <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-tone-amber"><i class="fa-solid fa-ranking-star"></i> Notas e ranking</a>
+                    <a href="{{ route('gestao.trabalhos.premiacao.index', $evento) }}" class="btn btn-warning fw-bold"><i class="fa-solid fa-trophy"></i> Premiação</a>
                     <a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}" class="btn btn-tone-purple"><i class="fa-solid fa-award"></i> Certificados</a>
                     <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-tone-slate"><i class="fa-solid fa-sliders"></i> {{ $config ? 'Editar chamada' : 'Criar chamada' }}</a>
                     @if($config)

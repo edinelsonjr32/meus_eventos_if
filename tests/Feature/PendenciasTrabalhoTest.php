@@ -114,3 +114,41 @@ it('o painel mostra as pendências e permite vincular um autor como apresentador
     $this->post(route('gestao.trabalhos.apresentador', $t), ['autor_id' => $outro->autores->first()->id])->assertSessionHas('error');
     $this->actingAs($this->autor)->post(route('gestao.trabalhos.apresentador', $t), ['autor_id' => $caio->id])->assertForbidden();
 });
+
+it('avaliador atribuído na triagem vê "Aguardando liberação" até a gestão encaminhar; depois aparece em aberto', function () {
+    $av = mkUser('user', 'av@x.com'); $av2 = mkUser('user', 'av2@x.com');
+    mkPapel($av, $this->evento, 'avaliador'); mkPapel($av2, $this->evento, 'avaliador');
+    $w = app(\App\Services\TrabalhoWorkflow::class);
+    $t = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Na triagem'], 'em_triagem');
+    $w->atribuirAvaliador($t, $av, $this->gestor);
+
+    // abaixo do mínimo: pendência é "avaliadores"; com o mínimo, passa a "encaminhar"
+    expect(pend($this, $t))->toBe(['atribuir_avaliadores']);
+    $w->atribuirAvaliador($t, $av2, $this->gestor);
+    expect(pend($this, $t))->toBe(['encaminhar_avaliacao']);
+
+    $this->actingAs($av)->get(route('avaliador.avaliacoes.index'))->assertOk()
+        ->assertSee('Aguardando liberação pela gestão (1)')->assertSee($t->codigo)->assertSee('Nenhuma avaliação pendente')->assertSee('Em aberto (0)');
+
+    $w->transicionar($t->fresh(), $this->gestor, 'em_avaliacao');
+    $this->get(route('avaliador.avaliacoes.index'))->assertOk()->assertSee('Em aberto (1)')->assertDontSee('Aguardando liberação pela gestão');
+
+    // a fila da gestão mostra a tag e o filtro encontra
+    $t2 = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Outro'], 'em_triagem');
+    $w->atribuirAvaliador($t2, $av, $this->gestor); $w->atribuirAvaliador($t2, $av2, $this->gestor);
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.index', [$this->evento, 'pendencia' => 'encaminhar_avaliacao']))->assertOk()
+        ->assertSee('Aguardando encaminhar para avaliação')->assertSee($t2->codigo)->assertDontSee($t->codigo);
+});
+
+it('avaliação de apresentação atribuída com o recurso desativado aparece como "ainda indisponível"', function () {
+    \App\Models\CriterioApresentacao::create(['evento_id' => $this->evento->id, 'nome' => 'D', 'peso' => 1, 'nota_max' => 10, 'ordem' => 0]);
+    $this->evento->trabalhoConfig->update(['avaliacao_apresentacao_ativa' => true]);
+    $av = mkUser('user', 'avp@x.com'); mkPapel($av, $this->evento, 'avaliador');
+    $t = aprovadoComApresentador($this, null, 'Apresentação');
+    app(\App\Services\AvaliacaoApresentacaoService::class)->atribuir($t, $av, $this->gestor);
+
+    $this->actingAs($av)->get(route('avaliador.apresentacoes.index'))->assertOk()->assertSee('Em aberto (1)')->assertDontSee('ainda indisponíveis');
+
+    $this->evento->trabalhoConfig->update(['avaliacao_apresentacao_ativa' => false]);
+    $this->get(route('avaliador.apresentacoes.index'))->assertOk()->assertSee('Em aberto (0)')->assertSee('Atribuídas, ainda indisponíveis (1)')->assertSee($t->codigo);
+});

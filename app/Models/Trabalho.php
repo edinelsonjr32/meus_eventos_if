@@ -102,6 +102,11 @@ class Trabalho extends Model
         return $this->belongsTo(Atividade::class, 'atividade_id');
     }
 
+    public function premiacao(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Premiacao::class);
+    }
+
     public function certificados(): HasMany
     {
         return $this->hasMany(CertificadoTrabalho::class);

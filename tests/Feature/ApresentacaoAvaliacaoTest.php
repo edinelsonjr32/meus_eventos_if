@@ -279,7 +279,7 @@ it('REGRA: a situação aparece tipificada para gestão e autor', function () {
 
     $this->trabalho->update(['resultado_apresentacao' => 'aprovado']);
     $this->actingAs($this->autor)->get(route('trabalhos.show', $this->trabalho))->assertSee('Aprovado (parte escrita e apresentação)');
-    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.ranking', $this->evento))->assertOk()->assertDontSee('Aprovado na parte escrita');
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.ranking', $this->evento))->assertOk()->assertDontSee('title="Aprovado na parte escrita"', false);   // (o texto também existe no filtro de situação)
 });
 
 it('REGRA: o complemento do selo não diz "aguardando apresentação" quando ela já aconteceu', function () {

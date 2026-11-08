@@ -207,21 +207,27 @@ class TrabalhoWorkflow
         $principal = collect($autores)->contains(fn ($a) => !empty($a['correspondente']));
 
         foreach (array_values($autores) as $i => $a) {
-            // Apenas vincula (nunca altera) um participante já existente com o mesmo CPF (quando informado)
-            $participante = !empty($a['cpf']) ? Participante::where('cpf', $a['cpf'])->first() : null;
+            $atual = $casados[$i] ? $existentes[$casados[$i]] : null;
+            $preservar = fn (string $k) => array_key_exists($k, $a) ? ($a[$k] !== '' ? $a[$k] : null) : $atual?->{$k};
 
+            // Apenas vincula (nunca altera) um participante já existente com o mesmo CPF (quando informado)
+            $cpf = $preservar('cpf');
+            $participante = !empty($cpf) ? Participante::where('cpf', $cpf)->first() : null;
+
+            // Campos que o formulário do autor NÃO envia (CPF dos demais autores, telefone, vínculo, titulação, Lattes, ORCID)
+            // são preservados: editar o trabalho nunca apaga o que veio de outro lugar. Se vierem (mesmo vazios), valem.
             $campos = [
                 'ordem' => $i + 1,
                 'participante_id' => $participante?->id,
                 'nome_completo' => $a['nome_completo'],
-                'cpf' => $a['cpf'] ?? null,
-                'email' => $a['email'] ?? null,
-                'telefone' => $a['telefone'] ?? null,
+                'cpf' => $cpf,
+                'email' => $preservar('email'),
+                'telefone' => $preservar('telefone'),
                 'instituicao' => $a['instituicao'] ?? null,
-                'vinculo' => $a['vinculo'] ?? null,
-                'titulacao' => $a['titulacao'] ?? null,
-                'lattes' => $a['lattes'] ?? null,
-                'orcid' => $a['orcid'] ?? null,
+                'vinculo' => $preservar('vinculo'),
+                'titulacao' => $preservar('titulacao'),
+                'lattes' => $preservar('lattes'),
+                'orcid' => $preservar('orcid'),
                 'tipo_autor' => $a['tipo_autor'],
                 'categoria_autor' => $a['categoria_autor'] ?? null,
                 'apresentador' => (bool) ($a['apresentador'] ?? false),

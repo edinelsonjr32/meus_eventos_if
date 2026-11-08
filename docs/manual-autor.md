@@ -11,6 +11,8 @@ Para se inscrever é preciso ter **conta**: na página do evento escolha **Entra
 - Para o **apresentador**: e-mail, CPF (usado no certificado) e se é docente ou discente. Demais autores: nome e instituição.
 
 ## 2. Submeter
+> A caixa **Autorizo a publicação do trabalho nos Anais, caso seja aprovado** já vem marcada: desmarque se não quiser publicar. Dá para mudar depois na página do trabalho.
+
 1. Menu **Meus Trabalhos** → na lista de eventos com chamada aberta, clique em **Submeter trabalho**.
 2. Preencha as quatro etapas: *Trabalho*, *Autores*, *Arquivo* e *Declarações*.
 3. **Salvar rascunho** guarda sem enviar (rascunhos parados por muito tempo são apagados — veja `/privacidade`). **Enviar trabalho** conclui; depois disso não dá para editar, a não ser que o gestor devolva.
@@ -41,6 +43,9 @@ Trabalho aprovado é apresentado na sessão indicada pela organização (ex.: *F
 
 ## 4.3 Autorizar a publicação nos Anais
 Mesmo depois de aprovado, você pode autorizar (ou revogar) a publicação do trabalho nos Anais na página do trabalho, botão **Autorizar publicação**. Sem a autorização o trabalho concluído não aparece nos Anais. São publicados título, resumo, nome e instituição dos autores e o PDF; nunca CPF ou e-mail.
+
+## 4.4 Premiação
+Se o seu trabalho for premiado (1º a 3º lugar na categoria), o selo e o **certificado de premiação** aparecem na página do trabalho **somente depois que a organização divulgar a premiação**.
 
 ## 5. Certificado e Anais
 - Após apresentar (confirmado pela organização ou pela sua presença na sessão), o certificado fica disponível em **Meus Trabalhos**; cada autor recebe o seu.

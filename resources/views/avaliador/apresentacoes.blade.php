@@ -22,6 +22,14 @@
                 <div class="glass-card bg-white text-center text-muted py-4 mb-4">Nenhuma apresentação pendente.</div>
             @endforelse
 
+            @if($aguardando->isNotEmpty())
+                <h6 class="fw-bold mt-4 mb-2" style="color:#1d4ed8;"><i class="fa-solid fa-hourglass-half me-1"></i> Atribuídas, ainda indisponíveis ({{ $aguardando->count() }})</h6>
+                <p class="small text-muted">A gestão ainda não ativou a avaliação das apresentações neste evento; assim que ativar, estes trabalhos aparecem em "Em aberto".</p>
+                @foreach($aguardando as $a)
+                    <div class="glass-card bg-white mb-2"><div class="fw-bold">{{ $a->trabalho->codigo }} <span class="text-muted fw-normal">· {{ $a->trabalho->evento->titulo }}</span></div></div>
+                @endforeach
+            @endif
+
             <h6 class="fw-bold text-success mt-4 mb-3">Concluídas ({{ $concluidas->count() }})</h6>
             @forelse($concluidas as $a)
                 <div class="glass-card bg-white mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">

@@ -134,3 +134,37 @@ it('o selo dos Anais tem cor e ícone próprios, distintos dos de status do trab
         expect([$p[1], $p[2]])->not->toBe([$o[1], $o[2]]);
     }
 });
+
+// ---------- Autorização pré-marcada no cadastro do trabalho ----------
+it('no cadastro do trabalho a autorização de publicação nos Anais já vem marcada (caso aprovado)', function () {
+    $html = $this->actingAs($this->autor)->get(route('trabalhos.create', 'conclusao'))->assertOk()->getContent();
+
+    expect($html)->toMatch('/<input class="form-check-input" type="checkbox" name="autoriza_publicacao" value="1" id="d3"\s+checked/')
+        ->and($html)->toContain('caso seja aprovado');
+});
+
+it('a opção marcada por padrão é gravada; desmarcar grava como não autorizado', function () {
+    $this->evento->trabalhoConfig->update(['exige_resumo' => false, 'exige_palavras_chave' => false]);
+    $base = ['acao' => 'rascunho', 'titulo' => 'Com autorização padrão', 'tipo_trabalho' => 'pesquisa', 'modalidade_apresentacao' => 'poster',
+        'autores' => [['nome_completo' => 'Autor', 'tipo_autor' => 'autor_principal', 'apresentador' => 1]]];
+
+    $this->actingAs($this->autor)->post(route('trabalhos.store', 'conclusao'), $base + ['autoriza_publicacao' => 1]);
+    $this->post(route('trabalhos.store', 'conclusao'), array_merge($base, ['titulo' => 'Sem autorização', 'autoriza_publicacao' => 0]));
+
+    expect(\App\Models\Trabalho::where('titulo', 'Com autorização padrão')->first()->autoriza_publicacao)->toBeTrue()
+        ->and(\App\Models\Trabalho::where('titulo', 'Sem autorização')->first()->autoriza_publicacao)->toBeFalse();
+});
+
+it('na edição vale o que está salvo (não volta a marcar sozinho); na gestão cadastrando por outra pessoa não vem marcado', function () {
+    $t = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Não autorizado', 'autoriza_publicacao' => false], 'rascunho');
+    $html = $this->actingAs($this->autor)->get(route('trabalhos.edit', $t))->assertOk()->getContent();
+    expect($html)->not->toMatch('/name="autoriza_publicacao" value="1" id="d3"\s+checked/');
+
+    $t->update(['autoriza_publicacao' => true]);
+    expect($this->get(route('trabalhos.edit', $t))->getContent())->toMatch('/name="autoriza_publicacao" value="1" id="d3"\s+checked/');
+
+    // consentimento é do autor: a gestão cadastrando em nome dele começa desmarcado
+    $gestor = mkUser();
+    mkPapel($gestor, $this->evento, 'gestor_trabalhos');
+    expect($this->actingAs($gestor)->get(route('gestao.trabalhos.novo', $this->evento))->assertOk()->getContent())->not->toMatch('/name="autoriza_publicacao" value="1" id="d3"\s+checked/');
+});

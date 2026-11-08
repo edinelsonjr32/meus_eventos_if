@@ -23,7 +23,11 @@ Use filtros (status, categoria, busca) e **ações em lote**: *Atribuir avaliado
 4. **Decisão**: aprovado, aprovado com ressalvas (abre prazo de correção) ou reprovado, com justificativa.
 5. Com ressalvas: o autor reenvia e o trabalho fica **Resubmetido**: use o botão verde **Aprovar trabalho** (no painel do trabalho ou direto na fila) para aprovar de uma vez, ou **Reavaliar** (nova rodada) / **Reprovar** na decisão final; use **Reavaliar** (nova rodada) ou aprove direto. **Prorrogar correção** se necessário.
 
+## 3.9 Premiação (1º, 2º e 3º por categoria)
+**Gestão de trabalhos → Premiação.** Há uma lista por **categoria** (os tipos de trabalho aceitos na chamada). Concorrem trabalhos **aprovados nas duas partes** (texto + apresentação) com nota geral. *Apurar pelo ranking* preenche os três primeiros de cada categoria; em empate vale a nota do texto, depois a da apresentação e o protocolo, e você pode **trocar manualmente** qualquer colocação. Ao *Salvar premiação e gerar certificados*, o certificado de cada autor premiado já pode ser **impresso** (um, por colocação, por categoria ou todos, em PDF com uma página por certificado). **O autor não vê o certificado em seu perfil** até você clicar em **Divulgar aos autores** (dá para *Ocultar* de novo). O texto do certificado é editável em *Modelo do certificado de premiação*.
+
 ## 4. Notas e relatórios
+- **Tela Notas e ranking:** abas por categoria, resumo (média, maior pontuação, divergências, pendentes) que acompanha os filtros, busca, filtros por área e situação, atalhos (só com nota, divergência alta, avaliação pendente, premiados), **Top 3/Top 10**, ordenação clicando nos cabeçalhos, detalhe da linha (média por critério e nota de cada avaliador, com selo de desempate), medalhas 1º–3º e **CSV do que está na tela**. A posição (#) vale só para trabalhos aprovados nas duas partes; os demais ficam *provisórios*.
 - **Ranking**: média por trabalho, por categoria. **Exportar notas** (xlsx/csv) por relatório: ranking, notas por critério, pareceres.
 - **Exportar** lista completa (CSV recomendado em eventos muito grandes).
 - Pareceres/identidade dos avaliadores nunca vão ao público.

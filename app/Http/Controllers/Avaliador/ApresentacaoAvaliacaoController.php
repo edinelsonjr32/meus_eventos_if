@@ -23,7 +23,11 @@ class ApresentacaoAvaliacaoController extends Controller
             ->get()
             ->sortBy(fn ($a) => $a->trabalho->sessao?->data_inicio?->timestamp ?? PHP_INT_MAX);
 
+        // Atribuídas, mas ainda indisponíveis (avaliação das apresentações desativada no evento)
+        $aguardando = $todas->filter(fn ($a) => $a->aberta() && !$this->servico->editavel($a));
+
         return view('avaliador.apresentacoes', [
+            'aguardando' => $aguardando,
             'abertas' => $todas->filter(fn ($a) => $a->aberta() && $this->servico->editavel($a)),
             'concluidas' => $todas->filter(fn ($a) => $a->status === 'concluida'),
         ]);

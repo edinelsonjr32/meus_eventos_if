@@ -19,6 +19,7 @@ class PendenciasTrabalho
         'vincular_apresentador' => 'Aguardando vincular apresentador',
         'vincular_sessao' => 'Aguardando definir sessão',
         'atribuir_avaliadores' => 'Aguardando avaliadores',
+        'encaminhar_avaliacao' => 'Aguardando encaminhar para avaliação',
         'aguardando_decisao' => 'Aguardando decisão da gestão',
         'aguardando_reenvio_aprovacao' => 'Aguardando aprovação do reenvio',
         'aguardando_autor' => 'Aguardando ajustes do autor',
@@ -54,9 +55,8 @@ class PendenciasTrabalho
         switch ($t->status) {
             case 'em_triagem':
                 $minimo = max(1, (int) ($cfg?->avaliadores_por_trabalho ?? 2));
-                if ($t->avaliacoes->where('status', '!=', 'recusada')->count() < $minimo) {
-                    $pend[] = 'atribuir_avaliadores';
-                }
+                // Com o mínimo de avaliadores atribuído, falta encaminhar: só então eles enxergam o trabalho na área deles
+                $pend[] = $t->avaliacoes->where('status', '!=', 'recusada')->count() < $minimo ? 'atribuir_avaliadores' : 'encaminhar_avaliacao';
                 break;
             case 'avaliado':
                 $pend[] = 'aguardando_decisao';

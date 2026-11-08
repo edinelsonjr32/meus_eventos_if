@@ -32,7 +32,14 @@ class AvaliacaoController extends Controller
             // só a rodada vigente de cada trabalho
             ->filter(fn ($a) => $a->rodada === $a->trabalho->rodadaAtual());
 
+        // Atribuições feitas na triagem: o avaliador só as vê depois que a gestão encaminha o trabalho para avaliação
+        $aguardando = TrabalhoAvaliacao::with(['trabalho.evento'])
+            ->where('avaliador_id', $request->user()->id)->where('status', 'pendente')
+            ->whereHas('trabalho', fn ($q) => $q->whereIn('status', ['submetido', 'em_triagem', 'resubmetido']))
+            ->latest('id')->get();
+
         return view('avaliador.index', [
+            'aguardando' => $aguardando,
             'abertas' => $avaliacoes->filter(fn ($a) => in_array($a->status, ['pendente', 'em_andamento']) && $a->trabalho->status === 'em_avaliacao'),
             'concluidas' => $avaliacoes->filter(fn ($a) => $a->status === 'concluida'),
         ]);

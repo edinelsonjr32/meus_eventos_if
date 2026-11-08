@@ -82,6 +82,14 @@ class RelatorioNotas
                 'rodada' => $rodada,
                 'nota_apresentacao' => $t->nota_apresentacao,
                 'nota_geral' => $t->notaGeral(),
+                // Pontuação do ranking por categoria/premiação: nota geral (texto + apresentação) ou, sem ela, a do texto
+                'pontuacao' => $t->notaGeral() ?? ($notas->isEmpty() ? null : round($notas->avg(), 2)),
+                // Só concorre à colocação/premiação quem está aprovado nas duas partes e tem a nota geral completa
+                'elegivel_premio' => $t->aprovadoCompleto() && $t->nota_final !== null && (!($t->evento->trabalhoConfig?->avaliacao_apresentacao_ativa) || $t->nota_apresentacao !== null),
+                'posicao_categoria' => null,
+                'avaliacoes_detalhe' => $concluidas->map(fn ($a) => [
+                    'avaliador' => $a->avaliador->name ?? '—', 'nota' => $a->nota_final, 'recomendacao' => $a->recomendacaoRotulo(), 'desempate' => (bool) $a->desempate,
+                ])->values()->all(),
             ];
         })
             ->sortBy([
@@ -103,6 +111,20 @@ class RelatorioNotas
                 $anterior = $linha['nota'];
             }
             $lista[$i]['posicao'] = $posicao;
+        }
+
+        // Posição dentro da categoria entre os ELEGÍVEIS, pela pontuação (empates dividem o lugar: 1, 2, 2, 4...)
+        foreach (collect($lista)->groupBy(fn ($l) => $l['trabalho']->tipo_trabalho, true) as $grupo) {
+            $ord = $grupo->filter(fn ($l) => $l['pontuacao'] !== null && $l['elegivel_premio'])->sortByDesc('pontuacao')->keys()->all();
+            $pos = 0;
+            $ant = null;
+            foreach ($ord as $n => $chave) {
+                if ($lista[$chave]['pontuacao'] !== $ant) {
+                    $pos = $n + 1;
+                    $ant = $lista[$chave]['pontuacao'];
+                }
+                $lista[$chave]['posicao_categoria'] = $pos;
+            }
         }
 
         return collect($lista);

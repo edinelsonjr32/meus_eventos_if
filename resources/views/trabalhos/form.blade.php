@@ -145,7 +145,15 @@
 
                     <div class="mb-3">
                         <label class="small fw-bold text-secondary d-block">Categoria do Trabalho *</label>
-                        @foreach($categorias as $valor => $rotulo)
+                        @php
+                            // A categoria já gravada continua disponível mesmo se a chamada deixou de aceitá-la (editar não força trocar)
+                            $categoriasForm = $categorias;
+                            $salva = $trabalho->tipo_trabalho;
+                            if ($salva && !isset($categoriasForm[$salva]) && isset(\App\Models\TrabalhoConfig::TIPOS[$salva])) {
+                                $categoriasForm[$salva] = \App\Models\TrabalhoConfig::TIPOS[$salva] . ' (categoria que não é mais aceita nesta chamada)';
+                            }
+                        @endphp
+                        @foreach($categoriasForm as $valor => $rotulo)
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="tipo_trabalho" id="cat_{{ $valor }}" value="{{ $valor }}" @checked(old('tipo_trabalho', $trabalho->tipo_trabalho) === $valor) x-model="tipo">
                                 <label class="form-check-label" for="cat_{{ $valor }}">{{ $rotulo }}</label>
@@ -230,8 +238,10 @@
 
                     <input type="hidden" name="autores[0][id]" value="{{ $autores[0]['id'] ?? '' }}">
                     <input type="hidden" name="autores[0][tipo_autor]" value="autor_principal">
-                    <input type="hidden" name="autores[0][apresentador]" value="1">
-                    <input type="hidden" name="autores[0][correspondente]" value="1">
+                    {{-- Trabalho novo: o primeiro autor é apresentador e correspondente. Trabalho já salvo: mantém o que está gravado
+                         (a gestão pode ter definido outro apresentador/correspondente; editar não pode desfazer isso em silêncio). --}}
+                    <input type="hidden" name="autores[0][apresentador]" value="{{ $trabalho->exists ? (int) ($autores[0]['apresentador'] ?? 0) : 1 }}">
+                    <input type="hidden" name="autores[0][correspondente]" value="{{ $trabalho->exists ? (int) ($autores[0]['correspondente'] ?? 0) : 1 }}">
 
                     <div class="row g-3">
                         <div class="col-md-8">
@@ -385,8 +395,8 @@
                     @endunless
                     <div class="form-check">
                         <input type="hidden" name="autoriza_publicacao" value="0">
-                        <input class="form-check-input" type="checkbox" name="autoriza_publicacao" value="1" id="d3" @checked(old('autoriza_publicacao', $trabalho->autoriza_publicacao))>
-                        <label class="form-check-label small" for="d3">Autorizo a publicação do trabalho nos Anais do evento (necessário para constar nos Anais, caso seja aprovado e apresentado).</label>
+                        <input class="form-check-input" type="checkbox" name="autoriza_publicacao" value="1" id="d3" @checked(old('autoriza_publicacao', $trabalho->exists ? $trabalho->autoriza_publicacao : !$modoGestao))>
+                        <label class="form-check-label small" for="d3">Autorizo a publicação do trabalho nos Anais do evento, <strong>caso seja aprovado</strong> (e apresentado). Já vem marcado: desmarque se não quiser publicar. Você pode mudar depois na página do trabalho.</label>
                     </div>
                     <div class="text-danger small mt-2" x-show="erros.declaracoes" x-text="erros.declaracoes"></div>
                     <div class="small text-muted mt-2"><i class="fa-solid fa-shield-halved me-1"></i> Seus dados pessoais são tratados conforme a <a href="{{ route('privacidade') }}" target="_blank">Política de Privacidade</a>. CPF e e-mail dos autores nunca são publicados.</div>

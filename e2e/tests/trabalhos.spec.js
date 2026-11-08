@@ -84,6 +84,15 @@ test('configuração da chamada: erros aparecem como alerta e por campo; salvar 
   await page.goto('/gestao/trabalhos');
   await page.getByRole('link', { name: 'Editar chamada' }).first().click();
 
+  // guarda o estado original para DEIXAR a configuração como estava (este teste não pode alterar o ambiente local)
+  const original = {
+    aval: await page.inputValue('input[name=avaliadores_por_trabalho]'),
+    min: await page.inputValue('input[name=resumo_min_palavras]'),
+    max: await page.inputValue('input[name=resumo_max_palavras]'),
+    url: await page.inputValue('input[name=template_url]'),
+    tipos: await page.locator('input[name="tipos_permitidos[]"]').evaluateAll((els) => els.map((e) => e.checked)),
+  };
+
   // campo obrigatório vazio + intervalo invertido + nenhuma categoria + link inválido
   await page.fill('input[name=avaliadores_por_trabalho]', '');
   await page.fill('input[name=resumo_min_palavras]', '500');
@@ -100,14 +109,19 @@ test('configuração da chamada: erros aparecem como alerta e por campo; salvar 
   await expect(page.locator('.fb-erro-campo', { hasText: 'ao menos uma categoria' })).toBeVisible();
   await expect(page).toHaveURL(/config$/); // nada foi enviado
 
-  // corrige e salva
-  await page.fill('input[name=avaliadores_por_trabalho]', '2');
-  await page.fill('input[name=resumo_min_palavras]', '100');
-  await page.fill('input[name=resumo_max_palavras]', '300');
-  await page.fill('input[name=template_url]', '');
-  await page.locator('input[name="tipos_permitidos[]"]').first().check();
+  // restaura exatamente os valores originais e salva
+  await page.fill('input[name=avaliadores_por_trabalho]', original.aval);
+  await page.fill('input[name=resumo_min_palavras]', original.min);
+  await page.fill('input[name=resumo_max_palavras]', original.max);
+  await page.fill('input[name=template_url]', original.url);
+  const caixas = page.locator('input[name="tipos_permitidos[]"]');
+  for (let i = 0; i < original.tipos.length; i++) { original.tipos[i] ? await caixas.nth(i).check() : await caixas.nth(i).uncheck(); }
   await page.locator('button[name=acao][value=salvar]').click();
   await expect(page.locator('.fb-toast.success, .alert-success').first()).toBeVisible();
+
+  // conferência: as categorias continuam as mesmas de antes
+  await page.goto(page.url());
+  expect(await page.locator('input[name="tipos_permitidos[]"]').evaluateAll((els) => els.map((e) => e.checked))).toEqual(original.tipos);
 });
 
 test('máscara numérica descarta letras nos campos inteiros', async ({ page }) => {
@@ -320,4 +334,59 @@ test('trabalho reenviado após correção: gestor aprova direto, com confirmaç�
   await expect(page.locator('.fb-toast.success, .alert-success').first()).toBeVisible();
   await page.goto(page.url().split('?')[0] + '?status=aprovado_escrita&q=reenviado');
   await expect(page.getByText('Aprovado na parte escrita').first()).toBeVisible();
+});
+
+test('notas e ranking: abas por categoria, busca, ordenação, chips, detalhes e limpar', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Trabalhos', exact: true }).first().click();
+  await page.getByRole('link', { name: 'Notas e ranking' }).click();
+
+  await expect(page.locator('.nav-pills a', { hasText: 'Todas' })).toBeVisible();
+  await expect(page.locator('.nav-pills a', { hasText: 'Pesquisa' })).toBeVisible();
+  const linhas = page.locator('#r-tabela tbody tr.r-linha');
+  const total = await linhas.count();
+  expect(total).toBeGreaterThan(3);
+  await expect(page.locator('#r-contagem')).toContainText(`${total} de ${total}`);
+
+  // busca por protocolo reduz a lista e atualiza o resumo
+  const codigo = await linhas.first().getAttribute('data-codigo');
+  await page.fill('#r-busca', codigo);
+  await expect(page.locator('#r-tabela tbody tr.r-linha:not(.d-none)')).toHaveCount(1);
+  await expect(page.locator('#r-qtd')).toHaveText('1');
+  await page.fill('#r-busca', 'xxxx-nao-existe');
+  await expect(page.locator('#r-vazio')).toBeVisible();
+  await page.click('#r-vazio-limpar');
+  await expect(page.locator('#r-tabela tbody tr.r-linha:not(.d-none)')).toHaveCount(total);
+
+  // chip "Só com nota" e Top 3
+  await page.locator('label.r-chip', { hasText: 'Só com nota' }).click();
+  const comNota = await page.locator('#r-tabela tbody tr.r-linha:not(.d-none)').count();
+  expect(comNota).toBeLessThanOrEqual(total);
+  await page.selectOption('#r-top', '3');
+  expect(await page.locator('#r-tabela tbody tr.r-linha:not(.d-none)').count()).toBeLessThanOrEqual(3);
+  await page.selectOption('#r-top', '');
+
+  // ordenação por título alterna a seta
+  await page.locator('th[data-ordem=titulo]').click();
+  await expect(page.locator('th[data-ordem=titulo]')).toHaveClass(/ord-asc|ord-desc/);
+
+  // detalhes da linha
+  await page.click('#r-limpar');
+  await page.locator('.r-expandir').first().click();
+  await expect(page.locator('tr.r-detalhe:not(.d-none)').first()).toContainText('Média por critério');
+});
+
+test('premiação: tela com categorias do evento, apuração pelo ranking e modelo do certificado', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Trabalhos', exact: true }).first().click();
+  await page.getByRole('link', { name: 'Premiação' }).first().click();
+  await expect(page.getByRole('heading', { name: /Premiação/ })).toBeVisible();
+  await expect(page.getByText('Visível só para a gestão').or(page.getByText('Divulgada aos autores'))).toBeVisible();
+  await expect(page.getByRole('button', { name: /Apurar pelo ranking/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Salvar premiação e gerar certificados/ })).toBeVisible();
+  await page.getByText('Modelo do certificado de premiação').click();
+  await expect(page.locator('textarea[name=cert_premio_corpo]')).toBeVisible();
+  await page.screenshot({ path: 'test-results/premiacao.png', fullPage: true });
 });

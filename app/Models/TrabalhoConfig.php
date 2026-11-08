@@ -19,6 +19,10 @@ class TrabalhoConfig extends Model
 
     public const CERT_CORPO_PADRAO = 'Certificamos que <b>{AUTOR}</b>, CPF {CPF}, participou como <b>{TIPO_AUTOR}</b> do trabalho "<b>{TITULO_TRABALHO}</b>" (categoria: {TIPO_TRABALHO}, código {CODIGO_TRABALHO}), apresentado no evento <b>{EVENTO}</b>, em {DATA_APRESENTACAO}.{COAUTORES}';
 
+    public const CERT_PREMIO_CORPO_PADRAO = 'Certificamos que <b>{AUTOR}</b>{CPF_TRECHO} foi premiado(a) com o <b>{COLOCACAO}</b> na categoria <b>{CATEGORIA}</b>, com o trabalho "<b>{TITULO_TRABALHO}</b>" (código {CODIGO_TRABALHO}), apresentado no evento <b>{EVENTO}</b>, com nota geral {NOTA_GERAL}.{COAUTORES}';
+
+    public const CERT_PREMIO_VARIAVEIS = ['{AUTOR}', '{CPF_TRECHO}', '{COLOCACAO}', '{CATEGORIA}', '{TITULO_TRABALHO}', '{CODIGO_TRABALHO}', '{EVENTO}', '{NOTA_GERAL}', '{COAUTORES}', '{INSTITUICAO}'];
+
     public const CERT_VARIAVEIS = [
         '{AUTOR}', '{CPF}', '{TIPO_AUTOR}', '{TITULO_TRABALHO}', '{TIPO_TRABALHO}', '{AREA}', '{COAUTORES}',
         '{EVENTO}', '{DATA_APRESENTACAO}', '{CODIGO_TRABALHO}', '{CATEGORIA}', '{INSTITUICAO}',
@@ -29,12 +33,13 @@ class TrabalhoConfig extends Model
         'resumo_min_palavras', 'resumo_max_palavras', 'max_trabalhos_por_usuario', 'avaliacao_cega',
         'tipos_permitidos', 'regras_texto', 'chamada_tema', 'chamada_intro', 'template_url', 'exige_resumo',
         'exige_palavras_chave', 'exige_cpf_apresentador',
-        'avaliacao_apresentacao_ativa', 'peso_apresentacao', 'nota_minima_apresentacao', 'autor_ve_nota_apresentacao',
+        'avaliacao_apresentacao_ativa', 'peso_apresentacao', 'nota_minima_apresentacao', 'premiacao_divulgada_em', 'cert_premio_cabecalho', 'cert_premio_corpo', 'cert_premio_rodape', 'autor_ve_nota_apresentacao',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
         'avaliacao_apresentacao_ativa' => 'boolean',
+        'premiacao_divulgada_em' => 'datetime',
         'nota_minima_apresentacao' => 'float',
         'autor_ve_nota_apresentacao' => 'boolean',
         'avaliacao_cega' => 'boolean',

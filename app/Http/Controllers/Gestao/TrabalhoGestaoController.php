@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Gestao;
 
 use App\Http\Controllers\Controller;
 use App\Services\PendenciasTrabalho;
+use App\Services\PremiacaoService;
 use App\Support\ResultadoLote;
 use App\Models\AreaTematica;
 use App\Models\Evento;
@@ -540,6 +541,10 @@ class TrabalhoGestaoController extends Controller
             'criterios' => $relatorio->criterios($evento),
             'areas' => $evento->areasTematicas,
             'limiteDivergencia' => $evento->trabalhoConfig?->divergencia_maxima ?? 3,
+            'contagemTipos' => $evento->trabalhos()->where('status', '!=', Trabalho::RASCUNHO)->selectRaw('tipo_trabalho, count(*) as total')->groupBy('tipo_trabalho')->pluck('total', 'tipo_trabalho'),
+            'categorias' => app(PremiacaoService::class)->categorias($evento),
+            'premios' => $evento->premiacoes()->get()->keyBy('trabalho_id'),
+            'divulgada' => (bool) $evento->trabalhoConfig?->premiacao_divulgada_em,
             'notaMinima' => $evento->trabalhoConfig?->nota_minima_aprovacao ?? 7,
         ]);
     }

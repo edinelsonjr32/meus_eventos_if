@@ -186,6 +186,31 @@
                         @endif
                     @endunless
 
+                    @unless($gestao)
+                        @php
+                            // Certificado de premiação: só aparece para o autor depois que a gestão divulga a premiação
+                            $premiacaoAutor = $trabalho->premiacao;
+                            $premiacaoVisivel = $premiacaoAutor && $trabalho->evento->trabalhoConfig?->premiacao_divulgada_em;
+                            $certsPremio = $premiacaoVisivel ? $premiacaoAutor->certificados->whereNull('revogado_em') : collect();
+                            if ($premiacaoVisivel && $trabalho->submetido_por !== auth()->id()) {
+                                $certsPremio = $certsPremio->filter(fn ($c) => $c->autor->pertenceA(auth()->user()));
+                            }
+                        @endphp
+                        @if($premiacaoVisivel)
+                            <div class="glass-card bg-white mb-4 border" style="border-color:#facc15 !important;">
+                                <h6 class="fw-bold mb-2" style="color:#a16207;"><i class="fa-solid fa-trophy me-1"></i> Premiação</h6>
+                                <x-badge tipo="premio" :valor="(string) $premiacaoAutor->colocacao" />
+                                <div class="small text-muted mt-1">{{ $premiacaoAutor->categoriaRotulo() }}</div>
+                                @foreach($certsPremio as $c)
+                                    <div class="d-flex justify-content-between align-items-center small mt-2 pt-2 border-top">
+                                        <div class="fw-bold">{{ $c->autor->nome_completo }}</div>
+                                        <a href="{{ route('certificado.premiacao.download', $c->hash_validacao) }}" target="_blank" class="btn btn-sm btn-tone-amber"><i class="fa-solid fa-download"></i> Certificado</a>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endunless
+
                     <div class="glass-card bg-white mb-4">
                         <h6 class="fw-bold text-success mb-3">Arquivo</h6>
                         @if($trabalho->arquivoAtual)

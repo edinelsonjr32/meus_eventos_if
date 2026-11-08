@@ -52,10 +52,16 @@ class SalvarTrabalhoRequest extends FormRequest
         $autores = collect($this->input('autores', []))
             ->filter(fn ($a) => is_array($a) && collect($a)->only(['nome_completo', 'cpf', 'email', 'instituicao'])->filter(fn ($v) => filled($v))->isNotEmpty())
             ->map(function ($a) {
-                $cpf = Cpf::formatar($a['cpf'] ?? '');
-                $a['cpf'] = filled($cpf) ? $cpf : null;
-                $email = mb_strtolower(trim($a['email'] ?? ''));
-                $a['email'] = $email !== '' ? $email : null;
+                // CPF e e-mail só são normalizados quando o formulário os envia: o cadastro dos demais autores não traz
+                // CPF, e a ausência do campo não pode virar "apagar" (o serviço preserva o que já está gravado)
+                if (array_key_exists('cpf', $a)) {
+                    $cpf = Cpf::formatar($a['cpf'] ?? '');
+                    $a['cpf'] = filled($cpf) ? $cpf : null;
+                }
+                if (array_key_exists('email', $a)) {
+                    $email = mb_strtolower(trim($a['email'] ?? ''));
+                    $a['email'] = $email !== '' ? $email : null;
+                }
                 $a['apresentador'] = filter_var($a['apresentador'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 $a['correspondente'] = filter_var($a['correspondente'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
@@ -91,7 +97,8 @@ class SalvarTrabalhoRequest extends FormRequest
             'resumo' => [$exigeResumo ? 'required' : 'nullable', 'string', 'max:6000'],
             'abstract' => ['nullable', 'string', 'max:6000'],
             'palavras_chave' => [$exigePalavras ? 'required' : 'nullable', 'string', 'max:255'],
-            'tipo_trabalho' => [$obrigatorio, Rule::in(array_keys($config->tiposHabilitados()))],
+            // (a categoria já gravada no trabalho continua válida ao editar, mesmo que a chamada tenha deixado de aceitá-la)
+            'tipo_trabalho' => [$obrigatorio, Rule::in(array_filter([...array_keys($config->tiposHabilitados()), $trabalho instanceof Trabalho ? $trabalho->tipo_trabalho : null]))],
             'area_tematica_id' => ['nullable', Rule::exists('areas_tematicas', 'id')->where('evento_id', $evento->id)],
             'modalidade_apresentacao' => [$obrigatorio, Rule::in(array_keys(Trabalho::MODALIDADES))],
             'agencia_fomento' => ['nullable', 'string', 'max:255'],

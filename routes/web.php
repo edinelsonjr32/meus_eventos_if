@@ -72,6 +72,8 @@ Route::post('/frequencia/{token}', [FrequenciaController::class, 'store'])->midd
 Route::middleware('throttle:30,1')->group(function () {
     Route::get('/certificado-trabalho/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'validar'])->name('certificado.trabalho.validar');
     Route::get('/certificado-trabalho/download/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'download'])->name('certificado.trabalho.download');
+    Route::get('/certificado-premiacao/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoPremiacaoController::class, 'validar'])->name('certificado.premiacao.validar');
+    Route::get('/certificado-premiacao/download/{hash}', [\App\Http\Controllers\Publico\CertificadoPremiacaoController::class, 'download'])->name('certificado.premiacao.download');
 });
 
 // Validação e Download de Certificados
@@ -156,6 +158,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/evento/{evento}/exportar', [$c, 'exportar'])->name('exportar');
         Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
         Route::get('/evento/{evento}/ranking', [$c, 'ranking'])->name('ranking');
+        $pr = \App\Http\Controllers\Gestao\PremiacaoGestaoController::class;
+        Route::get('/evento/{evento}/premiacao', [$pr, 'index'])->name('premiacao.index');
+        Route::put('/evento/{evento}/premiacao', [$pr, 'salvar'])->name('premiacao.salvar');
+        Route::post('/evento/{evento}/premiacao/sugerir', [$pr, 'sugerir'])->name('premiacao.sugerir');
+        Route::post('/evento/{evento}/premiacao/divulgar', [$pr, 'divulgar'])->name('premiacao.divulgar');
+        Route::post('/evento/{evento}/premiacao/ocultar', [$pr, 'ocultar'])->name('premiacao.ocultar');
+        Route::put('/evento/{evento}/premiacao/modelo', [$pr, 'modelo'])->name('premiacao.modelo');
+        Route::get('/evento/{evento}/premiacao/certificados', [$pr, 'imprimir'])->name('premiacao.imprimir');
+        Route::get('/premiacao/certificado/{certificado}', [$pr, 'certificado'])->name('premiacao.certificado');
         Route::get('/evento/{evento}/exportar-notas', [$c, 'exportarNotas'])->name('exportar-notas');
         $ap = \App\Http\Controllers\Gestao\ApresentacaoAvaliacaoGestaoController::class;
         Route::get('/evento/{evento}/apresentacoes', [$ap, 'index'])->name('apresentacoes.index');
