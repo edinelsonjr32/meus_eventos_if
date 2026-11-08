@@ -109,6 +109,12 @@
                                 <td>{{ $t->submetido_em?->format('d/m/Y H:i') }}</td>
                                 <td class="text-end pe-3">
                                     <a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-folder-open"></i> Abrir</a>
+                                    @if($t->status === 'resubmetido')
+                                        <form action="{{ route('gestao.trabalhos.decisao', $t) }}" method="POST" class="d-inline">
+                                            @csrf <input type="hidden" name="decisao" value="aprovado">
+                                            <button class="btn btn-sm btn-success" title="Aprovar o trabalho reenviado" data-confirmar="Aprovar {{ $t->codigo }} (reenviado após correção)? Os autores serão avisados por e-mail."><i class="fa-solid fa-circle-check"></i> Aprovar</button>
+                                        </form>
+                                    @endif
                                     @if($t->arquivoAtual) <a href="{{ route('trabalhos.arquivo', $t) }}" target="_blank" class="btn btn-sm btn-outline-danger" title="PDF"><i class="fa-solid fa-file-pdf"></i></a> @endif
                                 </td>
                             </tr>

@@ -33,4 +33,7 @@ $w->atribuirAvaliador($pronto, $av, $gestor);
 if ($outro) { $w->atribuirAvaliador($pronto, $outro, $gestor); }
 $pronto->update(['status' => 'em_avaliacao']);
 
+$reenviado = $novo('reenviado');                                         // reenviado após correção: precisa do botão "Aprovar"
+$reenviado->update(['status' => 'resubmetido']);
+
 echo "preparado\n";

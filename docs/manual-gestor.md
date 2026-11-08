@@ -18,7 +18,7 @@ Use filtros (status, categoria, busca) e **ações em lote**: *Atribuir avaliado
 2. Acompanhe pareceres no painel; **remova/reatribua** se alguém recusar ou atrasar.
 3. **Encerrar avaliação** quando houver notas suficientes → status *Avaliado*.
 4. **Decisão**: aprovado, aprovado com ressalvas (abre prazo de correção) ou reprovado, com justificativa.
-5. Com ressalvas: o autor reenvia; use **Reavaliar** (nova rodada) ou aprove direto. **Prorrogar correção** se necessário.
+5. Com ressalvas: o autor reenvia e o trabalho fica **Resubmetido**: use o botão verde **Aprovar trabalho** (no painel do trabalho ou direto na fila) para aprovar de uma vez, ou **Reavaliar** (nova rodada) / **Reprovar** na decisão final; use **Reavaliar** (nova rodada) ou aprove direto. **Prorrogar correção** se necessário.
 
 ## 4. Notas e relatórios
 - **Ranking**: média por trabalho, por categoria. **Exportar notas** (xlsx/csv) por relatório: ranking, notas por critério, pareceres.

@@ -198,6 +198,14 @@
         }
     }
 
+    // Confirmação para qualquer botão de envio com data-confirmar (os formulários com data-validar confirmam depois de validar)
+    document.addEventListener('submit', (ev) => {
+        const botao = ev.submitter;
+        if (!botao || !botao.dataset || !botao.dataset.confirmar || ev.defaultPrevented) return;
+        if (ev.target.hasAttribute && ev.target.hasAttribute('data-validar')) return;
+        if (!confirm(botao.dataset.confirmar)) ev.preventDefault();
+    }, true);
+
     document.addEventListener('DOMContentLoaded', () => {
         preparar(document);
         document.querySelectorAll('form[data-validar]').forEach((form) => {

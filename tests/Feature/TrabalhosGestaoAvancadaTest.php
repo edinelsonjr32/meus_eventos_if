@@ -581,3 +581,38 @@ it('os botões de ranking e de cadastro aparecem na fila da gestão', function (
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.index', $this->evento))->assertOk()
         ->assertSee('Notas e ranking')->assertSee('Cadastrar trabalho')->assertSee(route('gestao.trabalhos.ranking', $this->evento), false);
 });
+
+// ---------- Aprovação direta de trabalho reenviado após correção ----------
+it('trabalho reenviado após correção tem botão para aprovar direto (painel e fila) e vira Aprovado', function () {
+    $dono = mkUser('admin');
+    $evento = mkEvento($dono);
+    $gestor = mkUser();
+    mkPapel($gestor, $evento, 'gestor_trabalhos');
+    $autor = mkUser('user', 'autor@x.com');
+    $t = mkTrabalho($evento, $autor, ['titulo' => 'Reenviado'], 'resubmetido');
+    \Illuminate\Support\Facades\Mail::fake();
+
+    $this->actingAs($gestor)->get(route('gestao.trabalhos.show', $t))->assertOk()->assertSee('Reenviado após correção')->assertSee('Aprovar trabalho')->assertSee('name="decisao" value="aprovado"', false);
+    $this->get(route('gestao.trabalhos.index', $evento))->assertOk()->assertSee('Aprovar o trabalho reenviado');
+
+    $this->post(route('gestao.trabalhos.decisao', $t), ['decisao' => 'aprovado', 'justificativa' => ''])->assertSessionHas('success');
+    $t = $t->fresh();
+    expect($t->status)->toBe('aprovado')->and($t->decisao)->toBe('aprovado')->and($t->decidido_por)->toBe($gestor->id)
+        ->and($t->historico->last()->para)->toBe('aprovado');
+    \Illuminate\Support\Facades\Mail::assertQueued(\App\Mail\TrabalhoDecisaoMail::class);
+
+    // depois de aprovado o botão some
+    $this->get(route('gestao.trabalhos.show', $t))->assertDontSee('Reenviado após correção');
+});
+
+it('o botão de aprovar reenviado só aparece para a gestão e só no status resubmetido', function () {
+    $dono = mkUser('admin');
+    $evento = mkEvento($dono);
+    $autor = mkUser('user', 'a2@x.com');
+    $gestor = mkUser();
+    mkPapel($gestor, $evento, 'gestor_trabalhos');
+    $t = mkTrabalho($evento, $autor, ['titulo' => 'Em avaliação'], 'em_avaliacao');
+
+    $this->actingAs($gestor)->get(route('gestao.trabalhos.show', $t))->assertDontSee('Reenviado após correção');
+    $this->actingAs($autor)->post(route('gestao.trabalhos.decisao', $t), ['decisao' => 'aprovado'])->assertForbidden();
+});

@@ -297,3 +297,27 @@ test('formulário de avaliação: nota só aceita 0 ao máximo, sem letras/negat
   await campo.blur();
   await expect(campo).toHaveValue('8');
 });
+
+test('trabalho reenviado após correção: gestor aprova direto, com confirmação, e vira Aprovado', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Trabalhos', exact: true }).first().click();
+  await page.goto(page.url() + '?status=resubmetido&q=reenviado');
+
+  const aprovar = page.getByRole('button', { name: /Aprovar/ }).first();
+  await expect(aprovar).toBeVisible();
+
+  // recusar a confirmação não altera nada
+  let mensagem = '';
+  page.once('dialog', (d) => { mensagem = d.message(); d.dismiss(); });
+  await aprovar.click();
+  await expect.poll(() => mensagem).toContain('reenviado após correção');
+  await expect(page.getByRole('button', { name: /Aprovar/ }).first()).toBeVisible();
+
+  // aceitar aprova
+  page.once('dialog', (d) => d.accept());
+  await page.getByRole('button', { name: /Aprovar/ }).first().click();
+  await expect(page.locator('.fb-toast.success, .alert-success').first()).toBeVisible();
+  await page.goto(page.url().split('?')[0] + '?status=aprovado_escrita&q=reenviado');
+  await expect(page.getByText('Aprovado na parte escrita').first()).toBeVisible();
+});

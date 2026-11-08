@@ -266,6 +266,21 @@
 </div>
 @endif
 
+{{-- Trabalho reenviado após correção: aprovação direta --}}
+@if($trabalho->status === 'resubmetido')
+<div class="glass-card bg-white mb-4 border border-success">
+    <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-rotate me-1"></i> Reenviado após correção</h6>
+    <p class="small text-muted mb-2">O autor enviou a versão corrigida. Se as ressalvas foram atendidas, aprove o trabalho agora; se preferir, reavalie ou reprove na <em>Decisão final</em> abaixo.</p>
+    <form action="{{ route('gestao.trabalhos.decisao', $trabalho) }}" method="POST">
+        @csrf
+        <input type="hidden" name="decisao" value="aprovado">
+        <label class="small fw-bold text-secondary">Mensagem ao autor (opcional)</label>
+        <textarea name="justificativa" rows="2" class="form-control form-control-sm mb-2" placeholder="Ex.: Ressalvas atendidas. Parabéns!"></textarea>
+        <button class="btn btn-success w-100 fw-bold" data-confirmar="Aprovar este trabalho? O status passa para Aprovado e os autores serão avisados por e-mail."><i class="fa-solid fa-circle-check"></i> Aprovar trabalho</button>
+    </form>
+</div>
+@endif
+
 {{-- Decisão --}}
 @if($resultado['podeDecidir'])
 <div class="glass-card bg-white mb-4" x-data="{ decisao: '{{ old('decisao', $resultado['media'] !== null && $resultado['media'] >= $resultado['notaMinima'] ? 'aprovado' : 'reprovado') }}' }">
