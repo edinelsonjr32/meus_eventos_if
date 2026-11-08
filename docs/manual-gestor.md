@@ -8,7 +8,7 @@ Para quem coordena a chamada de trabalhos de um evento (dono do evento, editor c
 3. **Salvar e publicar**. O evento passa a exibir **Submeter trabalho**.
 
 ## 1.1 Tags de pendência
-Na fila e no painel do trabalho aparecem **tags** que dizem o que falta para ele avançar: *Aguardando avaliadores*, *Aguardando decisão da gestão*, *Aguardando aprovação do reenvio*, *Aguardando ajustes do autor*, *Aguardando vincular apresentador* (nenhum autor apresentador com conta vinculada: a presença na sessão não confirma a apresentação sozinha), *Aguardando definir sessão*, *Aguardando avaliadores da apresentação* e *Aguardando resultado da apresentação*. Use o filtro **Qualquer pendência** para listar os trabalhos com uma delas. Para vincular o apresentador, use o cartão *Apresentação* do trabalho (**Vincular**).
+Na fila e no painel do trabalho aparecem **tags** que dizem o que falta para ele avançar: *Aguardando avaliadores*, *Aguardando decisão da gestão*, *Aguardando aprovação do reenvio*, *Aguardando ajustes do autor*, *Aguardando vincular apresentador* (nenhum autor apresentador com conta vinculada: a presença na sessão não confirma a apresentação sozinha), *Aguardando definir sessão*, *Aguardando avaliadores da apresentação* e *Aguardando resultado da apresentação*. Use o filtro **Qualquer pendência** para listar os trabalhos com uma delas. Para definir o apresentador, use o cartão *Apresentação* do trabalho: cada autor tem o botão **Tornar apresentador** (ou **Remover**). Os **avaliadores da apresentação** também são atribuídos na página do trabalho, em cartão próprio que só aparece depois de aprovado na parte escrita e com a avaliação das apresentações ativada.
 
 ## 2. Triagem
 Em **Trabalhos do evento**, abra o trabalho:

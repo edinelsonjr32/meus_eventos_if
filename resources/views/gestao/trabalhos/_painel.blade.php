@@ -353,14 +353,21 @@
                     <div class="text-danger mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> Nenhum apresentador com conta vinculada: a presença na sessão não confirmará a apresentação sozinha (o apresentador precisa de conta com o mesmo CPF/e-mail do autor). A gestão ainda pode marcar manualmente.</div>
                 @endif
             </div>
-            <form action="{{ route('gestao.trabalhos.apresentador', $trabalho) }}" method="POST" class="d-flex gap-2">
-                @csrf
-                <select name="autor_id" class="form-select form-select-sm" required>
-                    <option value="">Escolher autor apresentador…</option>
-                    @foreach($trabalho->autores->where('apresentador', false) as $au) <option value="{{ $au->id }}">{{ $au->nome_completo }} ({{ $au->tipoRotulo() }})</option> @endforeach
-                </select>
-                <button class="btn btn-sm btn-outline-primary fw-bold text-nowrap"><i class="fa-solid fa-user-tag"></i> Vincular</button>
-            </form>
+            <div class="small text-secondary mb-1">Autores do trabalho — escolha quem apresenta:</div>
+            @foreach($trabalho->autores as $au)
+                <form action="{{ route('gestao.trabalhos.apresentador', $trabalho) }}" method="POST" class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    @csrf
+                    <input type="hidden" name="autor_id" value="{{ $au->id }}">
+                    <span class="small">{{ $au->nome_completo }} <span class="text-muted">({{ $au->tipoRotulo() }})</span></span>
+                    @if($au->apresentador)
+                        <input type="hidden" name="acao" value="remover">
+                        <button class="btn btn-sm btn-outline-danger text-nowrap" data-confirmar="Remover {{ addslashes($au->nome_completo) }} como apresentador(a)?"><i class="fa-solid fa-user-minus"></i> Remover</button>
+                    @else
+                        <input type="hidden" name="acao" value="definir">
+                        <button class="btn btn-sm btn-outline-primary text-nowrap"><i class="fa-solid fa-user-tag"></i> Tornar apresentador</button>
+                    @endif
+                </form>
+            @endforeach
         </div>
         <form action="{{ route('gestao.trabalhos.apresentacao', $trabalho) }}" method="POST" class="mb-2">
             @csrf
@@ -387,22 +394,78 @@
         </form>
     @endif
 
-    @if($trabalho->status === 'aprovado' && $trabalho->evento->trabalhoConfig?->avaliacao_apresentacao_ativa)
-        <hr class="my-3">
-        <div class="fw-bold small mb-2"><i class="fa-solid fa-star me-1 text-warning"></i> Avaliação da apresentação</div>
-        @php $avsAp = $trabalho->avaliacoesApresentacao()->with('avaliador')->get(); @endphp
-        @forelse($avsAp as $av)
-            <div class="small d-flex justify-content-between"><span>{{ $av->avaliador->name }}</span><x-badge tipo="avaliacao" :valor="$av->status" :extra="$av->nota_final !== null ? number_format($av->nota_final, 2, ',', '.') : null" /></div>
-        @empty
-            <div class="small text-muted">Nenhum avaliador atribuído.</div>
-        @endforelse
-        @if($trabalho->nota_apresentacao !== null)
-            <div class="small mt-2">Nota da apresentação: <strong>{{ number_format($trabalho->nota_apresentacao, 2, ',', '.') }}</strong> · Nota geral: <strong>{{ number_format($trabalho->notaGeral(), 2, ',', '.') }}</strong></div>
-        @endif
-        <a href="{{ route('gestao.trabalhos.apresentacoes.index', ['evento' => $trabalho->evento_id, 'atividade' => $trabalho->atividade_id]) }}" class="btn btn-sm btn-outline-success w-100 mt-2">Gerenciar avaliadores da apresentação</a>
-        <div class="form-text">A nota da apresentação é independente de "apresentado": avaliar não marca presença, e marcar presença não dá nota.</div>
-    @endif
 </div>
+
+{{-- Avaliadores da apresentação: só depois de aprovado na parte escrita --}}
+@if($trabalho->status === 'aprovado')
+    @if($trabalho->evento->trabalhoConfig?->avaliacao_apresentacao_ativa)
+        @php
+            $avsAp = $trabalho->avaliacoesApresentacao->load('avaliador');
+            $livresAp = $avaliadoresAp->filter(fn ($u) => !$u->impedimento);
+            $impedidosAp = $avaliadoresAp->filter(fn ($u) => $u->impedimento);
+        @endphp
+        <div class="glass-card bg-white mb-4" id="card-avaliadores-apresentacao">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold text-success m-0"><i class="fa-solid fa-star me-1"></i> Avaliadores da apresentação</h6>
+                @if($trabalho->nota_apresentacao !== null) <span class="sb" style="background:#dcfce7;color:#15803d;border-color:#86efac;">Nota {{ number_format($trabalho->nota_apresentacao, 2, ',', '.') }}</span> @endif
+            </div>
+            @forelse($avsAp as $av)
+                <div class="d-flex justify-content-between align-items-center small mb-2 pb-2 border-bottom">
+                    <div>
+                        <div class="fw-bold">{{ $av->avaliador->name }}</div>
+                        <x-badge tipo="avaliacao" :valor="$av->status" :extra="$av->nota_final !== null ? number_format($av->nota_final, 2, ',', '.') : null" />
+                        @if($av->prazo && $av->aberta()) <span class="text-muted">· prazo {{ $av->prazo->format('d/m/Y') }}</span> @endif
+                    </div>
+                    @if($av->status !== 'concluida')
+                        <form action="{{ route('gestao.trabalhos.apresentacoes.remover', $av) }}" method="POST">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger" data-confirmar="Remover {{ addslashes($av->avaliador->name) }} da avaliação desta apresentação?"><i class="fa-solid fa-user-minus"></i> Remover</button>
+                        </form>
+                    @endif
+                </div>
+            @empty
+                <p class="small text-muted">Nenhum avaliador atribuído à apresentação.</p>
+            @endforelse
+
+            @if($avaliadoresAp->isEmpty())
+                <p class="small text-muted mb-0">Não há avaliadores designados no evento. Designe em "Papéis".</p>
+            @else
+                <form action="{{ route('gestao.trabalhos.apresentacoes.atribuir', $trabalho) }}" method="POST" class="mt-2">
+                    @csrf
+                    <label class="small fw-bold text-secondary" for="selAvaliadoresAp">Atribuir avaliadores da apresentação</label>
+                    <select name="avaliadores[]" id="selAvaliadoresAp" class="form-select js-select-avaliadores" multiple data-placeholder="Busque e selecione os avaliadores…" style="width:100%">
+                        @if($livresAp->isNotEmpty())
+                            <optgroup label="Disponíveis">
+                                @foreach($livresAp as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
+                            </optgroup>
+                        @endif
+                        @foreach(['atribuido' => 'Já atribuídos à apresentação', 'conflito' => 'Conflito de interesse (não pode avaliar)'] as $tipo => $rotuloGrupo)
+                            @php $grupo = $impedidosAp->filter(fn ($u) => $u->impedimento['tipo'] === $tipo); @endphp
+                            @if($grupo->isNotEmpty())
+                                <optgroup label="{{ $rotuloGrupo }}">
+                                    @foreach($grupo as $u) <option value="{{ $u->id }}" disabled data-tipo="{{ $tipo }}">{{ $u->name }} — {{ $tipo === 'atribuido' ? 'já atribuído' : $u->impedimento['motivo'] }}</option> @endforeach
+                                </optgroup>
+                            @endif
+                        @endforeach
+                    </select>
+                    @if($livresAp->isEmpty())
+                        <div class="alert alert-warning small py-2 mt-2 mb-0"><i class="fa-solid fa-triangle-exclamation me-1"></i> Nenhum avaliador disponível: todos já atribuídos ou com conflito de interesse.</div>
+                    @else
+                        <label class="small fw-bold text-secondary mt-2" for="prazoAp">Prazo (opcional)</label>
+                        <input type="date" name="prazo" id="prazoAp" class="form-control form-control-sm mb-2" min="{{ now()->addDay()->format('Y-m-d') }}">
+                        <button class="btn btn-sm btn-outline-success w-100 fw-bold"><i class="fa-solid fa-user-plus me-1"></i> Atribuir à apresentação</button>
+                    @endif
+                    <div class="form-text">A nota da apresentação é independente de "apresentado": avaliar não marca presença, e marcar presença não dá nota.</div>
+                </form>
+            @endif
+        </div>
+    @else
+        <div class="glass-card bg-white mb-4 small text-muted">
+            <i class="fa-solid fa-star me-1"></i> A avaliação das apresentações não está ativada neste evento.
+            <a href="{{ route('gestao.trabalhos.apresentacoes.index', $trabalho->evento_id) }}">Ativar e configurar</a> para atribuir avaliadores à apresentação.
+        </div>
+    @endif
+@endif
 
 <div class="glass-card bg-white mb-4">
     <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-award me-1"></i> Certificados</h6>
@@ -443,7 +506,7 @@
 @endif
 
 @once('assets-select2-avaliadores')
-    @if($podeAtribuir && $avaliadores->isNotEmpty())
+    @if(($podeAtribuir || $trabalho->status === 'aprovado') && $avaliadores->isNotEmpty())
         <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap-5-theme/1.3.0/select2-bootstrap-5-theme.min.css" rel="stylesheet">
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

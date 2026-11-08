@@ -157,6 +157,14 @@ class TrabalhoGestaoController extends Controller
         $podeAtribuir = in_array($trabalho->status, TrabalhoWorkflow::STATUS_ATRIBUICAO, true);
         [$atribuidosNaRodada, $minimoAvaliadores] = $this->workflow->avaliadoresMinimos($trabalho);
         $trabalho->load('avaliacoesApresentacao');
+        // Avaliadores com o impedimento específico da apresentação (já atribuído / conflito), para o cartão da apresentação
+        $impAp = $this->workflow->restricoesAvaliadores(collect([$trabalho]), $avaliadores, 'apresentacao')[$trabalho->id] ?? [];
+        $avaliadoresAp = $avaliadores->map(function ($u) use ($impAp) {
+            $c = clone $u;
+            $c->impedimento = $impAp[$u->id] ?? null;
+
+            return $c;
+        });
         $pendenciasTrabalho = $this->pendencias->calcular(collect([$trabalho]))[$trabalho->id] ?? [];
 
         $trabalho->load(['avaliacoes.notas.criterio', 'certificados.autor', 'sessao']);
@@ -179,7 +187,7 @@ class TrabalhoGestaoController extends Controller
             'notaMinima' => $trabalho->evento->trabalhoConfig?->nota_minima_aprovacao ?? 7,
         ];
 
-        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao', 'atribuidosNaRodada', 'minimoAvaliadores', 'pendenciasTrabalho'));
+        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao', 'atribuidosNaRodada', 'minimoAvaliadores', 'pendenciasTrabalho', 'avaliadoresAp'));
     }
 
     // ------------------------------------------------------------------
@@ -315,11 +323,22 @@ class TrabalhoGestaoController extends Controller
     {
         $this->authorize('gerirTrabalhos', $trabalho->evento);
 
-        $dados = $request->validate(['autor_id' => ['required', 'integer']], ['autor_id.required' => 'Escolha o autor apresentador.']);
+        $dados = $request->validate([
+            'autor_id' => ['required', 'integer'],
+            'acao' => ['nullable', Rule::in(['definir', 'remover'])],
+        ], ['autor_id.required' => 'Escolha o autor apresentador.']);
         $autor = $trabalho->autores()->find($dados['autor_id']);
         if (!$autor) {
             return back()->with('error', 'O autor escolhido não pertence a este trabalho.');
         }
+
+        if (($dados['acao'] ?? 'definir') === 'remover') {
+            $autor->update(['apresentador' => false]);
+            $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, "Apresentador removido: {$autor->nome_completo}");
+
+            return back()->with('success', "{$autor->nome_completo} não é mais apresentador(a) do trabalho.");
+        }
+
         $autor->update(['apresentador' => true]);
         $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, "Apresentador definido: {$autor->nome_completo}");
 
