@@ -36,6 +36,12 @@
 @endphp
 <div class="glass-card bg-white mb-4">
     <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-route me-1"></i> Etapas</h6>
+    @if(!empty($pendenciasTrabalho))
+        <div class="mb-3 pb-2 border-bottom">
+            <div class="small fw-bold text-secondary mb-1">Pendências</div>
+            @foreach($pendenciasTrabalho as $chave) <div class="mb-1"><x-badge tipo="pendencia" :valor="$chave" /></div> @endforeach
+        </div>
+    @endif
     <ul class="list-unstyled small mb-0">
         @foreach($etapas as [$nome, $estado, $detalhe])
             <li class="d-flex align-items-center gap-2 mb-1">
@@ -338,6 +344,24 @@
     </div>
 
     @if($trabalho->status === 'aprovado')
+        @php $apresentadores = $trabalho->autores->where('apresentador', true); @endphp
+        <div class="mb-3 pb-2 border-bottom">
+            <label class="small fw-bold text-secondary">Apresentador(es)</label>
+            <div class="small mb-1">
+                @forelse($apresentadores as $ap) <span class="sb" style="background:#e0e7ff;color:#4338ca;border-color:#a5b4fc;"><i class="fa-solid fa-person-chalkboard"></i> {{ $ap->nome_completo }}</span> @empty <span class="text-muted">Nenhum apresentador definido.</span> @endforelse
+                @if(in_array('vincular_apresentador', $pendenciasTrabalho ?? [], true))
+                    <div class="text-danger mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i> Nenhum apresentador com conta vinculada: a presença na sessão não confirmará a apresentação sozinha (o apresentador precisa de conta com o mesmo CPF/e-mail do autor). A gestão ainda pode marcar manualmente.</div>
+                @endif
+            </div>
+            <form action="{{ route('gestao.trabalhos.apresentador', $trabalho) }}" method="POST" class="d-flex gap-2">
+                @csrf
+                <select name="autor_id" class="form-select form-select-sm" required>
+                    <option value="">Escolher autor apresentador…</option>
+                    @foreach($trabalho->autores->where('apresentador', false) as $au) <option value="{{ $au->id }}">{{ $au->nome_completo }} ({{ $au->tipoRotulo() }})</option> @endforeach
+                </select>
+                <button class="btn btn-sm btn-outline-primary fw-bold text-nowrap"><i class="fa-solid fa-user-tag"></i> Vincular</button>
+            </form>
+        </div>
         <form action="{{ route('gestao.trabalhos.apresentacao', $trabalho) }}" method="POST" class="mb-2">
             @csrf
             <label class="small fw-bold text-secondary">Sessão de apresentação</label>

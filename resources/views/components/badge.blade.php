@@ -45,6 +45,16 @@
             'aberta' => ['verde-forte', 'fa-door-open', 'Chamada aberta'], 'em_breve' => ['ambar', 'fa-clock', 'Em breve'],
             'encerrada' => ['ardosia', 'fa-lock', 'Encerrada'], 'rascunho' => ['cinza', 'fa-pencil', 'Rascunho'], 'nao_criada' => ['cinza', 'fa-circle-plus', 'Não criada'],
         ],
+        'pendencia' => [
+            'vincular_apresentador' => ['ambar', 'fa-user-tag', 'Aguardando vincular apresentador'],
+            'vincular_sessao' => ['ciano', 'fa-calendar-plus', 'Aguardando definir sessão'],
+            'atribuir_avaliadores' => ['indigo', 'fa-user-plus', 'Aguardando avaliadores'],
+            'aguardando_decisao' => ['roxo', 'fa-gavel', 'Aguardando decisão da gestão'],
+            'aguardando_reenvio_aprovacao' => ['rosa', 'fa-rotate', 'Aguardando aprovação do reenvio'],
+            'aguardando_autor' => ['laranja', 'fa-user-pen', 'Aguardando ajustes do autor'],
+            'atribuir_avaliadores_apresentacao' => ['indigo', 'fa-person-chalkboard', 'Aguardando avaliadores da apresentação'],
+            'resultado_apresentacao' => ['dourado', 'fa-hourglass-half', 'Aguardando resultado da apresentação'],
+        ],
         'anais' => [
             'pendente' => ['laranja', 'fa-book-open', 'Pendente de aprovação · Anais do evento'],
             'autorizado' => ['verde', 'fa-book-bookmark', 'Publicação nos Anais autorizada'],

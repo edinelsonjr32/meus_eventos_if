@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Gestao;
 
 use App\Http\Controllers\Controller;
+use App\Services\PendenciasTrabalho;
 use App\Support\ResultadoLote;
 use App\Models\AreaTematica;
 use App\Models\Evento;
@@ -30,8 +31,15 @@ use Illuminate\Validation\Rule;
  */
 class TrabalhoGestaoController extends Controller
 {
-    public function __construct(private TrabalhoWorkflow $workflow, private AvaliacaoService $avaliacao, private CertificadoTrabalhoService $certificados)
+    public function __construct(private TrabalhoWorkflow $workflow, private AvaliacaoService $avaliacao, private CertificadoTrabalhoService $certificados, private PendenciasTrabalho $pendencias)
     {
+    }
+
+    /** Todos os trabalhos não-rascunho do evento com o necessário para calcular as pendências. */
+    private function trabalhosParaPendencias(Evento $evento)
+    {
+        return $evento->trabalhos()->where('status', '!=', Trabalho::RASCUNHO)
+            ->with(['autores', 'avaliacoes', 'avaliacoesApresentacao', 'evento.trabalhoConfig', 'certificados'])->get();
     }
 
     /** Situações que dependem de mais que a coluna status (ver Trabalho::situacaoDe). */
@@ -59,7 +67,7 @@ class TrabalhoGestaoController extends Controller
     {
         $query = $evento->trabalhos()
             ->where('status', '!=', Trabalho::RASCUNHO) // rascunhos são privados do autor
-            ->with(['autores', 'area', 'arquivoAtual', 'avaliacoes', 'evento.trabalhoConfig', 'certificados']);
+            ->with(['autores', 'area', 'arquivoAtual', 'avaliacoes', 'avaliacoesApresentacao', 'evento.trabalhoConfig', 'certificados']);
 
         if ($status = $request->input('status')) {
             // Situações derivadas (aprovado em cada fase, aguardando certificado, concluído) saem do cálculo de situação, não da coluna
@@ -68,6 +76,10 @@ class TrabalhoGestaoController extends Controller
             } else {
                 $query->where('status', $status);
             }
+        }
+        if (($pendencia = $request->input('pendencia')) && array_key_exists($pendencia, PendenciasTrabalho::ROTULOS)) {
+            $ids = collect($this->pendencias->calcular($this->trabalhosParaPendencias($evento)))->filter(fn ($lista) => in_array($pendencia, $lista, true))->keys();
+            $query->whereIn('id', $ids);
         }
         if ($tipo = $request->input('tipo')) {
             $query->where('tipo_trabalho', $tipo);
@@ -116,6 +128,7 @@ class TrabalhoGestaoController extends Controller
             'evento' => $evento,
             'trabalhos' => $trabalhos,
             'restricoes' => $this->workflow->restricoesAvaliadores($trabalhos->getCollection(), $avaliadores),
+            'pendencias' => $this->pendencias->calcular($trabalhos->getCollection()),
             'contagem' => $contagem,
             'areas' => $evento->areasTematicas,
             'config' => $evento->trabalhoConfig,
@@ -143,6 +156,8 @@ class TrabalhoGestaoController extends Controller
         $acoesTriagem = collect(TrabalhoWorkflow::TRANSICOES_GESTAO[$trabalho->status] ?? []);
         $podeAtribuir = in_array($trabalho->status, TrabalhoWorkflow::STATUS_ATRIBUICAO, true);
         [$atribuidosNaRodada, $minimoAvaliadores] = $this->workflow->avaliadoresMinimos($trabalho);
+        $trabalho->load('avaliacoesApresentacao');
+        $pendenciasTrabalho = $this->pendencias->calcular(collect([$trabalho]))[$trabalho->id] ?? [];
 
         $trabalho->load(['avaliacoes.notas.criterio', 'certificados.autor', 'sessao']);
         $certificacao = [
@@ -164,7 +179,7 @@ class TrabalhoGestaoController extends Controller
             'notaMinima' => $trabalho->evento->trabalhoConfig?->nota_minima_aprovacao ?? 7,
         ];
 
-        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao', 'atribuidosNaRodada', 'minimoAvaliadores'));
+        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao', 'atribuidosNaRodada', 'minimoAvaliadores', 'pendenciasTrabalho'));
     }
 
     // ------------------------------------------------------------------
@@ -293,6 +308,24 @@ class TrabalhoGestaoController extends Controller
         }
 
         return back()->with('success', 'Avaliador de desempate atribuído. O trabalho voltou para "Em avaliação" até ele concluir.');
+    }
+
+    /** Define qual autor é o apresentador do trabalho (a presença dele na sessão confirma a apresentação). */
+    public function definirApresentador(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        $dados = $request->validate(['autor_id' => ['required', 'integer']], ['autor_id.required' => 'Escolha o autor apresentador.']);
+        $autor = $trabalho->autores()->find($dados['autor_id']);
+        if (!$autor) {
+            return back()->with('error', 'O autor escolhido não pertence a este trabalho.');
+        }
+        $autor->update(['apresentador' => true]);
+        $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, "Apresentador definido: {$autor->nome_completo}");
+
+        $aviso = (!$autor->cpf && !$autor->email) ? ' Atenção: sem CPF nem e-mail, a presença não conseguirá confirmar a apresentação automaticamente.' : '';
+
+        return back()->with('success', "{$autor->nome_completo} definido(a) como apresentador(a).{$aviso}");
     }
 
     public function removerAvaliador(Request $request, Trabalho $trabalho, TrabalhoAvaliacao $avaliacao)

@@ -7,6 +7,9 @@ Para quem coordena a chamada de trabalhos de um evento (dono do evento, editor c
 2. **Gestão de trabalhos → evento → Configuração da chamada** (*Criar chamada* / *Editar chamada*): período de submissão, categorias, modalidades, nº máx. de autores, tamanho do PDF, exigências (resumo, palavras-chave, CPF do apresentador), critérios de avaliação com pesos, prazos de correção, link do template.
 3. **Salvar e publicar**. O evento passa a exibir **Submeter trabalho**.
 
+## 1.1 Tags de pendência
+Na fila e no painel do trabalho aparecem **tags** que dizem o que falta para ele avançar: *Aguardando avaliadores*, *Aguardando decisão da gestão*, *Aguardando aprovação do reenvio*, *Aguardando ajustes do autor*, *Aguardando vincular apresentador* (nenhum autor apresentador com conta vinculada: a presença na sessão não confirma a apresentação sozinha), *Aguardando definir sessão*, *Aguardando avaliadores da apresentação* e *Aguardando resultado da apresentação*. Use o filtro **Qualquer pendência** para listar os trabalhos com uma delas. Para vincular o apresentador, use o cartão *Apresentação* do trabalho (**Vincular**).
+
 ## 2. Triagem
 Em **Trabalhos do evento**, abra o trabalho:
 - **Aprovar triagem** → segue para avaliação.

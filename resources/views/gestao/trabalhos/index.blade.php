@@ -56,6 +56,12 @@
                         </select>
                     </div>
                     <div class="col-md-2">
+                        <select name="pendencia" class="form-select form-select-sm" title="Filtrar pelo que está faltando no trabalho">
+                            <option value="">Qualquer pendência</option>
+                            @foreach(\App\Services\PendenciasTrabalho::ROTULOS as $v => $r) <option value="{{ $v }}" @selected(request('pendencia') === $v)>{{ $r }}</option> @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <select name="tipo" class="form-select form-select-sm">
                             <option value="">Todas as categorias</option>
                             @foreach(\App\Models\TrabalhoConfig::TIPOS as $v => $r) <option value="{{ $v }}" @selected(request('tipo') === $v)>{{ $r }}</option> @endforeach
@@ -104,7 +110,12 @@
                                 </td>
                                 <td>{{ \App\Models\TrabalhoConfig::TIPOS[$t->tipo_trabalho] ?? '—' }}</td>
                                 <td>{{ $t->area->nome ?? '—' }}</td>
-                                <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" /></td>
+                                <td>
+                                    <x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" />
+                                    @foreach(($pendencias[$t->id] ?? []) as $chave)
+                                        <div class="mt-1"><x-badge tipo="pendencia" :valor="$chave" /></div>
+                                    @endforeach
+                                </td>
                                 <td>{{ $t->avaliacoes->where('status', '!=', 'recusada')->count() }}/{{ $config?->avaliadores_por_trabalho ?? 2 }}</td>
                                 <td>{{ $t->submetido_em?->format('d/m/Y H:i') }}</td>
                                 <td class="text-end pe-3">

@@ -171,6 +171,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{trabalho}/triagem', [$c, 'triagem'])->name('triagem');
         Route::post('/{trabalho}/avaliadores', [$c, 'atribuir'])->name('avaliadores.store');
         Route::post('/{trabalho}/desempate', [$c, 'desempate'])->name('desempate');
+        Route::post('/{trabalho}/apresentador', [$c, 'definirApresentador'])->name('apresentador');
         Route::post('/{trabalho}/encerrar-avaliacao', [$c, 'encerrarAvaliacao'])->name('encerrar');
         Route::post('/{trabalho}/decisao', [$c, 'decisao'])->name('decisao');
         Route::post('/{trabalho}/prorrogar-correcao', [$c, 'prorrogarCorrecao'])->name('prorrogar');
