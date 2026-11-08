@@ -30,7 +30,7 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
 
         $trabalhos = $evento->trabalhos()->where('status', 'aprovado')
             ->when($atividadeId, fn ($q) => $q->where('atividade_id', $atividadeId))
-            ->with(['sessao', 'avaliacoesApresentacao.avaliador', 'autores'])
+            ->with(['sessao', 'avaliacoesApresentacao.avaliador', 'autores', 'evento.trabalhoConfig', 'certificados'])
             ->orderBy('atividade_id')->orderBy('codigo')->get();
 
         $criterios = $evento->criteriosApresentacao()->where('ativo', true)->get();

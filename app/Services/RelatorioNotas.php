@@ -26,7 +26,7 @@ class RelatorioNotas
     {
         $query = $evento->trabalhos()
             ->where('status', '!=', Trabalho::RASCUNHO)
-            ->with(['area', 'autores', 'avaliacoes.avaliador', 'avaliacoes.notas', 'evento.trabalhoConfig']);
+            ->with(['area', 'autores', 'avaliacoes.avaliador', 'avaliacoes.notas', 'evento.trabalhoConfig', 'certificados']);
 
         if (!empty($filtros['tipo'])) {
             $query->where('tipo_trabalho', $filtros['tipo']);

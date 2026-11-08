@@ -52,7 +52,7 @@
                     <div class="col-md-2">
                         <select name="status" class="form-select form-select-sm">
                             <option value="">Todos os status</option>
-                            @foreach(\App\Models\Trabalho::STATUS as $v => $r) <option value="{{ $v }}" @selected(request('status') === $v)>{{ $r }}</option> @endforeach
+                            @foreach(\App\Models\Trabalho::STATUS + ['aprovado_escrita' => 'Aprovado na parte escrita', 'aguardando_certificado' => 'Aguardando emissão de certificado', 'concluido' => 'Concluído (certificados emitidos)'] as $v => $r) <option value="{{ $v }}" @selected(request('status') === $v)>{{ $r }}</option> @endforeach
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -78,6 +78,7 @@
                 ['valor' => 'atribuir', 'rotulo' => 'Atribuir avaliadores', 'icone' => 'fa-user-plus', 'tom' => 'btn-outline-success'],
                 ['valor' => 'triagem', 'rotulo' => 'Iniciar triagem', 'icone' => 'fa-filter', 'tom' => 'btn-outline-primary'],
                 ['valor' => 'avaliacao', 'rotulo' => 'Encaminhar para avaliação', 'icone' => 'fa-share', 'tom' => 'btn-outline-warning'],
+                ['valor' => 'certificados', 'rotulo' => 'Emitir certificados', 'icone' => 'fa-award', 'tom' => 'btn-tone-purple'],
             ]" />
 
             <div class="glass-card bg-white p-0 overflow-hidden">
@@ -92,9 +93,10 @@
                                 $ativas = $t->avaliacoes->where('status', '!=', 'recusada')->count();
                                 $minimo = $config?->avaliadores_por_trabalho ?? 2;
                                 $aptoAval = $t->status === 'em_triagem' && $ativas >= $minimo;
+                                $situacaoFinal = $t->statusFinal();
                             @endphp
                             <tr>
-                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho" data-codigo="{{ $t->codigo }}" data-atribuir="{{ in_array($t->status, \App\Services\TrabalhoWorkflow::STATUS_ATRIBUICAO, true) ? 1 : 0 }}" data-triagem="{{ in_array($t->status, [\App\Models\Trabalho::SUBMETIDO, 'resubmetido'], true) ? 1 : 0 }}" data-avaliacao="{{ $aptoAval ? 1 : 0 }}" data-motivo-avaliacao="{{ $aptoAval ? '' : ($t->status !== 'em_triagem' ? 'não está em triagem' : 'faltam ' . ($minimo - $ativas) . ' avaliador(es)') }}"></td>
+                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho" data-codigo="{{ $t->codigo }}" data-atribuir="{{ in_array($t->status, \App\Services\TrabalhoWorkflow::STATUS_ATRIBUICAO, true) ? 1 : 0 }}" data-triagem="{{ in_array($t->status, [\App\Models\Trabalho::SUBMETIDO, 'resubmetido'], true) ? 1 : 0 }}" data-certificados="{{ $situacaoFinal === 'aguardando_certificado' ? 1 : 0 }}" data-motivo-certificados="{{ $situacaoFinal === 'aguardando_certificado' ? '' : ($situacaoFinal === 'concluido' ? 'certificados já emitidos' : 'situação: ' . strtolower($t->statusFinalRotulo())) }}" data-avaliacao="{{ $aptoAval ? 1 : 0 }}" data-motivo-avaliacao="{{ $aptoAval ? '' : ($t->status !== 'em_triagem' ? 'não está em triagem' : 'faltam ' . ($minimo - $ativas) . ' avaliador(es)') }}"></td>
                                 <td class="fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>
                                     <div class="fw-bold">{{ \Illuminate\Support\Str::limit($t->titulo, 70) }}</div>

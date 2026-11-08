@@ -217,6 +217,55 @@ class AvaliacaoService
     }
 
     // ------------------------------------------------------------------
+    // Desempate
+    // ------------------------------------------------------------------
+
+    /** Há divergência alta e ainda dá para adicionar um avaliador de desempate? Devolve o motivo do bloqueio ou null. */
+    public function motivoSemDesempate(Trabalho $trabalho): ?string
+    {
+        if (!in_array($trabalho->status, ['avaliado', 'em_avaliacao'], true)) {
+            return 'O desempate só pode ser pedido com o trabalho em avaliação ou já avaliado.';
+        }
+        if (!$this->divergenciaAlta($trabalho)) {
+            return 'Não há divergência alta entre os avaliadores (o limite é definido na chamada).';
+        }
+        $rodada = $trabalho->rodadaAtual();
+        if ($trabalho->avaliacoes()->where('rodada', $rodada)->where('desempate', true)->where('status', '!=', 'recusada')->exists()) {
+            return 'Já existe um avaliador de desempate neste trabalho.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Adiciona um avaliador de desempate quando há divergência alta. Se o trabalho já estava "avaliado", ele volta
+     * para "em avaliação" para o novo avaliador poder avaliar; ao concluir, a nota passa a ser a média de todos.
+     *
+     * @throws \DomainException
+     */
+    public function atribuirDesempate(Trabalho $trabalho, User $avaliador, User $gestor, ?Carbon $prazo = null): TrabalhoAvaliacao
+    {
+        if ($motivo = $this->motivoSemDesempate($trabalho)) {
+            throw new \DomainException($motivo);
+        }
+
+        return DB::transaction(function () use ($trabalho, $avaliador, $gestor, $prazo) {
+            // valida papel, conflito e duplicidade antes de reabrir (se falhar, nada muda)
+            $avaliacao = $this->workflow->atribuirAvaliador($trabalho, $avaliador, $gestor, $prazo);
+            $avaliacao->update(['desempate' => true]);
+
+            if ($trabalho->status === 'avaliado') {
+                $trabalho->update(['status' => 'em_avaliacao']);
+                $this->workflow->registrar($trabalho, $gestor, 'avaliado', 'em_avaliacao', "Reaberta para avaliação de desempate ({$avaliador->name})");
+            } else {
+                $this->workflow->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, "Avaliador de desempate atribuído: {$avaliador->name}");
+            }
+
+            return $avaliacao->fresh();
+        });
+    }
+
+    // ------------------------------------------------------------------
     // Gestão
     // ------------------------------------------------------------------
 

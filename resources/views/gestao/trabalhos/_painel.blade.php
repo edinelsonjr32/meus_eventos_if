@@ -27,10 +27,12 @@
         $etapas[] = ['5. Avaliação da apresentação', $trabalho->nota_apresentacao !== null && $concluidasAp >= $totalAp && $totalAp > 0 ? 'ok' : ($aprovado ? 'atual' : 'futuro'), $totalAp ? "{$concluidasAp}/{$totalAp} concluída(s)" : ($aprovado ? 'atribuir avaliadores' : null)];
     }
     if ($apAtiva) {
-        $etapas[] = [($apAtiva ? '6' : '5') . '. Resultado final', $trabalho->statusFinal() === 'aprovado' && $aprovado ? 'ok' : ($aprovado && $trabalho->resultado_apresentacao === 'reprovado' ? 'atual' : 'futuro'),
-            $aprovado ? ($trabalho->statusFinal() === 'aprovado' ? 'Aprovado (texto + apresentação)' : ($trabalho->resultado_apresentacao === 'reprovado' ? 'apresentação não aprovada' : 'aprovado só na parte escrita')) : null];
+        $etapas[] = [($apAtiva ? '6' : '5') . '. Resultado final', $trabalho->aprovadoCompleto() && $aprovado ? 'ok' : ($aprovado && $trabalho->resultado_apresentacao === 'reprovado' ? 'atual' : 'futuro'),
+            $aprovado ? ($trabalho->aprovadoCompleto() ? 'Aprovado (texto + apresentação)' : ($trabalho->resultado_apresentacao === 'reprovado' ? 'apresentação não aprovada' : 'aprovado só na parte escrita')) : null];
     }
-    $etapas[] = [($apAtiva ? '7' : '5') . '. Certificado', $trabalho->certificados->whereNull('revogado_em')->isNotEmpty() ? 'ok' : 'futuro', null];
+    $situ = $trabalho->statusFinal();
+    $etapas[] = [($apAtiva ? '7' : '5') . '. Certificado', $situ === 'concluido' ? 'ok' : ($situ === 'aguardando_certificado' ? 'atual' : 'futuro'),
+        $situ === 'concluido' ? 'emitidos — fluxo concluído' : ($situ === 'aguardando_certificado' ? 'aguardando emissão' : null)];
 @endphp
 <div class="glass-card bg-white mb-4">
     <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-route me-1"></i> Etapas</h6>
@@ -104,7 +106,7 @@
     @forelse($trabalho->avaliacoes as $av)
         <div class="d-flex justify-content-between align-items-start small mb-2 pb-2 border-bottom">
             <div>
-                <div class="fw-bold">{{ $av->avaliador->name }}</div>
+                <div class="fw-bold">{{ $av->avaliador->name }} @if($av->desempate)<span class="sb" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;"><i class="fa-solid fa-scale-balanced"></i> Desempate</span>@endif</div>
                 <div class="text-muted"><x-badge tipo="avaliacao" :valor="$av->status" />@if($av->prazo) · prazo {{ $av->prazo->format('d/m/Y') }} @endif</div>
             </div>
             @if(in_array($av->status, ['pendente', 'em_andamento'], true))
@@ -197,14 +199,32 @@
         <div class="alert alert-warning small py-2">
             <i class="fa-solid fa-triangle-exclamation me-1"></i>
             Divergência alta entre avaliadores ({{ number_format($resultado['divergencia'], 2, ',', '.') }} pontos).
-            Considere atribuir um terceiro avaliador.
+            Adicione um <strong>avaliador de desempate</strong>.
+            @php $livresDesempate = $avaliadores->filter(fn ($u) => !$u->impedimento); @endphp
+            @if(!$resultado['motivoSemDesempate'])
+                @if($livresDesempate->isEmpty())
+                    <div class="mt-2 text-danger">Nenhum avaliador disponível para o desempate (todos já atribuídos ou com conflito de interesse).</div>
+                @else
+                    <form action="{{ route('gestao.trabalhos.desempate', $trabalho) }}" method="POST" class="mt-2">
+                        @csrf
+                        <select name="avaliador_id" class="form-select js-select-avaliadores" data-placeholder="Escolha o avaliador de desempate…" style="width:100%" required>
+                            <option value=""></option>
+                            @foreach($livresDesempate as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
+                        </select>
+                        <input type="date" name="prazo" class="form-control form-control-sm mt-2" min="{{ now()->addDay()->format('Y-m-d') }}" title="Prazo (opcional)">
+                        <button class="btn btn-sm btn-warning w-100 fw-bold mt-2" data-confirmar="Adicionar avaliador de desempate? @if($trabalho->status === 'avaliado') O trabalho voltará para 'Em avaliação' até ele concluir. @endif"><i class="fa-solid fa-scale-balanced"></i> Adicionar avaliador de desempate</button>
+                    </form>
+                @endif
+            @elseif(str_contains($resultado['motivoSemDesempate'], 'Já existe'))
+                <div class="mt-2"><i class="fa-solid fa-scale-balanced me-1"></i> Avaliador de desempate já atribuído: aguardando a avaliação.</div>
+            @endif
         </div>
     @endif
 
     @foreach($trabalho->avaliacoes->where('rodada', $resultado['rodada']) as $av)
         <details class="small mb-2 border rounded-3 p-2">
             <summary class="fw-bold">
-                {{ $av->avaliador->name }}
+                {{ $av->avaliador->name }} @if($av->desempate)<span class="sb" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;"><i class="fa-solid fa-scale-balanced"></i> Desempate</span>@endif
                 <span class="fw-normal text-muted">
                     — {{ $av->statusRotulo() }}@if($av->status === 'concluida'), nota {{ number_format($av->nota_final, 2, ',', '.') }}, {{ $av->recomendacaoRotulo() }}@endif
                 </span>

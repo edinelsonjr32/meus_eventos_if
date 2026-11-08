@@ -78,7 +78,7 @@
                 }
                 const acao = () => (form.querySelector('input[name=acao]:checked') || {}).value;
                 const nAval = () => form.querySelectorAll('select[name="avaliadores[]"] option:checked').length;
-                const rotuloAcao = { atribuir: 'Atribuir avaliadores', triagem: 'Iniciar triagem', avaliacao: 'Encaminhar para avaliação' };
+                const rotuloAcao = { atribuir: 'Atribuir avaliadores', triagem: 'Iniciar triagem', avaliacao: 'Encaminhar para avaliação', certificados: 'Emitir certificados' };
                 const restricoes = JSON.parse(form.dataset.restricoes || '{}');
                 const nomes = JSON.parse(form.dataset.avaliadores || '{}');
                 const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -101,7 +101,7 @@
                 function atualizar() {
                     const marcados = sel();
                     const a = acao();
-                    const campo = (a === 'triagem' || a === 'avaliacao') ? a : 'atribuir';
+                    const campo = (a === 'triagem' || a === 'avaliacao' || a === 'certificados') ? a : 'atribuir';
                     const aptos = marcados.filter(c => c.dataset[campo] === '1');
                     const ignorados = marcados.length - aptos.length;
                     const painel = form.querySelector('[data-lote-painel="atribuir"]');
@@ -124,6 +124,9 @@
                                 if (previstas === 0) texto = '<strong class="text-danger">Nenhuma atribuição possível:</strong> todos os pares avaliador × trabalho selecionados têm impedimento (veja abaixo).';
                                 else { ok = true; texto = 'Serão feitas <strong>' + previstas + '</strong> atribuição(ões) (' + aptos.length + ' trabalho(s) × ' + n + ' avaliador(es))' + (imp.bloqueados ? ', <strong class="text-warning">' + imp.bloqueados + ' impedida(s)</strong>' : '') + '.'; }
                             }
+                        } else if (a === 'certificados') {
+                            if (!aptos.length) texto = '<strong class="text-danger">Nenhum trabalho está aguardando emissão de certificado</strong> (aprovado nas duas partes e apresentado).';
+                            else { ok = true; texto = '<strong>' + aptos.length + '</strong> trabalho(s) terão os certificados emitidos para todos os autores (e-mail enviado) e passarão a <em>Concluído</em>.'; }
                         } else if (a === 'avaliacao') {
                             if (!aptos.length) texto = '<strong class="text-danger">Nenhum trabalho pode ser encaminhado:</strong> é preciso estar em triagem e já ter o mínimo de avaliadores da chamada.';
                             else { ok = true; texto = '<strong>' + aptos.length + '</strong> trabalho(s) serão encaminhados para avaliação (os avaliadores já atribuídos passam a poder avaliar).'; }
@@ -152,10 +155,11 @@
                             });
                         });
                     }
-                    if (a === 'avaliacao') {
-                        const barrados = marcados.filter(c => c.dataset.avaliacao !== '1');
+                    if (a === 'avaliacao' || a === 'certificados') {
+                        const attr = a === 'avaliacao' ? 'avaliacao' : 'certificados';
+                        const barrados = marcados.filter(c => c.dataset[attr] !== '1');
                         const grupos = {};
-                        barrados.forEach(c => { const m = c.dataset.motivoAvaliacao || 'não pode ser encaminhado'; (grupos[m] = grupos[m] || []).push(c.dataset.codigo); });
+                        barrados.forEach(c => { const m = (a === 'avaliacao' ? c.dataset.motivoAvaliacao : c.dataset.motivoCertificados) || 'não pode ser processado'; (grupos[m] = grupos[m] || []).push(c.dataset.codigo); });
                         Object.keys(grupos).forEach(m => {
                             html += '<div class="mb-1"><span class="sb" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;"><i class="fa-solid fa-triangle-exclamation"></i> ' + esc(m) + '</span> <span class="text-muted">em ' + esc(grupos[m].join(', ')) + '</span></div>';
                         });

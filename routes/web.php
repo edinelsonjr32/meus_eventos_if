@@ -109,6 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/trabalhos/{trabalho}/editar', [\App\Http\Controllers\TrabalhoController::class, 'edit'])->name('trabalhos.edit');
     Route::put('/trabalhos/{trabalho}', [\App\Http\Controllers\TrabalhoController::class, 'update'])->name('trabalhos.update');
     Route::get('/trabalhos/{trabalho}/arquivo', [\App\Http\Controllers\TrabalhoController::class, 'arquivo'])->name('trabalhos.arquivo');
+    Route::post('/trabalhos/{trabalho}/autorizacao-publicacao', [\App\Http\Controllers\TrabalhoController::class, 'autorizarPublicacao'])->name('trabalhos.autorizacao-publicacao');
     Route::post('/trabalhos/{trabalho}/retirar', [\App\Http\Controllers\TrabalhoController::class, 'retirar'])->name('trabalhos.retirar');
 
     // --- AVALIADOR (somente as próprias avaliações; autorização por Policy) ---
@@ -151,6 +152,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/evento/{evento}/anais/publicar', [$n, 'publicar'])->name('anais.publicar');
         Route::post('/evento/{evento}/anais/despublicar', [$n, 'despublicar'])->name('anais.despublicar');
         Route::post('/evento/{evento}/anais/dados-publicacao', [$n, 'dadosPublicacao'])->name('anais.dados-publicacao');
+        Route::post('/evento/{evento}/anais/solicitar-autorizacao', [$n, 'solicitarAutorizacao'])->name('anais.solicitar-autorizacao');
         Route::get('/evento/{evento}/exportar', [$c, 'exportar'])->name('exportar');
         Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
         Route::get('/evento/{evento}/ranking', [$c, 'ranking'])->name('ranking');
@@ -168,6 +170,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/{trabalho}', [$c, 'atualizar'])->name('atualizar');
         Route::post('/{trabalho}/triagem', [$c, 'triagem'])->name('triagem');
         Route::post('/{trabalho}/avaliadores', [$c, 'atribuir'])->name('avaliadores.store');
+        Route::post('/{trabalho}/desempate', [$c, 'desempate'])->name('desempate');
         Route::post('/{trabalho}/encerrar-avaliacao', [$c, 'encerrarAvaliacao'])->name('encerrar');
         Route::post('/{trabalho}/decisao', [$c, 'decisao'])->name('decisao');
         Route::post('/{trabalho}/prorrogar-correcao', [$c, 'prorrogarCorrecao'])->name('prorrogar');

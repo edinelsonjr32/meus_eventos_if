@@ -34,15 +34,40 @@ class TrabalhoGestaoController extends Controller
     {
     }
 
+    /** Situações que dependem de mais que a coluna status (ver Trabalho::situacaoDe). */
+    private const SITUACOES_DERIVADAS = ['aprovado', 'aprovado_escrita', 'aguardando_certificado', 'concluido'];
+
+    /**
+     * Situação de exibição de cada trabalho não-rascunho do evento (id => situação), sem carregar modelos completos.
+     *
+     * @return \Illuminate\Support\Collection<int,string>
+     */
+    private function situacoes(Evento $evento): \Illuminate\Support\Collection
+    {
+        $cfg = $evento->trabalhoConfig;
+        $ativa = (bool) $cfg?->avaliacao_apresentacao_ativa;
+        $exige = (bool) ($cfg?->exige_apresentacao_para_certificado ?? true);
+
+        return $evento->trabalhos()->where('status', '!=', Trabalho::RASCUNHO)
+            ->withExists(['certificados as tem_certificado' => fn ($q) => $q->whereNull('revogado_em')])
+            ->get(['id', 'status', 'apresentado', 'resultado_apresentacao'])
+            ->mapWithKeys(fn ($t) => [$t->id => Trabalho::situacaoDe($t->status, (bool) $t->apresentado, $t->resultado_apresentacao, $ativa, $exige, (bool) $t->tem_certificado)]);
+    }
+
     /** Consulta de trabalhos submetidos com os filtros da fila (usada na lista e na exportação). */
     private function consulta(Request $request, Evento $evento)
     {
         $query = $evento->trabalhos()
             ->where('status', '!=', Trabalho::RASCUNHO) // rascunhos são privados do autor
-            ->with(['autores', 'area', 'arquivoAtual', 'avaliacoes', 'evento.trabalhoConfig']);
+            ->with(['autores', 'area', 'arquivoAtual', 'avaliacoes', 'evento.trabalhoConfig', 'certificados']);
 
         if ($status = $request->input('status')) {
-            $query->where('status', $status);
+            // Situações derivadas (aprovado em cada fase, aguardando certificado, concluído) saem do cálculo de situação, não da coluna
+            if (in_array($status, self::SITUACOES_DERIVADAS, true)) {
+                $query->whereIn('id', $this->situacoes($evento)->filter(fn ($s) => $s === $status)->keys());
+            } else {
+                $query->where('status', $status);
+            }
         }
         if ($tipo = $request->input('tipo')) {
             $query->where('tipo_trabalho', $tipo);
@@ -82,8 +107,8 @@ class TrabalhoGestaoController extends Controller
 
         $trabalhos = $query->latest('submetido_em')->paginate(20)->withQueryString();
 
-        $contagem = $evento->trabalhos()->where('status', '!=', Trabalho::RASCUNHO)
-            ->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status');
+        // Contadores por situação (inclui "aguardando certificado" e "concluído")
+        $contagem = $this->situacoes($evento)->countBy()->sortKeys();
 
         $avaliadores = $this->workflow->avaliadoresDoEvento($evento);
 
@@ -131,6 +156,7 @@ class TrabalhoGestaoController extends Controller
             'media' => $this->avaliacao->notaMedia($trabalho),
             'divergencia' => $this->avaliacao->divergencia($trabalho),
             'divergenciaAlta' => $this->avaliacao->divergenciaAlta($trabalho),
+            'motivoSemDesempate' => $this->avaliacao->motivoSemDesempate($trabalho),
             'concluidas' => $this->avaliacao->concluidas($trabalho)->count(),
             'podeEncerrar' => $trabalho->status === 'em_avaliacao' && $this->avaliacao->concluidas($trabalho)->isNotEmpty(),
             'podeDecidir' => in_array($trabalho->status, ['avaliado', 'resubmetido'], true),
@@ -247,6 +273,28 @@ class TrabalhoGestaoController extends Controller
         return $this->atribuirVarios($trabalho, $request, $dados['avaliadores'], $dados['prazo'] ?? null)->aplicar(back(), 'atribuição(ões)');
     }
 
+    /** Adiciona um avaliador de desempate quando há divergência alta entre os avaliadores. */
+    public function desempate(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        $dados = $request->validate([
+            'avaliador_id' => ['required', 'integer', 'exists:users,id'],
+            'prazo' => ['nullable', 'date', 'after:today'],
+        ], ['avaliador_id.required' => 'Escolha o avaliador de desempate.']);
+
+        try {
+            $this->avaliacao->atribuirDesempate(
+                $trabalho, \App\Models\User::findOrFail($dados['avaliador_id']), $request->user(),
+                !empty($dados['prazo']) ? Carbon::parse($dados['prazo'])->endOfDay() : null
+            );
+        } catch (\DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Avaliador de desempate atribuído. O trabalho voltou para "Em avaliação" até ele concluir.');
+    }
+
     public function removerAvaliador(Request $request, Trabalho $trabalho, TrabalhoAvaliacao $avaliacao)
     {
         $this->authorize('gerirTrabalhos', $trabalho->evento);
@@ -334,7 +382,7 @@ class TrabalhoGestaoController extends Controller
         $this->authorize('gerirTrabalhos', $evento);
 
         $dados = $request->validate([
-            'acao' => ['required', Rule::in(['triagem', 'atribuir', 'avaliacao'])],
+            'acao' => ['required', Rule::in(['triagem', 'atribuir', 'avaliacao', 'certificados'])],
             'trabalhos' => ['required', 'array', 'min:1'],
             'trabalhos.*' => ['integer'],
             'avaliadores' => ['required_if:acao,atribuir', 'array'],
@@ -343,7 +391,7 @@ class TrabalhoGestaoController extends Controller
         ], ['trabalhos.required' => 'Selecione ao menos um trabalho.', 'avaliadores.required_if' => 'Selecione ao menos um avaliador.']);
 
         // Somente trabalhos deste evento (ignora ids de outros eventos)
-        $trabalhos = $evento->trabalhos()->whereIn('id', $dados['trabalhos'])->with('evento.trabalhoConfig')->get();
+        $trabalhos = $evento->trabalhos()->whereIn('id', $dados['trabalhos'])->with(['evento.trabalhoConfig', 'certificados'])->get();
 
         $resultado = new ResultadoLote();
 
@@ -356,6 +404,19 @@ class TrabalhoGestaoController extends Controller
                 }
                 try {
                     $this->workflow->transicionar($trabalho, $request->user(), 'em_triagem');
+                    $resultado->ok();
+                } catch (\DomainException $e) {
+                    $resultado->ignorar($trabalho->codigo, $e->getMessage());
+                }
+            } elseif ($dados['acao'] === 'certificados') {
+                // Emissão em massa: só quem está "Aguardando emissão de certificado" (último passo do fluxo)
+                $situacao = $trabalho->statusFinal();
+                if ($situacao !== 'aguardando_certificado') {
+                    $resultado->ignorar($trabalho->codigo, $situacao === 'concluido' ? 'Certificados já emitidos' : "Situação atual: {$trabalho->statusFinalRotulo()} (precisa estar aguardando emissão)");
+                    continue;
+                }
+                try {
+                    $this->certificados->emitir($trabalho, $request->user());
                     $resultado->ok();
                 } catch (\DomainException $e) {
                     $resultado->ignorar($trabalho->codigo, $e->getMessage());
@@ -391,6 +452,7 @@ class TrabalhoGestaoController extends Controller
         return $resultado->aplicar(back(), match ($dados['acao']) {
             'triagem' => 'triagem(ns) iniciada(s)',
             'avaliacao' => 'trabalho(s) encaminhado(s) para avaliação',
+            'certificados' => 'trabalho(s) com certificados emitidos',
             default => 'atribuição(ões)',
         });
     }

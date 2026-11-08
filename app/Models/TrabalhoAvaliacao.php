@@ -17,12 +17,12 @@ class TrabalhoAvaliacao extends Model
     ];
 
     protected $fillable = [
-        'trabalho_id', 'avaliador_id', 'rodada', 'status', 'atribuido_por', 'prazo', 'nota_final', 'parecer',
+        'trabalho_id', 'avaliador_id', 'rodada', 'desempate', 'status', 'atribuido_por', 'prazo', 'nota_final', 'parecer',
         'parecer_confidencial', 'recomendacao', 'concluida_em', 'lembrete_enviado_em',
     ];
 
     protected $casts = [
-        'prazo' => 'datetime', 'concluida_em' => 'datetime', 'lembrete_enviado_em' => 'datetime', 'nota_final' => 'float',
+        'desempate' => 'boolean', 'prazo' => 'datetime', 'concluida_em' => 'datetime', 'lembrete_enviado_em' => 'datetime', 'nota_final' => 'float',
     ];
 
     public const RECOMENDACOES = [

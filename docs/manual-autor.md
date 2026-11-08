@@ -39,6 +39,9 @@ Quando o evento avalia apresentações, o seu trabalho só fica **Aprovado** (co
 ## 4.2 Apresentação na feira
 Trabalho aprovado é apresentado na sessão indicada pela organização (ex.: *Feira de Trabalhos*). Se o evento avaliar apresentações, depois dela você vê a **nota da apresentação**, a **nota geral** e os pareceres (anônimos) na página do trabalho, quando a gestão liberar.
 
+## 4.3 Autorizar a publicação nos Anais
+Mesmo depois de aprovado, você pode autorizar (ou revogar) a publicação do trabalho nos Anais na página do trabalho, botão **Autorizar publicação**. Sem a autorização o trabalho concluído não aparece nos Anais. São publicados título, resumo, nome e instituição dos autores e o PDF; nunca CPF ou e-mail.
+
 ## 5. Certificado e Anais
 - Após apresentar (confirmado pela organização ou pela sua presença na sessão), o certificado fica disponível em **Meus Trabalhos**; cada autor recebe o seu.
 - Os Anais públicos listam trabalhos aprovados, apresentados e com publicação autorizada. Só nome e instituição aparecem — nunca CPF ou e-mail.

@@ -46,7 +46,13 @@ Depois que o trabalho está **aprovado** (inclusive os "com ressalvas" depois da
 4. Acompanhe status e notas por avaliador. **Nota geral = texto × (100 − peso) + apresentação × peso**, exibida no ranking e nas exportações.
 5. Avaliador que recusar pode ser reatribuído; avaliações concluídas não são removidas.
 
+## 6.5 Fim do fluxo: certificados e conclusão
+Depois de aprovado nas duas partes (e apresentado), o trabalho fica **Aguardando emissão de certificado**. Na fila de trabalhos marque os trabalhos e use a ação em lote **Emitir certificados**: cada um passa a **Concluído (certificados emitidos)**, último passo do fluxo. Há filtro e contador para essas duas situações.
+
+**Desempate:** se a divergência entre avaliadores passar do limite da chamada, o painel do trabalho oferece **Adicionar avaliador de desempate** (trabalho "avaliado" volta a "em avaliação" até ele concluir; a nota passa a ser a média de todos).
+
 ## 7. Anais
+**Só concluídos autorizados entram:** o trabalho precisa estar aprovado, apresentado, com PDF e com a **publicação autorizada pelos autores**. Se um concluído não aparece, veja o painel *Concluídos que não entram nos Anais* (motivo por trabalho) e use **Solicitar autorização aos autores** (e-mail; o autor autoriza na página do trabalho, mesmo depois da aprovação).
 **Visibilidade:** a página dos Anais pode ser tornada **visível a qualquer momento** (mesmo antes do fim do evento) e os **dados de publicação** (ISSN, ISBN, DOI, editora, local, ano, citação ABNT e PDF compilado) ficam **ocultos** até você clicar em *Liberar dados de publicação* — normalmente depois do evento. A página avisa o público de que esses dados serão divulgados depois.
 
 

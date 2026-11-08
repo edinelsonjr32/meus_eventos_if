@@ -21,7 +21,7 @@ class TrabalhoController extends Controller
 
     public function index(Request $request)
     {
-        $trabalhos = Trabalho::with(['evento.trabalhoConfig', 'autores'])
+        $trabalhos = Trabalho::with(['evento.trabalhoConfig', 'autores', 'certificados'])
             ->doAutor($request->user())
             ->latest()
             ->get();
@@ -110,6 +110,22 @@ class TrabalhoController extends Controller
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store',
         ]);
+    }
+
+    /**
+     * O autor autoriza (ou revoga) a publicação do trabalho nos Anais mesmo depois da aprovação: sem essa
+     * autorização o trabalho concluído não aparece nos Anais. Só autores consentem; a gestão apenas solicita.
+     */
+    public function autorizarPublicacao(Request $request, Trabalho $trabalho)
+    {
+        abort_unless($trabalho->ehAutor($request->user()), 403);
+        abort_unless(in_array($trabalho->status, ['aprovado', 'aguardando_correcao', 'avaliado', 'resubmetido'], true), 422, 'A autorização só pode ser alterada em trabalhos já avaliados.');
+
+        $autoriza = $request->boolean('autoriza');
+        $trabalho->update(['autoriza_publicacao' => $autoriza, 'autorizou_em' => $autoriza ? now() : null]);
+        $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, $autoriza ? 'Publicação nos Anais autorizada pelo autor' : 'Autorização de publicação nos Anais revogada pelo autor');
+
+        return back()->with('success', $autoriza ? 'Publicação autorizada. O trabalho aparece nos Anais quando estiverem publicados.' : 'Autorização revogada: o trabalho não será publicado nos Anais.');
     }
 
     public function retirar(Request $request, Trabalho $trabalho)

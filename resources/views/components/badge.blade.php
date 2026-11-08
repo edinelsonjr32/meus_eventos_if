@@ -12,7 +12,7 @@
         'indigo' => ['#e0e7ff', '#4338ca', '#a5b4fc'], 'roxo' => ['#f3e8ff', '#7e22ce', '#d8b4fe'], 'ambar' => ['#fef3c7', '#b45309', '#fcd34d'],
         'laranja' => ['#ffedd5', '#c2410c', '#fdba74'], 'vermelho' => ['#fee2e2', '#b91c1c', '#fca5a5'], 'verde' => ['#dcfce7', '#15803d', '#86efac'],
         'lima' => ['#ecfccb', '#4d7c0f', '#bef264'], 'rosa' => ['#fce7f3', '#be185d', '#f9a8d4'], 'ardosia' => ['#e2e8f0', '#334155', '#94a3b8'],
-        'verde-forte' => ['#16a34a', '#ffffff', '#16a34a'], 'vermelho-forte' => ['#dc2626', '#ffffff', '#dc2626'],
+        'verde-forte' => ['#16a34a', '#ffffff', '#16a34a'], 'dourado' => ['#fef9c3', '#a16207', '#facc15'], 'esmeralda' => ['#065f46', '#ffffff', '#065f46'], 'vermelho-forte' => ['#dc2626', '#ffffff', '#dc2626'],
     ];
 
     // tipo => valor => [cor, ícone, rótulo]
@@ -25,7 +25,7 @@
             'resubmetido' => ['rosa', 'fa-arrows-rotate', 'Resubmetido'], 'aprovado' => ['verde-forte', 'fa-circle-check', 'Aprovado'],
             'aprovado_com_ressalvas' => ['lima', 'fa-circle-exclamation', 'Aprovado com ressalvas'], 'reprovado' => ['vermelho-forte', 'fa-circle-xmark', 'Reprovado'],
             'retirado' => ['ardosia', 'fa-box-archive', 'Retirado'],
-            'aprovado_escrita' => ['lima', 'fa-file-circle-check', 'Aprovado na parte escrita'], 'aprovado_apresentacao' => ['azul', 'fa-person-chalkboard', 'Aprovado na apresentação'],
+            'aprovado_escrita' => ['lima', 'fa-file-circle-check', 'Aprovado na parte escrita'], 'aguardando_certificado' => ['dourado', 'fa-award', 'Aguardando emissão de certificado'], 'concluido' => ['esmeralda', 'fa-flag-checkered', 'Concluído (certificados emitidos)'], 'aprovado_apresentacao' => ['azul', 'fa-person-chalkboard', 'Aprovado na apresentação'],
         ],
         'avaliacao' => [
             'pendente' => ['ambar', 'fa-hourglass-half', 'Pendente'], 'em_andamento' => ['azul', 'fa-pen', 'Em andamento'],

@@ -166,11 +166,41 @@
                 </div>
             </div>
 
-            @if($semAutorizacao->isNotEmpty() || $aguardando > 0)
-                <div class="alert alert-light border small mt-3">
-                    @if($aguardando > 0) <div><i class="fa-solid fa-hourglass-half me-1"></i> {{ $aguardando }} trabalho(s) aprovado(s) ainda sem apresentação confirmada ficam de fora.</div> @endif
-                    @if($semAutorizacao->isNotEmpty())
-                        <div><i class="fa-solid fa-ban me-1"></i> Sem autorização de publicação dos autores (ficam de fora): {{ $semAutorizacao->pluck('codigo')->implode(', ') }}.</div>
+            @if($foraDosAnais->isNotEmpty() || $aguardando > 0)
+                <div class="glass-card bg-white mt-3">
+                    <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-circle-info me-1"></i> Concluídos que não entram nos Anais</h6>
+                    <p class="small text-muted">Só entram trabalhos aprovados, apresentados <strong>e com a publicação autorizada pelos autores</strong> (e com PDF). A autorização é dada pelo autor, na página do trabalho.</p>
+                    @if($aguardando > 0) <div class="small mb-2"><i class="fa-solid fa-hourglass-half me-1"></i> {{ $aguardando }} trabalho(s) aprovado(s) ainda sem apresentação confirmada ficam de fora.</div> @endif
+
+                    @if($foraDosAnais->isNotEmpty())
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle small mb-2">
+                                <thead><tr><th>Protocolo</th><th>Título</th><th>Situação</th><th>Motivo</th></tr></thead>
+                                <tbody>
+                                @foreach($foraDosAnais as $t)
+                                    <tr>
+                                        <td class="fw-bold text-nowrap"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="text-decoration-none">{{ $t->codigo }}</a></td>
+                                        <td>{{ \Illuminate\Support\Str::limit($t->titulo, 60) }}</td>
+                                        <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" /></td>
+                                        <td>
+                                            @if($t->motivoAnais === 'autorizacao')
+                                                <span class="sb" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;"><i class="fa-solid fa-ban"></i> Autores não autorizaram a publicação</span>
+                                                @if($t->autorizacao_solicitada_em) <span class="text-muted">· pedido enviado em {{ $t->autorizacao_solicitada_em->format('d/m H:i') }}</span> @endif
+                                            @else
+                                                <span class="sb" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;"><i class="fa-solid fa-file-circle-xmark"></i> Sem PDF publicável</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        @if($semAutorizacao->isNotEmpty())
+                            <form action="{{ route('gestao.trabalhos.anais.solicitar-autorizacao', $evento) }}" method="POST" class="text-end">
+                                @csrf
+                                <button class="btn btn-sm btn-warning fw-bold" data-confirmar="Enviar e-mail aos autores de {{ $semAutorizacao->count() }} trabalho(s) pedindo a autorização de publicação nos Anais?"><i class="fa-solid fa-envelope"></i> Solicitar autorização aos autores ({{ $semAutorizacao->count() }})</button>
+                            </form>
+                        @endif
                     @endif
                 </div>
             @endif

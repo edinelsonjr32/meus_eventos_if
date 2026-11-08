@@ -46,7 +46,20 @@
                             <dt class="col-sm-4 text-secondary">Comitê de ética</dt>
                             <dd class="col-sm-8">{{ $trabalho->comite_etica ?: '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Publicação nos Anais</dt>
-                            <dd class="col-sm-8">{{ $trabalho->autoriza_publicacao ? 'Autorizada' : 'Não autorizada' }}</dd>
+                            <dd class="col-sm-8">
+                                <x-badge tipo="sim-nao" :valor="$trabalho->autoriza_publicacao ? 'sim' : 'nao'" :rotulo="$trabalho->autoriza_publicacao ? 'Autorizada' : 'Não autorizada'" />
+                                @unless($gestao)
+                                    @if($trabalho->ehAutor(auth()->user()) && in_array($trabalho->status, ['aprovado', 'aguardando_correcao', 'avaliado', 'resubmetido'], true))
+                                        <form action="{{ route('trabalhos.autorizacao-publicacao', $trabalho) }}" method="POST" class="d-inline ms-2">
+                                            @csrf
+                                            <input type="hidden" name="autoriza" value="{{ $trabalho->autoriza_publicacao ? 0 : 1 }}">
+                                            <button class="btn btn-sm {{ $trabalho->autoriza_publicacao ? 'btn-outline-danger' : 'btn-success' }}" data-confirmar="{{ $trabalho->autoriza_publicacao ? 'Revogar a autorização? O trabalho deixará de aparecer nos Anais.' : 'Autorizar a publicação do trabalho nos Anais? Serão publicados título, resumo, nome e instituição dos autores e o PDF (nunca CPF ou e-mail).' }}">
+                                                <i class="fa-solid {{ $trabalho->autoriza_publicacao ? 'fa-ban' : 'fa-check' }}"></i> {{ $trabalho->autoriza_publicacao ? 'Revogar autorização' : 'Autorizar publicação' }}
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endunless
+                            </dd>
                         </dl>
                         <hr>
                         <h6 class="fw-bold">Resumo</h6>
@@ -124,8 +137,8 @@
                             $paresAp = $trabalho->avaliacoesApresentacao()->where('status', 'concluida')->get();
                         @endphp
                         @if($cfgAp?->avaliacao_apresentacao_ativa && $trabalho->status === 'aprovado')
-                            <div class="alert alert-{{ $trabalho->statusFinal() === 'aprovado' ? 'success' : 'info' }} small">
-                                @if($trabalho->statusFinal() === 'aprovado')
+                            <div class="alert alert-{{ $trabalho->aprovadoCompleto() ? 'success' : 'info' }} small">
+                                @if($trabalho->aprovadoCompleto())
                                     <i class="fa-solid fa-circle-check me-1"></i> <strong>Aprovado (parte escrita e apresentação).</strong> Seu trabalho entra nos Anais, se houver autorização de publicação.
                                 @elseif($trabalho->resultado_apresentacao === 'reprovado')
                                     <i class="fa-solid fa-circle-exclamation me-1"></i> Aprovado na <strong>parte escrita</strong>, mas não aprovado na apresentação.

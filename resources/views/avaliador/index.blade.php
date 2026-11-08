@@ -11,7 +11,7 @@
             @forelse($abertas as $a)
                 <div class="glass-card bg-white mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <div class="fw-bold">{{ $a->trabalho->titulo }}</div>
+                        <div class="fw-bold">{{ $a->trabalho->titulo }} @if($a->desempate)<span class="sb" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;"><i class="fa-solid fa-scale-balanced"></i> Desempate</span>@endif</div>
                         <small class="text-muted">{{ $a->trabalho->codigo }} · {{ $a->trabalho->evento->titulo }}</small>
                         <div class="small mt-1">
                             <x-badge tipo="avaliacao" :valor="$a->status" />

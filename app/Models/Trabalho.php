@@ -38,6 +38,8 @@ class Trabalho extends Model
     public const STATUS_FINAL_EXTRA = [
         'aprovado_escrita' => 'Aprovado na parte escrita',
         'aprovado_apresentacao' => 'Aprovado na apresentação',
+        'aguardando_certificado' => 'Aguardando emissão de certificado',
+        'concluido' => 'Concluído (certificados emitidos)',
     ];
 
     public const TIPOS_AUTOR = [
@@ -62,7 +64,7 @@ class Trabalho extends Model
         'area_tematica_id', 'atividade_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
         'status', 'nota_final', 'nota_apresentacao', 'resultado_apresentacao', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
         'apresentado', 'apresentado_em', 'apresentacao_origem',
-        'autoriza_publicacao', 'autorizou_em', 'submetido_em',
+        'autoriza_publicacao', 'autorizou_em', 'autorizacao_solicitada_em', 'submetido_em',
     ];
 
     protected $casts = [
@@ -70,6 +72,7 @@ class Trabalho extends Model
         'nota_apresentacao' => 'float',
         'autoriza_publicacao' => 'boolean',
         'autorizou_em' => 'datetime',
+        'autorizacao_solicitada_em' => 'datetime',
         'submetido_em' => 'datetime',
         'decisao_em' => 'datetime',
         'prazo_correcao' => 'datetime',
@@ -133,14 +136,38 @@ class Trabalho extends Model
      */
     public function statusFinal(): string
     {
-        if ($this->status !== 'aprovado') {
-            return $this->status;
+        $cfg = $this->evento->trabalhoConfig;
+        $temCertificado = $this->relationLoaded('certificados')
+            ? $this->certificados->whereNull('revogado_em')->isNotEmpty()
+            : $this->certificados()->whereNull('revogado_em')->exists();
+
+        return self::situacaoDe(
+            $this->status, (bool) $this->apresentado, $this->resultado_apresentacao,
+            (bool) $cfg?->avaliacao_apresentacao_ativa, (bool) ($cfg?->exige_apresentacao_para_certificado ?? true), $temCertificado
+        );
+    }
+
+    /**
+     * Situação de exibição a partir dos dados básicos (usada também para contadores e filtros sem carregar modelos):
+     *   aprovado_escrita → aprovado só no texto (apresentação pendente/reprovada)
+     *   aprovado → aprovado nas duas partes, ainda sem a apresentação confirmada
+     *   aguardando_certificado → aprovado nas duas partes e apresentado: pronto para emitir os certificados (em massa)
+     *   concluido → certificados emitidos: último passo do fluxo
+     * Os demais status são devolvidos como estão.
+     */
+    public static function situacaoDe(string $status, bool $apresentado, ?string $resultadoApresentacao, bool $apresentacaoAtiva, bool $exigeApresentacao, bool $temCertificado): string
+    {
+        if ($status !== 'aprovado') {
+            return $status;
         }
-        if (!$this->evento->trabalhoConfig?->avaliacao_apresentacao_ativa) {
-            return 'aprovado';
+        if ($apresentacaoAtiva && $resultadoApresentacao !== 'aprovado') {
+            return 'aprovado_escrita';
+        }
+        if ($temCertificado) {
+            return 'concluido';
         }
 
-        return $this->resultado_apresentacao === 'aprovado' ? 'aprovado' : 'aprovado_escrita';
+        return (!$exigeApresentacao || $apresentado) ? 'aguardando_certificado' : 'aprovado';
     }
 
     public function statusFinalRotulo(): string
@@ -151,6 +178,9 @@ class Trabalho extends Model
     /** Complemento do selo "Aprovado na parte escrita": diz o que falta, sem afirmar que não houve apresentação quando ela já ocorreu. */
     public function extraSituacao(): ?string
     {
+        if ($this->statusFinal() === 'aprovado' && !$this->apresentado) {
+            return 'aguardando apresentação';
+        }
         if ($this->statusFinal() !== 'aprovado_escrita') {
             return null;
         }
@@ -164,7 +194,7 @@ class Trabalho extends Model
     /** Aprovado nas duas partes (ou apenas no texto, quando o evento não avalia apresentações). */
     public function aprovadoCompleto(): bool
     {
-        return $this->statusFinal() === 'aprovado';
+        return in_array($this->statusFinal(), ['aprovado', 'aguardando_certificado', 'concluido'], true);
     }
 
     /** Avaliações da apresentação (feira de trabalhos), feitas por avaliadores após a aprovação. */

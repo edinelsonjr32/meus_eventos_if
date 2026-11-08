@@ -33,11 +33,59 @@ class AnaisGestaoController extends Controller
         $elegiveis = Anais::elegiveis($evento)->with(['autores', 'area', 'arquivoAnais', 'arquivoAtual', 'evento.trabalhoConfig'])->orderBy('codigo')->get();
         $elegiveis->each(fn ($t) => $t->pdfPublico = $this->pdf->arquivoPublico($t));
 
-        // Aprovados e apresentados que ficam de fora por falta de autorização dos autores
-        $semAutorizacao = $evento->trabalhos()->where('status', 'aprovado')->where('apresentado', true)->where('autoriza_publicacao', false)->orderBy('codigo')->get();
+        // Aprovados (nas duas partes) e apresentados que ficam de fora dos Anais, com o motivo
+        $foraDosAnais = $this->foraDosAnais($evento);
+        $semAutorizacao = $foraDosAnais->filter(fn ($t) => $t->motivoAnais === 'autorizacao');
         $aguardando = $evento->trabalhos()->where('status', 'aprovado')->where('apresentado', false)->count();
 
-        return view('gestao.trabalhos.anais', compact('evento', 'anais', 'elegiveis', 'semAutorizacao', 'aguardando'));
+        return view('gestao.trabalhos.anais', compact('evento', 'anais', 'elegiveis', 'semAutorizacao', 'foraDosAnais', 'aguardando'));
+    }
+
+    /**
+     * Trabalhos concluídos (aprovados nas duas partes e apresentados) que NÃO entram nos Anais, cada um com o motivo:
+     * 'autorizacao' (autores não autorizaram a publicação) ou 'pdf' (sem PDF publicável).
+     */
+    private function foraDosAnais(Evento $evento)
+    {
+        $evento->loadMissing('trabalhoConfig');
+        $consulta = $evento->trabalhos()->where('status', 'aprovado')->where('apresentado', true)->with(['autores', 'arquivoAnais', 'arquivoAtual', 'evento.trabalhoConfig', 'certificados'])->orderBy('codigo');
+        if ($evento->trabalhoConfig?->avaliacao_apresentacao_ativa) {
+            $consulta->where('resultado_apresentacao', 'aprovado');
+        }
+
+        return $consulta->get()->each(function ($t) {
+            $t->motivoAnais = !$t->autoriza_publicacao ? 'autorizacao' : ($this->pdf->arquivoPublico($t) === null ? 'pdf' : null);
+        })->filter(fn ($t) => $t->motivoAnais !== null)->values();
+    }
+
+    /** Pede (por e-mail) aos autores dos trabalhos concluídos sem autorização que autorizem a publicação nos Anais. */
+    public function solicitarAutorizacao(Evento $evento)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        $enviados = 0;
+        $recentes = 0;
+        foreach ($this->foraDosAnais($evento)->where('motivoAnais', 'autorizacao') as $t) {
+            // evita repetir o pedido em menos de 24 h
+            if ($t->autorizacao_solicitada_em && $t->autorizacao_solicitada_em->gt(now()->subDay())) {
+                $recentes++;
+                continue;
+            }
+            $emails = $t->autores->pluck('email')->filter()->push($t->submetente?->email)->filter()->map(fn ($e) => mb_strtolower($e))->unique();
+            foreach ($emails as $email) {
+                \Illuminate\Support\Facades\Mail::to($email)->queue(new \App\Mail\AutorizacaoPublicacaoMail($t));
+            }
+            Trabalho::whereKey($t->id)->update(['autorizacao_solicitada_em' => now()]);   // (o modelo carrega um atributo de exibição que não vai ao banco)
+            $enviados++;
+        }
+
+        if ($enviados === 0 && $recentes === 0) {
+            return back()->with('error', 'Não há trabalhos concluídos aguardando autorização dos autores.');
+        }
+
+        return back()->with($enviados ? 'success' : 'warning', $enviados
+            ? "Pedido de autorização enviado para os autores de {$enviados} trabalho(s)." . ($recentes ? " {$recentes} já tinham recebido o pedido nas últimas 24 h." : '')
+            : "Os autores já receberam o pedido nas últimas 24 h ({$recentes} trabalho(s)).");
     }
 
     public function update(Request $request, Evento $evento)
