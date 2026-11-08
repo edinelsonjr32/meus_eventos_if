@@ -17,6 +17,9 @@
                     <a href="{{ route('gestao.trabalhos.anais.edit', $evento) }}" class="btn btn-outline-success fw-bold">
                         <i class="fa-solid fa-book me-1"></i> Anais
                     </a>
+                    <a href="{{ route('gestao.trabalhos.apresentacoes.index', $evento) }}" class="btn btn-outline-success fw-bold">
+                        <i class="fa-solid fa-person-chalkboard me-1"></i> Apresentações
+                    </a>
                     <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-outline-success fw-bold">
                         <i class="fa-solid fa-ranking-star me-1"></i> Notas e ranking
                     </a>

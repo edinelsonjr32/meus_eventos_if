@@ -30,6 +30,9 @@ Os **pareceres** aparecem na página do trabalho quando a decisão é liberada.
 ## 4. Corrigir e reenviar
 Em **Aguardando correção**: abra o trabalho → **Editar**, ajuste o PDF/dados e reenvie antes do prazo. O trabalho volta aos mesmos avaliadores (nova rodada). Perdeu o prazo? Peça prorrogação à gestão.
 
+## 4.1 Apresentação na feira
+Trabalho aprovado é apresentado na sessão indicada pela organização (ex.: *Feira de Trabalhos*). Se o evento avaliar apresentações, depois dela você vê a **nota da apresentação**, a **nota geral** e os pareceres (anônimos) na página do trabalho, quando a gestão liberar.
+
 ## 5. Certificado e Anais
 - Após apresentar (confirmado pela organização ou pela sua presença na sessão), o certificado fica disponível em **Meus Trabalhos**; cada autor recebe o seu.
 - Os Anais públicos listam trabalhos aprovados, apresentados e com publicação autorizada. Só nome e instituição aparecem — nunca CPF ou e-mail.

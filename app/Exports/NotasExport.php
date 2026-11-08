@@ -27,7 +27,7 @@ class NotasExport implements FromCollection, WithHeadings, ShouldAutoSize
 
         return $this->tipo === 'detalhado'
             ? array_merge(['Protocolo', 'Título', 'Rodada', 'Avaliador', 'E-mail do avaliador', 'Situação', 'Nota final', 'Recomendação'], $criterios, ['Parecer ao autor', 'Comentário confidencial / motivo da recusa', 'Prazo', 'Concluída em'])
-            : array_merge(['Posição', 'Protocolo', 'Título', 'Categoria', 'Área', 'Modalidade', 'Situação', 'Decisão', 'Nota média', 'Avaliações concluídas', 'Notas individuais', 'Divergência', 'Recomendações'], array_map(fn ($c) => "Média: {$c}", $criterios));
+            : array_merge(['Posição', 'Protocolo', 'Título', 'Categoria', 'Área', 'Modalidade', 'Situação', 'Decisão', 'Nota média', 'Avaliações concluídas', 'Notas individuais', 'Divergência', 'Recomendações'], array_map(fn ($c) => "Média: {$c}", $criterios), ['Nota da apresentação', 'Nota geral']);
     }
 
     public function collection(): Collection
@@ -54,7 +54,7 @@ class NotasExport implements FromCollection, WithHeadings, ShouldAutoSize
             collect($l['notas'])->map(fn ($n) => number_format($n, 2, ',', ''))->implode('; '),
             $l['divergencia'],
             RelatorioNotas::rotuloRecomendacoes($l['recomendacoes']),
-        ], array_values($l['por_criterio']));
+        ], array_values($l['por_criterio']), [$l['nota_apresentacao'] ?? null, $l['nota_geral'] ?? null]);
     }
 
     private function detalhe(array $l): array

@@ -58,7 +58,7 @@
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-3">#</th><th>Protocolo</th><th>Título</th><th>Categoria</th><th class="text-center">Nota média</th>
+                                <th class="ps-3">#</th><th>Protocolo</th><th>Título</th><th>Categoria</th><th class="text-center">Nota média</th><th class="text-center">Apresentação</th><th class="text-center">Geral</th>
                                 <th>Notas individuais</th><th>Recomendações</th><th>Situação</th><th></th>
                             </tr>
                         </thead>
@@ -74,6 +74,8 @@
                                     <span class="fw-bold {{ $l['nota'] !== null && $l['nota'] >= $notaMinima ? 'text-success' : 'text-dark' }}">{{ $fmt($l['nota']) }}</span>
                                     <div class="text-muted">{{ $l['concluidas'] }}/{{ $l['atribuidas'] }} concl.</div>
                                 </td>
+                                <td class="text-center">{{ $fmt($l['nota_apresentacao'] ?? null) }}</td>
+                                <td class="text-center fw-bold">{{ $fmt($l['nota_geral'] ?? null) }}</td>
                                 <td>
                                     {{ collect($l['notas'])->map(fn ($n) => number_format($n, 2, ',', '.'))->implode(' · ') ?: '—' }}
                                     @if($l['divergencia'] !== null && $l['divergencia'] > $limiteDivergencia)
@@ -88,7 +90,7 @@
                                 <td class="text-end pe-3"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-light">Abrir</a></td>
                             </tr>
                         @empty
-                            <tr><td colspan="9" class="text-center text-muted py-5">Nenhum trabalho encontrado.</td></tr>
+                            <tr><td colspan="11" class="text-center text-muted py-5">Nenhum trabalho encontrado.</td></tr>
                         @endforelse
                         </tbody>
                     </table>

@@ -29,10 +29,13 @@ class TrabalhoConfig extends Model
         'resumo_min_palavras', 'resumo_max_palavras', 'max_trabalhos_por_usuario', 'avaliacao_cega',
         'tipos_permitidos', 'regras_texto', 'chamada_tema', 'chamada_intro', 'template_url', 'exige_resumo',
         'exige_palavras_chave', 'exige_cpf_apresentador',
+        'avaliacao_apresentacao_ativa', 'peso_apresentacao', 'autor_ve_nota_apresentacao',
     ];
 
     protected $casts = [
         'ativo' => 'boolean',
+        'avaliacao_apresentacao_ativa' => 'boolean',
+        'autor_ve_nota_apresentacao' => 'boolean',
         'avaliacao_cega' => 'boolean',
         'autor_ve_notas' => 'boolean',
         'autor_ve_pareceres' => 'boolean',

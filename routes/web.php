@@ -117,6 +117,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{avaliacao}/recusar', [$c, 'recusar'])->name('recusar');
     });
 
+    Route::prefix('avaliador/apresentacoes')->name('avaliador.apresentacoes.')->group(function () {
+        $c = \App\Http\Controllers\Avaliador\ApresentacaoAvaliacaoController::class;
+        Route::get('/', [$c, 'index'])->name('index');
+        Route::get('/{avaliacao}', [$c, 'show'])->name('show');
+        Route::get('/{avaliacao}/arquivo', [$c, 'arquivo'])->name('arquivo');
+        Route::post('/{avaliacao}/salvar', [$c, 'salvar'])->name('salvar');
+        Route::post('/{avaliacao}/concluir', [$c, 'concluir'])->name('concluir');
+        Route::post('/{avaliacao}/recusar', [$c, 'recusar'])->name('recusar');
+    });
+
     // --- GESTÃO DE TRABALHOS (gestor de trabalhos, dono e co-administradores; autorização por Policy) ---
     Route::prefix('gestao/trabalhos')->name('gestao.trabalhos.')->group(function () {
         $c = \App\Http\Controllers\Gestao\TrabalhoGestaoController::class;
@@ -139,6 +149,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
         Route::get('/evento/{evento}/ranking', [$c, 'ranking'])->name('ranking');
         Route::get('/evento/{evento}/exportar-notas', [$c, 'exportarNotas'])->name('exportar-notas');
+        $ap = \App\Http\Controllers\Gestao\ApresentacaoAvaliacaoGestaoController::class;
+        Route::get('/evento/{evento}/apresentacoes', [$ap, 'index'])->name('apresentacoes.index');
+        Route::put('/evento/{evento}/apresentacoes/config', [$ap, 'salvarConfig'])->name('apresentacoes.config');
+        Route::post('/evento/{evento}/apresentacoes/lote', [$ap, 'lote'])->name('apresentacoes.lote');
+        Route::post('/apresentacoes/{trabalho}/avaliadores', [$ap, 'atribuir'])->name('apresentacoes.atribuir');
+        Route::delete('/apresentacoes/avaliacao/{avaliacao}', [$ap, 'remover'])->name('apresentacoes.remover');
         Route::get('/evento/{evento}/novo', [$c, 'novo'])->name('novo');
         Route::post('/evento/{evento}/novo', [$c, 'criar'])->name('criar');
         Route::get('/{trabalho}', [$c, 'show'])->name('show');

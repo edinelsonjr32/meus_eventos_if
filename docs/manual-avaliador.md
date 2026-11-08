@@ -12,6 +12,9 @@ Entre com sua conta → menu **Avaliações**. Se não aparecer, peça à gestã
 4. **Salvar** guarda o rascunho (pode voltar depois). **Concluir** envia definitivamente — não dá para alterar depois.
 5. Em caso de conflito de interesse ou falta de tempo, use **Recusar** e justifique; a gestão designa outra pessoa.
 
+## 2.1 Avaliar a apresentação (feira de trabalhos)
+Se a gestão ativar, aparece o menu **Apresentações** com os trabalhos aprovados cuja apresentação foi atribuída a você (com sessão e horário). Abra, atribua nota a cada critério (oral/pôster), escreva um breve parecer e **Concluir**. É independente da avaliação do texto; a nota geral combina as duas conforme a configuração.
+
 ## 3. Boas práticas
 - Seja específico e cordial: o parecer é lido pelo autor.
 - Não compartilhe o PDF nem divulgue o conteúdo; o trabalho é inédito.

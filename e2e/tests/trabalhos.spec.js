@@ -152,3 +152,17 @@ test('papéis: Select2 busca usuário por nome ou e-mail', async ({ page }) => {
   await page.getByRole('button', { name: /Designar/ }).click();
   await expect(page.locator('.fb-toast.danger')).toContainText('Pessoa não selecionada');
 });
+
+test('avaliador abre a área de apresentações e a gestão a tela de avaliação das apresentações', async ({ page }) => {
+  await entrar(page, 'avaliador@teste.com', 'Avaliador@12345');
+  expect((await page.goto('/avaliador/apresentacoes')).status()).toBe(200);
+  await expect(page.getByText('Apresentações a avaliar')).toBeVisible();
+  await page.context().clearCookies();
+
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Trabalhos', exact: true }).first().click();
+  await page.getByRole('link', { name: /Apresentações/ }).first().click();
+  await expect(page.getByText('Avaliação das apresentações').first()).toBeVisible();
+  await expect(page.getByText('Carregar critérios padrão')).toBeVisible();
+});

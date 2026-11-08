@@ -54,13 +54,14 @@ class Trabalho extends Model
     protected $fillable = [
         'evento_id', 'codigo', 'submetido_por', 'titulo', 'resumo', 'abstract', 'palavras_chave', 'tipo_trabalho',
         'area_tematica_id', 'atividade_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
-        'status', 'nota_final', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
+        'status', 'nota_final', 'nota_apresentacao', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
         'apresentado', 'apresentado_em', 'apresentacao_origem',
         'autoriza_publicacao', 'autorizou_em', 'submetido_em',
     ];
 
     protected $casts = [
         'palavras_chave' => 'array',
+        'nota_apresentacao' => 'float',
         'autoriza_publicacao' => 'boolean',
         'autorizou_em' => 'datetime',
         'submetido_em' => 'datetime',
@@ -116,6 +117,30 @@ class Trabalho extends Model
     public function avaliacoes(): HasMany
     {
         return $this->hasMany(TrabalhoAvaliacao::class)->orderBy('id');
+    }
+
+    /** Avaliações da apresentação (feira de trabalhos), feitas por avaliadores após a aprovação. */
+    public function avaliacoesApresentacao(): HasMany
+    {
+        return $this->hasMany(ApresentacaoAvaliacao::class)->orderBy('id');
+    }
+
+    /**
+     * Nota geral: média ponderada entre a nota do trabalho e a da apresentação (peso configurável na chamada).
+     * Sem nota de apresentação, vale a nota do trabalho.
+     */
+    public function notaGeral(): ?float
+    {
+        if ($this->nota_final === null) {
+            return null;
+        }
+        $config = $this->evento->trabalhoConfig;
+        if ($this->nota_apresentacao === null || !($config?->avaliacao_apresentacao_ativa)) {
+            return (float) $this->nota_final;
+        }
+        $p = max(0, min(100, (int) $config->peso_apresentacao)) / 100;
+
+        return round($this->nota_final * (1 - $p) + $this->nota_apresentacao * $p, 2);
     }
 
     /** PDF final preparado pela gestão para os Anais (por exemplo, versão com identificação dos autores). */

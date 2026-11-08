@@ -93,6 +93,8 @@ class TitularService
                 ])->values()->all(),
             'avaliacoes_como_avaliador' => DB::table('trabalho_avaliacoes')->whereIn('avaliador_id', $alvo['usuarios']->pluck('id'))
                 ->get(['trabalho_id', 'rodada', 'status', 'nota_final', 'recomendacao', 'concluida_em'])->map(fn ($r) => (array) $r)->all(),
+            'avaliacoes_de_apresentacao_como_avaliador' => DB::table('apresentacao_avaliacoes')->whereIn('avaliador_id', $alvo['usuarios']->pluck('id'))
+                ->get(['trabalho_id', 'status', 'nota_final', 'concluida_em'])->map(fn ($r) => (array) $r)->all(),
             'papeis_em_eventos' => DB::table('evento_user')->whereIn('user_id', $alvo['usuarios']->pluck('id'))->get(['evento_id', 'role'])->map(fn ($r) => (array) $r)->all(),
         ];
 
@@ -151,6 +153,7 @@ class TitularService
     {
         return DB::table('trabalhos')->where('submetido_por', $u->id)->exists()
             || DB::table('trabalho_avaliacoes')->where('avaliador_id', $u->id)->exists()
+            || DB::table('apresentacao_avaliacoes')->where('avaliador_id', $u->id)->exists()
             || DB::table('eventos')->where('criado_por', $u->id)->exists()
             || DB::table('trabalho_arquivos')->where('enviado_por', $u->id)->exists();
     }

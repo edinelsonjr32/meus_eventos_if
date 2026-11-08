@@ -157,8 +157,11 @@
             </a>
 
             @if(\Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'avaliador')->exists())
-                <a href="{{ route('avaliador.avaliacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.*') ? 'active' : '' }}">
+                <a href="{{ route('avaliador.avaliacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.avaliacoes.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-clipboard-check w-25 text-center"></i> Minhas Avaliações
+                </a>
+                <a href="{{ route('avaliador.apresentacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.apresentacoes.*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-person-chalkboard w-25 text-center"></i> Apresentações
                 </a>
             @endif
 

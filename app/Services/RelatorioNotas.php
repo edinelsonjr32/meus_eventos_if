@@ -26,7 +26,7 @@ class RelatorioNotas
     {
         $query = $evento->trabalhos()
             ->where('status', '!=', Trabalho::RASCUNHO)
-            ->with(['area', 'autores', 'avaliacoes.avaliador', 'avaliacoes.notas']);
+            ->with(['area', 'autores', 'avaliacoes.avaliador', 'avaliacoes.notas', 'evento.trabalhoConfig']);
 
         if (!empty($filtros['tipo'])) {
             $query->where('tipo_trabalho', $filtros['tipo']);
@@ -80,6 +80,8 @@ class RelatorioNotas
                 'por_criterio' => $mediaPorCriterio->all(),
                 'recomendacoes' => $concluidas->countBy('recomendacao')->all(),
                 'rodada' => $rodada,
+                'nota_apresentacao' => $t->nota_apresentacao,
+                'nota_geral' => $t->notaGeral(),
             ];
         })
             ->sortBy([

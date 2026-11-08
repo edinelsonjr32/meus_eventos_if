@@ -212,6 +212,23 @@
 @endif
 
 
+{{-- Avaliação da apresentação (feira de trabalhos) --}}
+@if($trabalho->status === 'aprovado' && $trabalho->evento->trabalhoConfig?->avaliacao_apresentacao_ativa)
+    <div class="glass-card bg-white mb-4">
+        <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-star me-1"></i> Avaliação da apresentação</h6>
+        @php $avsAp = $trabalho->avaliacoesApresentacao()->with('avaliador')->get(); @endphp
+        @forelse($avsAp as $av)
+            <div class="small d-flex justify-content-between"><span>{{ $av->avaliador->name }}</span><span class="text-muted">{{ $av->statusRotulo() }}{{ $av->nota_final !== null ? ' · ' . number_format($av->nota_final, 2, ',', '.') : '' }}</span></div>
+        @empty
+            <div class="small text-muted">Nenhum avaliador atribuído.</div>
+        @endforelse
+        @if($trabalho->nota_apresentacao !== null)
+            <div class="small mt-2">Nota da apresentação: <strong>{{ number_format($trabalho->nota_apresentacao, 2, ',', '.') }}</strong> · Nota geral: <strong>{{ number_format($trabalho->notaGeral(), 2, ',', '.') }}</strong></div>
+        @endif
+        <a href="{{ route('gestao.trabalhos.apresentacoes.index', ['evento' => $trabalho->evento_id, 'atividade' => $trabalho->atividade_id]) }}" class="btn btn-sm btn-outline-success w-100 mt-2">Gerenciar avaliadores da apresentação</a>
+    </div>
+@endif
+
 {{-- Apresentação e certificados --}}
 @if($trabalho->status === 'aprovado' || $trabalho->certificados->isNotEmpty())
 <div class="glass-card bg-white mb-4">

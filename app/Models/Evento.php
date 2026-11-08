@@ -82,6 +82,11 @@ class Evento extends Model
         return $this->hasOne(TrabalhoConfig::class);
     }
 
+    public function criteriosApresentacao()
+    {
+        return $this->hasMany(CriterioApresentacao::class)->orderBy('ordem')->orderBy('id');
+    }
+
     public function criterios()
     {
         return $this->hasMany(CriterioAvaliacao::class)->orderBy('ordem')->orderBy('id');

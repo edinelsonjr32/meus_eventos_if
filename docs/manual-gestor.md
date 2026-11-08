@@ -33,6 +33,14 @@ Use filtros (status, categoria, busca) e **ações em lote**.
 2. **Certificados**: emissão individual ou **em lote**; cada autor recebe o seu; é possível **revogar**. Por padrão exige apresentação (configurável).
 3. Validação pública por código/QR em `/certificado-trabalho/validar/CÓDIGO`.
 
+## 6.1 Avaliação da apresentação (feira de trabalhos)
+Depois que o trabalho está **aprovado** (inclusive os "com ressalvas" depois da correção), a apresentação pode ser avaliada por avaliadores — os mesmos do texto ou **novos** (designe em *Papéis*).
+1. Crie a **atividade** do evento (ex.: "Feira de Trabalhos") e vincule os trabalhos a ela na página de cada trabalho (*Apresentação → Sessão*).
+2. **Gestão de trabalhos → Apresentações**: ative a avaliação, defina o **peso da apresentação na nota geral** (padrão 30%), se o autor vê nota/pareceres e os **critérios** (há um modelo padrão: domínio, comunicação, material de apoio, arguição, tempo). Os critérios travam depois da primeira nota.
+3. Na mesma tela, marque os trabalhos (ou filtre pela sessão) e **atribua avaliadores em lote**, com prazo opcional. Conflitos de interesse são ignorados; o avaliador recebe e-mail. Também é possível por trabalho, no painel.
+4. Acompanhe status e notas por avaliador. **Nota geral = texto × (100 − peso) + apresentação × peso**, exibida no ranking e nas exportações.
+5. Avaliador que recusar pode ser reatribuído; avaliações concluídas não são removidas.
+
 ## 7. Anais
 **Anais**: título, ano, local, editora, ISBN/DOI, apresentação; **Gerar PDF** compilado (requer Ghostscript no servidor) e **Publicar**. A página pública lista só trabalhos **aprovados + apresentados + com autorização de publicação**, mostra nome/instituição dos autores (nunca CPF/e-mail) e citação ABNT. **Arquivo final** pode substituir o PDF original. **Despublicar** retira do ar.
 

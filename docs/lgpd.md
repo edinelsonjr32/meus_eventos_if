@@ -27,6 +27,7 @@ Documento operacional para o responsável pelo sistema. A política exibida aos 
 | Autores: nome, instituição, CPF, e-mail, Lattes/ORCID | `trabalho_autores` | Autoria, certificado, contato | Execução de atividade institucional | Só nome e instituição nos Anais |
 | PDF do trabalho | disco `trabalhos` (privado) | Avaliação e Anais | Execução / consentimento (`autoriza_publicacao`) | Só se aprovado, apresentado e autorizado |
 | Pareceres e notas | `trabalho_avaliacoes` | Avaliação | Interesse institucional | Pareceres internos não aparecem ao público |
+| Avaliações de apresentação | `apresentacao_avaliacoes` | Avaliação na feira | Interesse institucional | Pareceres internos não aparecem ao público |
 | Certificados | `certificados_trabalho` | Comprovação | Obrigação / interesse do titular | Validação pública por código (sem CPF/e-mail) |
 | Auditoria LGPD | `lgpd_registros` | Prestação de contas | Obrigação legal | Não (guarda só o hash do identificador) |
 

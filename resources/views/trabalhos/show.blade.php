@@ -120,6 +120,26 @@
 
                     @unless($gestao)
                         @php
+                            $cfgAp = $trabalho->evento->trabalhoConfig;
+                            $paresAp = $trabalho->avaliacoesApresentacao()->where('status', 'concluida')->get();
+                        @endphp
+                        @if($cfgAp?->avaliacao_apresentacao_ativa && ($cfgAp->autor_ve_nota_apresentacao ?? true) && $trabalho->nota_apresentacao !== null)
+                            <div class="glass-card bg-white mb-4">
+                                <h6 class="fw-bold text-success mb-3">Avaliação da apresentação</h6>
+                                <div class="small mb-1">Nota da apresentação: <strong>{{ number_format($trabalho->nota_apresentacao, 2, ',', '.') }}</strong></div>
+                                @if($trabalho->nota_final !== null)
+                                    <div class="small mb-2">Nota geral (texto + apresentação): <strong>{{ number_format($trabalho->notaGeral(), 2, ',', '.') }}</strong></div>
+                                @endif
+                                @foreach($paresAp->filter(fn ($p) => filled($p->parecer)) as $i => $p)
+                                    <div class="small fw-bold mt-2">Parecer {{ $i + 1 }}</div>
+                                    <p class="small mb-1" style="white-space: pre-line;">{{ $p->parecer }}</p>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endunless
+
+                    @unless($gestao)
+                        @php
                             $certificadosAutor = $trabalho->certificados->whereNull('revogado_em');
                             // O responsável pela submissão vê todos; os demais autores, apenas o próprio certificado
                             if ($trabalho->submetido_por !== auth()->id()) {
