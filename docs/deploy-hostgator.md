@@ -110,6 +110,11 @@ MAIL_HOST=mail.seudominio.com.br
 MAIL_USERNAME=nao-responda@seudominio.com.br
 MAIL_PASSWORD=senha_da_caixa
 MAIL_FROM_ADDRESS="nao-responda@seudominio.com.br"
+
+# Privacidade (LGPD) — aparece na página /privacidade
+PRIVACIDADE_CONTROLADOR="Instituto Federal do Pará - Campus Óbidos"
+PRIVACIDADE_CONTATO=privacidade@seudominio.com.br
+PRIVACIDADE_ENCARREGADO="Nome do encarregado (opcional)"
 ```
 
 Deixe `APP_KEY=` vazio (é gerada no próximo passo). Mantenha `APP_ENV=production` e `APP_DEBUG=false`.
@@ -244,5 +249,5 @@ Baixe cópias para **fora** do servidor periodicamente.
 - [ ] Nenhum usuário de teste (`admin@teste.com` etc.) existe em produção.
 - [ ] Senhas do banco e do e-mail só no `.env`; troque-as se forem expostas.
 - [ ] Mantenha o sistema atualizado (`composer audit` na sua máquina antes de gerar cada pacote; a versão atual está sem avisos).
-- [ ] **LGPD:** o sistema guarda CPF, e-mail e instituição. Informe a finalidade aos participantes, limite o acesso a quem precisa (papéis) e proteja os backups.
+- [ ] **LGPD:** o sistema guarda CPF, e-mail e instituição. A política está em `/privacidade`; preencha as variáveis `PRIVACIDADE_*`, e use `php artisan lgpd:exportar|anonimizar` para atender titulares. A limpeza de rascunhos antigos roda sozinha pelo agendador (cron ativo!). Procedimentos completos em `docs/lgpd.md`.
 - [ ] O QR Code de etiquetas e certificados é gerado **no próprio servidor** (nenhum dado vai a serviços externos).

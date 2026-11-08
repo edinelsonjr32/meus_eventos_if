@@ -29,7 +29,7 @@ mkdir -p "$SAIDA" "$APP" "$PUB"
 echo "==> 1/5 Copiando o código (sem testes, docs, segredos e dados de teste)"
 rsync -a \
   --exclude='.git' --exclude='.gitignore' --exclude='.gitattributes' --exclude='.editorconfig' --exclude='.idea' --exclude='.vscode' \
-  --exclude='node_modules' --exclude='vendor' --exclude='tests' --exclude='docs' --exclude='deploy' \
+  --exclude='node_modules' --exclude='vendor' --exclude='tests' --exclude='e2e' --exclude='docs' --exclude='deploy' \
   --exclude='.env' --exclude='.env.*' --exclude='phpunit.xml' --exclude='compose.yaml' --exclude='README.md' \
   --exclude='package.json' --exclude='package-lock.json' --exclude='vite.config.js' --exclude='postcss.config.js' --exclude='tailwind.config.js' \
   --exclude='public' --exclude='role' --exclude='.DS_Store' \

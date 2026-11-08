@@ -73,6 +73,7 @@
             <a href="/" class="text-decoration-none text-secondary small">
                 <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao Início
             </a>
+            <div class="mt-2"><a href="{{ route('privacidade') }}" class="text-decoration-none text-secondary small">Política de Privacidade</a></div>
         </div>
     </div>
 </body>

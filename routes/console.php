@@ -22,3 +22,6 @@ if (env('QUEUE_VIA_CRON', false) && config('queue.default') !== 'sync') {
     Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=300')
         ->name('fila-via-cron')->everyMinute()->withoutOverlapping(10);
 }
+
+// Retenção (LGPD): rascunhos de trabalhos abandonados são apagados semanalmente
+Schedule::command('lgpd:limpar-rascunhos')->weeklyOn(0, '03:30');

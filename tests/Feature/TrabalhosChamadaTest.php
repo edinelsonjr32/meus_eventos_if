@@ -119,3 +119,17 @@ it('somente quem gere trabalhos cria a chamada', function () {
 it('rejeita ação desconhecida ao salvar', function () {
     $this->actingAs($this->dono)->put($this->url, chamadaBase(['acao' => 'apagar-tudo']))->assertSessionHasErrors('acao');
 });
+
+it('sem o campo, a exigência de apresentação para certificado nunca vira "não exigir"', function () {
+    $url = route('gestao.trabalhos.config.update', $this->evento);
+    $this->actingAs($this->dono);
+
+    $this->put($url, chamadaBase(['acao' => 'salvar']))->assertSessionHasNoErrors();   // chamada nova, campo ausente
+    expect(TrabalhoConfig::where('evento_id', $this->evento->id)->first()->exige_apresentacao_para_certificado)->toBeTrue();
+
+    $this->put($url, chamadaBase(['acao' => 'salvar', 'exige_apresentacao_para_certificado' => 0]));   // desligado de propósito
+    expect(TrabalhoConfig::where('evento_id', $this->evento->id)->first()->exige_apresentacao_para_certificado)->toBeFalse();
+
+    $this->put($url, chamadaBase(['acao' => 'salvar']));   // campo ausente: mantém o valor atual
+    expect(TrabalhoConfig::where('evento_id', $this->evento->id)->first()->exige_apresentacao_para_certificado)->toBeFalse();
+});

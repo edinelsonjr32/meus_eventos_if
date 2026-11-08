@@ -155,7 +155,10 @@ class Trabalho extends Model
     /** Rodada de avaliação em andamento (1 até a primeira reavaliação). */
     public function rodadaAtual(): int
     {
-        return max(1, (int) $this->avaliacoes()->max('rodada'));
+        // Listas carregam o máximo de uma vez (withMax) para evitar uma consulta por trabalho
+        $carregada = $this->attributes['avaliacoes_max_rodada'] ?? null;
+
+        return max(1, (int) ($carregada ?? $this->avaliacoes()->max('rodada')));
     }
 
     /** O autor já pode ver o resultado? (somente após a decisão da gestão) */

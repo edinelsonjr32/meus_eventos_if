@@ -31,6 +31,6 @@
         @yield('conteudo')
     </main>
 
-    <footer class="text-center text-secondary small pb-4">&copy; {{ date('Y') }} Instituto Federal do Pará - Campus Óbidos</footer>
+    <footer class="text-center text-secondary small pb-4">&copy; {{ date('Y') }} Instituto Federal do Pará - Campus Óbidos · <a href="{{ route('privacidade') }}" class="text-secondary">Política de Privacidade</a></footer>
 </body>
 </html>

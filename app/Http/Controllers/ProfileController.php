@@ -97,9 +97,11 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+        // Apaga a conta quando nada depende dela; com trabalhos, avaliações ou eventos, anonimiza (antes: erro 500).
+        // Dados de participante e autorias ligados à conta também são anonimizados (LGPD).
+        app(\App\Services\Lgpd\TitularService::class)->excluirConta($user);
 
-        $user->delete();
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

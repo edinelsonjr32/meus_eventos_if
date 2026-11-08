@@ -199,6 +199,10 @@
                     <i class="fa-solid fa-user-gear w-25 text-center"></i> Minha Conta
                 </a>
 
+                <a href="{{ route('privacidade') }}" class="nav-link" target="_blank">
+                    <i class="fa-solid fa-shield-halved w-25 text-center"></i> Privacidade
+                </a>
+
                 <form method="POST" action="{{ route('logout') }}" class="mt-2">
                     @csrf
                     <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent text-danger hover:bg-danger hover:bg-opacity-10 hover:text-danger">

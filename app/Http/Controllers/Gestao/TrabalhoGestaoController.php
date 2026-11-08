@@ -509,7 +509,10 @@ class TrabalhoGestaoController extends Controller
                 'divergencia_maxima' => $dados['divergencia_maxima'],
                 'autor_ve_notas' => (bool) ($dados['autor_ve_notas'] ?? false),
                 'autor_ve_pareceres' => (bool) ($dados['autor_ve_pareceres'] ?? false),
-                'exige_apresentacao_para_certificado' => (bool) ($dados['exige_apresentacao_para_certificado'] ?? false),
+                // Padrão seguro: sem o campo, mantém o valor atual (ou "exigir" numa chamada nova), nunca "não exigir"
+                'exige_apresentacao_para_certificado' => array_key_exists('exige_apresentacao_para_certificado', $dados)
+                    ? (bool) $dados['exige_apresentacao_para_certificado']
+                    : (bool) ($evento->trabalhoConfig?->exige_apresentacao_para_certificado ?? true),
                 'cert_trab_cabecalho' => $dados['cert_trab_cabecalho'] ?? null,
                 'cert_trab_corpo' => $dados['cert_trab_corpo'] ?? null,
                 'cert_trab_rodape' => $dados['cert_trab_rodape'] ?? null,

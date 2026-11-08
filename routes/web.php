@@ -24,6 +24,9 @@ use App\Http\Controllers\ProfileController;
 |--------------------------------------------------------------------------
 */
 
+// Política de Privacidade (LGPD)
+Route::view('/privacidade', 'privacidade')->name('privacidade');
+
 // Portal de Eventos (Landing Page Principal)
 Route::get('/', function () {
     // Busca os próximos 9 eventos ativos ou futuros

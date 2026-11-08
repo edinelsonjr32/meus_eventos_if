@@ -345,7 +345,7 @@
 
     <footer class="text-center py-5 mt-5 border-top">
         <div class="container">
-            <p class="text-muted small mb-0">&copy; {{ date('Y') }} IFPA Campus Óbidos - Sistema CertificaIF</p>
+            <p class="text-muted small mb-0">&copy; {{ date('Y') }} IFPA Campus Óbidos - Sistema CertificaIF · <a href="{{ route('privacidade') }}" class="text-muted">Política de Privacidade</a></p>
         </div>
     </footer>
 

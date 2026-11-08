@@ -389,6 +389,7 @@
                         <label class="form-check-label small" for="d3">Autorizo a publicação do trabalho nos Anais do evento (necessário para constar nos Anais, caso seja aprovado e apresentado).</label>
                     </div>
                     <div class="text-danger small mt-2" x-show="erros.declaracoes" x-text="erros.declaracoes"></div>
+                    <div class="small text-muted mt-2"><i class="fa-solid fa-shield-halved me-1"></i> Seus dados pessoais são tratados conforme a <a href="{{ route('privacidade') }}" target="_blank">Política de Privacidade</a>. CPF e e-mail dos autores nunca são publicados.</div>
                 </section>
 
                 {{-- Navegação --}}

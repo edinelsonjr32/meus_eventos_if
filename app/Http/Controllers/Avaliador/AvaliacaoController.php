@@ -21,7 +21,10 @@ class AvaliacaoController extends Controller
 
     public function index(Request $request)
     {
-        $avaliacoes = TrabalhoAvaliacao::with(['trabalho.evento.trabalhoConfig'])
+        $avaliacoes = TrabalhoAvaliacao::with([
+            'trabalho' => fn ($q) => $q->withMax('avaliacoes', 'rodada'),   // rodada vigente sem consulta por item
+            'trabalho.evento.trabalhoConfig',
+        ])
             ->where('avaliador_id', $request->user()->id)
             ->where('status', '!=', 'recusada')
             ->latest('id')
