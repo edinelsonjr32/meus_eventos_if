@@ -82,6 +82,13 @@
                                         <td class="ps-4">
                                             <div class="fw-bold">{{ $t->titulo }}</div>
                                             <small class="text-muted">{{ $t->codigo ?? 'Sem protocolo (rascunho)' }} · {{ $t->autores->count() }} autor(es)</small>
+                                            <div>
+                                                @if($t->submetido_por === auth()->id())
+                                                    <span class="badge bg-success bg-opacity-10 text-success">Responsável pela submissão</span>
+                                                @else
+                                                    <span class="badge bg-info bg-opacity-10 text-dark">Você consta como autor</span>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td>{{ $t->evento->titulo }}</td>
                                         <td><span class="badge bg-secondary bg-opacity-10 text-dark">{{ $t->statusRotulo() }}</span></td>

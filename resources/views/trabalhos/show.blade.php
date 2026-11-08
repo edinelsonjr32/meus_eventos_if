@@ -15,7 +15,14 @@
                         <small class="text-secondary">{{ $trabalho->evento->titulo }} · {{ $trabalho->codigo ?? 'Rascunho (sem protocolo)' }}</small>
                     </div>
                 </div>
-                <span class="badge bg-success bg-opacity-10 text-success fs-6">{{ $trabalho->statusRotulo() }}</span>
+                <div class="d-flex align-items-center gap-2">
+                    @if($gestao && !in_array($trabalho->status, ['rascunho', 'retirado']))
+                        <a href="{{ route('gestao.trabalhos.editar', $trabalho) }}" class="btn btn-sm btn-outline-secondary fw-bold">
+                            <i class="fa-solid fa-pen me-1"></i> Editar dados
+                        </a>
+                    @endif
+                    <span class="badge bg-success bg-opacity-10 text-success fs-6">{{ $trabalho->statusRotulo() }}</span>
+                </div>
             </div>
 
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
@@ -112,7 +119,13 @@
                     @endunless
 
                     @unless($gestao)
-                        @php $certificadosAutor = $trabalho->certificados->whereNull('revogado_em'); @endphp
+                        @php
+                            $certificadosAutor = $trabalho->certificados->whereNull('revogado_em');
+                            // O responsável pela submissão vê todos; os demais autores, apenas o próprio certificado
+                            if ($trabalho->submetido_por !== auth()->id()) {
+                                $certificadosAutor = $certificadosAutor->filter(fn ($c) => $c->autor->pertenceA(auth()->user()));
+                            }
+                        @endphp
                         @if($certificadosAutor->isNotEmpty())
                             <div class="glass-card bg-white mb-4">
                                 <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-award me-1"></i> Certificados</h6>

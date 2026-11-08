@@ -129,6 +129,29 @@ class Trabalho extends Model
         return $this->hasMany(TrabalhoHistorico::class)->orderBy('id');
     }
 
+    /** O usuário é o responsável pela submissão ou consta entre os autores (por e-mail, CPF ou cadastro)? */
+    public function ehAutor(User $usuario): bool
+    {
+        return $this->submetido_por === $usuario->id
+            || $this->autores->contains(fn ($a) => $a->pertenceA($usuario));
+    }
+
+    /** Trabalhos em que o usuário é o responsável pela submissão ou consta como autor. */
+    public function scopeDoAutor($query, User $usuario)
+    {
+        $participante = $usuario->participante;
+
+        return $query->where(function ($q) use ($usuario, $participante) {
+            $q->where('submetido_por', $usuario->id)
+                ->orWhereHas('autores', function ($a) use ($usuario, $participante) {
+                    $a->where('email', mb_strtolower($usuario->email));
+                    if ($participante) {
+                        $a->orWhere('participante_id', $participante->id)->orWhere('cpf', $participante->cpf);
+                    }
+                });
+        });
+    }
+
     /** Rodada de avaliação em andamento (1 até a primeira reavaliação). */
     public function rodadaAtual(): int
     {

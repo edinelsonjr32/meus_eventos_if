@@ -1,6 +1,9 @@
 @php
+    $modoGestao = $modoGestao ?? false;   // gestão cadastrando/editando em nome dos autores
     $editando = $trabalho->exists;
-    $action = $editando ? route('trabalhos.update', $trabalho) : route('trabalhos.store', $evento->slug);
+    $action = $modoGestao
+        ? ($editando ? route('gestao.trabalhos.atualizar', $trabalho) : route('gestao.trabalhos.criar', $evento))
+        : ($editando ? route('trabalhos.update', $trabalho) : route('trabalhos.store', $evento->slug));
     $categorias = $config->tiposHabilitados();
     $arquivoAtual = $editando ? $trabalho->arquivoAtual : null;
 
@@ -42,6 +45,7 @@
         'maxArquivoMb' => (int) $config->max_arquivo_mb,
         'decl1' => (bool) old('declaracao_ineditismo'),
         'decl2' => (bool) old('declaracao_regulamento'),
+        'modoGestao' => $modoGestao,
     ];
 @endphp
 <x-app-layout>
@@ -49,19 +53,31 @@
         <div class="col-xl-9">
 
             <div class="d-flex align-items-center gap-3 mb-4">
-                <a href="{{ $editando ? route('trabalhos.show', $trabalho) : route('trabalhos.index') }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+                <a href="{{ $modoGestao ? ($editando ? route('gestao.trabalhos.show', $trabalho) : route('gestao.trabalhos.index', $evento)) : ($editando ? route('trabalhos.show', $trabalho) : route('trabalhos.index')) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
                     <i class="fa-solid fa-arrow-left"></i>
                 </a>
                 <div>
-                    <h3 class="fw-bold m-0">Formulário de Submissão de Trabalhos</h3>
+                    <h3 class="fw-bold m-0">{{ $modoGestao ? ($editando ? 'Editar dados do trabalho (gestão)' : 'Cadastrar trabalho em nome dos autores') : 'Formulário de Submissão de Trabalhos' }}</h3>
                     <small class="text-secondary">{{ $evento->titulo }}
                         @if($config->submissao_fim) · prazo até {{ $config->submissao_fim->format('d/m/Y H:i') }} @endif
                     </small>
                 </div>
             </div>
 
+            @if($modoGestao)
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-user-gear me-1"></i>
+                    @if($editando)
+                        Você está editando <strong>{{ $trabalho->codigo }}</strong> como gestor. As mudanças ficam registradas no histórico, o status não muda e
+                        <strong>certificados já emitidos passam a refletir as correções</strong> (o mesmo código continua válido). Para remover um autor que já tem certificado, revogue o certificado antes.
+                    @else
+                        Cadastre um trabalho recebido por outro meio (e-mail, papel...). Ele entra direto como <strong>Submetido</strong>, sem as declarações do autor e fora do período da chamada.
+                    @endif
+                </div>
+            @endif
+
             {{-- Abertura (igual ao formulário original) --}}
-            <div class="glass-card bg-white mb-4">
+            <div class="glass-card bg-white mb-4 @if($modoGestao) d-none @endif">
                 @if($config->chamada_intro)
                     <div style="white-space: pre-line;">{{ $config->chamada_intro }}</div>
                 @else
@@ -107,11 +123,19 @@
                 <section x-show="passo === 1" class="glass-card bg-white mb-4">
                     <h6 class="fw-bold text-success mb-3">Dados do trabalho</h6>
 
-                    <div class="mb-3">
-                        <label class="small fw-bold text-secondary">E-mail *</label>
-                        <input type="email" class="form-control bg-light" value="{{ auth()->user()->email }}" readonly tabindex="-1">
-                        <div class="form-text">O e-mail da sua conta é registrado automaticamente com a submissão.</div>
-                    </div>
+                    @if($modoGestao && !$editando)
+                        <div class="mb-3">
+                            <label class="small fw-bold text-secondary">E-mail da conta do autor responsável <span class="fw-normal">(opcional)</span></label>
+                            <input type="email" name="responsavel_email" class="form-control" value="{{ old('responsavel_email') }}" placeholder="autor@exemplo.com">
+                            <div class="form-text">Se a pessoa já tem conta, o trabalho aparece em "Meus Trabalhos" dela. Em branco: fica em seu nome e o apresentador recebe os e-mails.</div>
+                        </div>
+                    @elseif(!$modoGestao)
+                        <div class="mb-3">
+                            <label class="small fw-bold text-secondary">E-mail *</label>
+                            <input type="email" class="form-control bg-light" value="{{ auth()->user()->email }}" readonly tabindex="-1">
+                            <div class="form-text">O e-mail da sua conta é registrado automaticamente com a submissão.</div>
+                        </div>
+                    @endif
 
                     <div class="mb-3">
                         <label class="small fw-bold text-secondary">Título do trabalho *</label>
@@ -204,6 +228,7 @@
                     <h6 class="fw-bold text-success mb-1">Cadastro de autores</h6>
                     <p class="small text-muted">Insira o nome completo e a Instituição de Ensino ao qual o apresentador(a) esteja vinculado(a).</p>
 
+                    <input type="hidden" name="autores[0][id]" value="{{ $autores[0]['id'] ?? '' }}">
                     <input type="hidden" name="autores[0][tipo_autor]" value="autor_principal">
                     <input type="hidden" name="autores[0][apresentador]" value="1">
                     <input type="hidden" name="autores[0][correspondente]" value="1">
@@ -268,6 +293,7 @@
                                         <strong x-text="'Autor ' + (i + 2)"></strong>
                                         <button type="button" class="btn btn-sm btn-light text-danger" @click="removerExtra(i)" title="Remover"><i class="fa-solid fa-trash"></i></button>
                                     </div>
+                                    <input type="hidden" :name="`autores[${i + 1}][id]`" :value="a.id || ''">
                                     <input type="hidden" :name="`autores[${i + 1}][apresentador]`" :value="a.apresentador ? 1 : 0">
                                     <input type="hidden" :name="`autores[${i + 1}][correspondente]`" :value="a.correspondente ? 1 : 0">
                                     <div class="row g-2">
@@ -328,7 +354,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="small fw-bold text-secondary">Envio de arquivo (Formato PDF) *</label>
+                        <label class="small fw-bold text-secondary">Envio de arquivo (Formato PDF) {{ $modoGestao ? '(opcional: envie para cadastrar ou substituir o PDF)' : '*' }}</label>
                         @if($arquivoAtual)
                             <div class="alert alert-light border small py-2">
                                 Arquivo atual: <strong>{{ $arquivoAtual->nome_original }}</strong>
@@ -347,6 +373,7 @@
                     </div>
 
                     <hr>
+                    @unless($modoGestao)
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" name="declaracao_ineditismo" value="1" id="d1" x-model="decl1" @checked(old('declaracao_ineditismo'))>
                         <label class="form-check-label small" for="d1">Declaro que o trabalho é inédito e que todos os autores concordam com a submissão. *</label>
@@ -355,6 +382,7 @@
                         <input class="form-check-input" type="checkbox" name="declaracao_regulamento" value="1" id="d2" x-model="decl2" @checked(old('declaracao_regulamento'))>
                         <label class="form-check-label small" for="d2">Li e aceito o regulamento da chamada de trabalhos. *</label>
                     </div>
+                    @endunless
                     <div class="form-check">
                         <input type="hidden" name="autoriza_publicacao" value="0">
                         <input class="form-check-input" type="checkbox" name="autoriza_publicacao" value="1" id="d3" @checked(old('autoriza_publicacao', $trabalho->autoriza_publicacao))>
@@ -369,14 +397,16 @@
                         <button type="button" class="btn btn-light fw-bold" x-show="passo > 1" @click="voltar()"><i class="fa-solid fa-arrow-left me-1"></i> Voltar</button>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
+                        @unless($modoGestao)
                         <button type="submit" name="acao" value="rascunho" class="btn btn-outline-secondary fw-bold" @click="rascunho($event)">
                             <i class="fa-regular fa-floppy-disk me-1"></i> Salvar rascunho
                         </button>
+                        @endunless
                         <button type="button" class="btn btn-primary-custom fw-bold" x-show="passo < 4" @click="proximo()">
                             Próxima <i class="fa-solid fa-arrow-right ms-1"></i>
                         </button>
                         <button type="submit" name="acao" value="submeter" class="btn btn-primary-custom fw-bold" x-show="passo === 4" @click="enviar($event)">
-                            <i class="fa-solid fa-paper-plane me-1"></i> {{ $trabalho->status === 'aguardando_correcao' ? 'Reenviar versão corrigida' : 'Enviar' }}
+                            <i class="fa-solid fa-paper-plane me-1"></i> {{ $modoGestao ? ($editando ? 'Salvar alterações' : 'Cadastrar trabalho') : ($trabalho->status === 'aguardando_correcao' ? 'Reenviar versão corrigida' : 'Enviar') }}
                         </button>
                     </div>
                 </div>
@@ -387,10 +417,10 @@
     <script>
         function formTrabalho(cfg) {
             let seq = 0;
-            const vazio = () => ({ uid: ++seq, nome_completo: '', cpf: '', email: '', instituicao: '', categoria_autor: '', tipo_autor: 'coautor', apresentador: false, correspondente: false, erroNome: '', erroIes: '' });
+            const vazio = () => ({ uid: ++seq, id: null, nome_completo: '', cpf: '', email: '', instituicao: '', categoria_autor: '', tipo_autor: 'coautor', apresentador: false, correspondente: false, erroNome: '', erroIes: '' });
             const normaliza = (d = {}) => {
                 const o = vazio();
-                ['nome_completo', 'cpf', 'email', 'instituicao', 'categoria_autor', 'tipo_autor'].forEach(k => { if (d[k]) o[k] = d[k]; });
+                ['id', 'nome_completo', 'cpf', 'email', 'instituicao', 'categoria_autor', 'tipo_autor'].forEach(k => { if (d[k]) o[k] = d[k]; });
                 o.apresentador = !!d.apresentador; o.correspondente = !!d.correspondente;
                 return o;
             };
@@ -452,8 +482,10 @@
                     if (n === 4) {
                         if (!this.modalidade) e.modalidade = 'Selecione a modalidade de apresentação.';
                         const arq = this.$root.querySelector('input[name=arquivo]');
-                        if (!cfg.temArquivo && !(arq && arq.files.length)) e.arquivo = 'Envie o arquivo PDF do trabalho.';
-                        if (!this.decl1 || !this.decl2) e.declaracoes = 'É necessário aceitar as duas declarações obrigatórias.';
+                        if (!cfg.modoGestao) {
+                            if (!cfg.temArquivo && !(arq && arq.files.length)) e.arquivo = 'Envie o arquivo PDF do trabalho.';
+                            if (!this.decl1 || !this.decl2) e.declaracoes = 'É necessário aceitar as duas declarações obrigatórias.';
+                        }
                     }
                     this.erros = e;
                     return Object.keys(e).length === 0;
@@ -475,7 +507,8 @@
                     for (const n of ordem) {
                         if (!this.validar(n)) { ev.preventDefault(); this.irPara(n); return; }
                     }
-                    if (!confirm('Após enviar, o trabalho será encaminhado à gestão do evento. Deseja continuar?')) ev.preventDefault();
+                    const aviso = cfg.modoGestao ? 'Salvar as alterações deste trabalho?' : 'Após enviar, o trabalho será encaminhado à gestão do evento. Deseja continuar?';
+                    if (!confirm(aviso)) ev.preventDefault();
                 },
                 validarArquivo(ev) {
                     this.erros = { ...this.erros, arquivo: '' };

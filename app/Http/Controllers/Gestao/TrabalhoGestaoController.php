@@ -6,8 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\AreaTematica;
 use App\Models\Evento;
 use App\Models\Trabalho;
+use App\Exports\NotasExport;
 use App\Exports\TrabalhosExport;
+use App\Services\RelatorioNotas;
+use App\Http\Requests\GestaoSalvarTrabalhoRequest;
 use App\Models\CriterioAvaliacao;
+use App\Models\User;
+use App\Support\FormularioTrabalho;
 use App\Models\TrabalhoAvaliacao;
 use App\Services\AvaliacaoService;
 use App\Services\CertificadoTrabalhoService;
@@ -126,6 +131,77 @@ class TrabalhoGestaoController extends Controller
         ];
 
         return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao'));
+    }
+
+    // ------------------------------------------------------------------
+    // Cadastro e edição pela gestão (em nome dos autores)
+    // ------------------------------------------------------------------
+
+    /** Cadastrar um trabalho recebido por outro meio (e-mail, papel...). */
+    public function novo(Evento $evento)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        return view('trabalhos.form', FormularioTrabalho::dados($evento, new Trabalho(['status' => Trabalho::RASCUNHO]), null) + ['modoGestao' => true]);
+    }
+
+    public function criar(GestaoSalvarTrabalhoRequest $request, Evento $evento)
+    {
+        $dados = $request->validated();
+        $responsavel = null;
+
+        if (filled($dados['responsavel_email'] ?? null)) {
+            $responsavel = User::where('email', mb_strtolower($dados['responsavel_email']))->first();
+            if (!$responsavel) {
+                return back()->withInput()->with('error', 'Não há conta com o e-mail do responsável informado. Deixe o campo em branco para registrar em seu nome ou peça que a pessoa crie a conta.');
+            }
+        }
+
+        // Sem conta do autor, o gestor figura como responsável pela submissão (o apresentador recebe os e-mails)
+        $dono = $responsavel ?? $request->user();
+
+        $trabalho = $this->workflow->salvar($evento, $dono, $dados, null, $request->file('arquivo'));
+        $trabalho = $this->workflow->submeter($trabalho, $dono);
+        $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, 'Cadastrado pela gestão em nome dos autores');
+
+        return redirect()->route('gestao.trabalhos.show', $trabalho)->with('success', "Trabalho cadastrado. Protocolo {$trabalho->codigo}.");
+    }
+
+    /** Corrigir dados (ex.: nome para o certificado) ou substituir o PDF, em qualquer fase. */
+    public function editar(Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        if (in_array($trabalho->status, [Trabalho::RASCUNHO, Trabalho::RETIRADO], true)) {
+            return redirect()->route('gestao.trabalhos.index', $trabalho->evento)->with('error', 'Trabalhos em rascunho ou retirados não podem ser editados pela gestão.');
+        }
+
+        $trabalho->load(['autores', 'arquivoAtual']);
+
+        return view('trabalhos.form', FormularioTrabalho::dados($trabalho->evento, $trabalho, null) + ['modoGestao' => true]);
+    }
+
+    public function atualizar(GestaoSalvarTrabalhoRequest $request, Trabalho $trabalho)
+    {
+        if (in_array($trabalho->status, [Trabalho::RASCUNHO, Trabalho::RETIRADO], true)) {
+            abort(404);
+        }
+
+        $dados = $request->validated();
+
+        // Não remover autor que já tem certificado válido: revogue o certificado antes
+        $bloqueados = $this->workflow->autoresComCertificadoRemovidos($trabalho, $dados['autores'] ?? []);
+        if ($bloqueados->isNotEmpty()) {
+            return back()->withInput()->with('error', 'Não é possível remover autor(es) com certificado emitido: ' . $bloqueados->pluck('nome_completo')->implode(', ') . '. Revogue o certificado antes.');
+        }
+
+        $this->workflow->salvar($trabalho->evento, $request->user(), $dados, $trabalho, $request->file('arquivo'));
+        $this->workflow->registrar(
+            $trabalho, $request->user(), $trabalho->status, $trabalho->status,
+            'Dados editados pela gestão' . ($request->hasFile('arquivo') ? ' (PDF substituído)' : '')
+        );
+
+        return redirect()->route('gestao.trabalhos.show', $trabalho)->with('success', 'Dados do trabalho atualizados. Certificados já emitidos passam a refletir as correções.');
     }
 
     // ------------------------------------------------------------------
@@ -305,6 +381,42 @@ class TrabalhoGestaoController extends Controller
         }
 
         return [$ok, $erros];
+    }
+
+    /** Ranking de notas dos trabalhos (somente gestão). */
+    public function ranking(Request $request, Evento $evento, RelatorioNotas $relatorio)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        $filtros = RelatorioNotas::filtros($request);
+
+        return view('gestao.trabalhos.ranking', [
+            'evento' => $evento,
+            'linhas' => $relatorio->resumo($evento, $filtros),
+            'criterios' => $relatorio->criterios($evento),
+            'areas' => $evento->areasTematicas,
+            'limiteDivergencia' => $evento->trabalhoConfig?->divergencia_maxima ?? 3,
+            'notaMinima' => $evento->trabalhoConfig?->nota_minima_aprovacao ?? 7,
+        ]);
+    }
+
+    /** Exporta notas: relatorio=resumo (ranking) ou detalhado (por avaliação, com pareceres); formato=xlsx|csv. ("tipo" é o filtro de categoria.) */
+    public function exportarNotas(Request $request, Evento $evento, RelatorioNotas $relatorio)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        $tipo = $request->input('relatorio') === 'detalhado' ? 'detalhado' : 'resumo';
+        $formato = $request->input('formato') === 'csv' ? 'csv' : 'xlsx';
+        $filtros = RelatorioNotas::filtros($request);
+
+        $linhas = $tipo === 'detalhado' ? $relatorio->detalhado($evento, $filtros) : $relatorio->resumo($evento, $filtros);
+        $nome = "notas-{$tipo}-" . \Illuminate\Support\Str::slug($evento->titulo) . '-' . now()->format('Ymd_His') . ".{$formato}";
+
+        return Excel::download(
+            new NotasExport($linhas, $relatorio->criterios($evento), $tipo),
+            $nome,
+            $formato === 'csv' ? \Maatwebsite\Excel\Excel::CSV : \Maatwebsite\Excel\Excel::XLSX
+        );
     }
 
     public function exportar(Request $request, Evento $evento)

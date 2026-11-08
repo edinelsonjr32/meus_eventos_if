@@ -65,6 +65,18 @@ class Evento extends Model
         return $this->hasOne(Anais::class);
     }
 
+    /** Quem acompanha os trabalhos: criador do evento, co-administradores e gestores de trabalhos. */
+    public function usuariosDaGestaoDeTrabalhos()
+    {
+        return User::query()
+            ->where('id', $this->criado_por)
+            ->orWhereIn('id', \Illuminate\Support\Facades\DB::table('evento_user')
+                ->where('evento_id', $this->id)
+                ->whereIn('role', [self::PAPEL_EDITOR, self::PAPEL_GESTOR_TRABALHOS])
+                ->select('user_id'))
+            ->get();
+    }
+
     public function trabalhoConfig()
     {
         return $this->hasOne(TrabalhoConfig::class);

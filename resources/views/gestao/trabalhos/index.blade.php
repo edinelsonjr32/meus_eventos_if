@@ -17,6 +17,14 @@
                     <a href="{{ route('gestao.trabalhos.anais.edit', $evento) }}" class="btn btn-outline-success fw-bold">
                         <i class="fa-solid fa-book me-1"></i> Anais
                     </a>
+                    <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-outline-success fw-bold">
+                        <i class="fa-solid fa-ranking-star me-1"></i> Notas e ranking
+                    </a>
+                    @if($config)
+                        <a href="{{ route('gestao.trabalhos.novo', $evento) }}" class="btn btn-outline-success fw-bold" title="Cadastrar um trabalho recebido por outro meio">
+                            <i class="fa-solid fa-file-circle-plus me-1"></i> Cadastrar trabalho
+                        </a>
+                    @endif
                     <a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}" class="btn btn-outline-success fw-bold">
                         <i class="fa-solid fa-award me-1"></i> Certificados
                     </a>

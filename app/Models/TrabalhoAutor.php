@@ -16,6 +16,11 @@ class TrabalhoAutor extends Model
 
     protected $casts = ['apresentador' => 'boolean', 'correspondente' => 'boolean'];
 
+    public function certificado()
+    {
+        return $this->hasOne(CertificadoTrabalho::class, 'trabalho_autor_id');
+    }
+
     public function trabalho(): BelongsTo
     {
         return $this->belongsTo(Trabalho::class);
@@ -24,6 +29,15 @@ class TrabalhoAutor extends Model
     public function participante(): BelongsTo
     {
         return $this->belongsTo(Participante::class);
+    }
+
+    /** Este autor é o usuário? (mesmo e-mail, mesmo CPF ou participante vinculado à conta) */
+    public function pertenceA(User $usuario): bool
+    {
+        $participante = $usuario->participante;
+
+        return ($this->email && mb_strtolower($this->email) === mb_strtolower($usuario->email))
+            || ($participante && ($this->participante_id === $participante->id || ($this->cpf && $this->cpf === $participante->cpf)));
     }
 
     public function categoriaRotulo(): ?string

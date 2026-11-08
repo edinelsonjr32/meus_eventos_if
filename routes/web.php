@@ -134,7 +134,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/evento/{evento}/anais/despublicar', [$n, 'despublicar'])->name('anais.despublicar');
         Route::get('/evento/{evento}/exportar', [$c, 'exportar'])->name('exportar');
         Route::post('/evento/{evento}/lote', [$c, 'lote'])->name('lote');
+        Route::get('/evento/{evento}/ranking', [$c, 'ranking'])->name('ranking');
+        Route::get('/evento/{evento}/exportar-notas', [$c, 'exportarNotas'])->name('exportar-notas');
+        Route::get('/evento/{evento}/novo', [$c, 'novo'])->name('novo');
+        Route::post('/evento/{evento}/novo', [$c, 'criar'])->name('criar');
         Route::get('/{trabalho}', [$c, 'show'])->name('show');
+        Route::get('/{trabalho}/editar', [$c, 'editar'])->name('editar');
+        Route::put('/{trabalho}', [$c, 'atualizar'])->name('atualizar');
         Route::post('/{trabalho}/triagem', [$c, 'triagem'])->name('triagem');
         Route::post('/{trabalho}/avaliadores', [$c, 'atribuir'])->name('avaliadores.store');
         Route::post('/{trabalho}/encerrar-avaliacao', [$c, 'encerrarAvaliacao'])->name('encerrar');

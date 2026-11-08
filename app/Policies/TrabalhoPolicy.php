@@ -7,10 +7,10 @@ use App\Models\User;
 
 class TrabalhoPolicy
 {
-    /** Ver e baixar: o próprio autor (submetente) ou quem gere os trabalhos do evento. */
+    /** Ver e baixar: autores do trabalho (responsável ou coautores com conta) ou quem gere os trabalhos do evento. */
     public function view(User $user, Trabalho $trabalho): bool
     {
-        return $trabalho->submetido_por === $user->id
+        return $trabalho->ehAutor($user)
             || $user->can('gerirTrabalhos', $trabalho->evento);
     }
 

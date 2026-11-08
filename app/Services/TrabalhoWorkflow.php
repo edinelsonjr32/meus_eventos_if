@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Requests\SalvarTrabalhoRequest;
 use App\Mail\AvaliadorAtribuidoMail;
+use App\Mail\TrabalhoReenviadoMail;
 use App\Mail\TrabalhoStatusMail;
 use App\Mail\TrabalhoSubmetidoMail;
 use App\Models\Evento;
@@ -84,6 +85,7 @@ class TrabalhoWorkflow
     /** Valida completude e conclui o envio: gera protocolo, muda status e avisa os autores. */
     public function submeter(Trabalho $trabalho, User $user): Trabalho
     {
+        $deStatus = $trabalho->status;   // status antes do envio (para saber se é um reenvio)
         $reenvio = $trabalho->status === Trabalho::AGUARDANDO_CORRECAO;
 
         DB::transaction(function () use ($trabalho, $user, $reenvio) {
@@ -102,6 +104,14 @@ class TrabalhoWorkflow
         });
 
         $trabalho->load(['autores', 'evento']);
+
+        // Reenvio após devolução ou pedido de correção: avisa a gestão (antes só aparecia na fila)
+        if (in_array($deStatus, [Trabalho::AGUARDANDO_CORRECAO, Trabalho::DEVOLVIDO_TRIAGEM], true)) {
+            foreach ($trabalho->evento->usuariosDaGestaoDeTrabalhos() as $gestor) {
+                Mail::to($gestor->email)->queue(new TrabalhoReenviadoMail($trabalho, $deStatus));
+            }
+        }
+
         $destinatarios = $trabalho->autores->pluck('email')->filter()->push($user->email)->map(fn ($e) => mb_strtolower($e))->unique();
         foreach ($destinatarios as $email) {
             Mail::to($email)->queue(new TrabalhoSubmetidoMail($trabalho));
@@ -141,9 +151,56 @@ class TrabalhoWorkflow
         return sprintf('TRB-%d-%04d', $evento->id, $numero);
     }
 
+    /**
+     * Para cada autor enviado no formulário, o "id" do autor existente que ele representa (ou null = novo).
+     * Casa pelo "id" do formulário; sem id (formulário antigo), pelo CPF.
+     *
+     * @return array<int, int|null>
+     */
+    private function casarAutores(Collection $existentes, array $autores): array
+    {
+        $usados = [];
+        $ids = [];
+
+        foreach (array_values($autores) as $i => $a) {
+            $id = (int) ($a['id'] ?? 0);
+            if (!$id && !empty($a['cpf'])) {
+                $id = (int) $existentes->first(fn ($e) => $e->cpf === $a['cpf'] && !in_array($e->id, $usados, true))?->id;
+            }
+
+            if ($id && $existentes->has($id) && !in_array($id, $usados, true)) {
+                $usados[] = $id;
+                $ids[$i] = $id;
+            } else {
+                $ids[$i] = null;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Autores com certificado válido que SERIAM removidos por esta edição (a gestão precisa revogar antes).
+     *
+     * @return Collection<int, TrabalhoAutor>
+     */
+    public function autoresComCertificadoRemovidos(Trabalho $trabalho, array $autores): Collection
+    {
+        $existentes = $trabalho->autores()->with('certificado')->get()->keyBy('id');
+        $mantidos = array_filter($this->casarAutores($existentes, $autores));
+
+        return $existentes->except($mantidos)->filter(fn ($a) => $a->certificado && !$a->certificado->revogado())->values();
+    }
+
+    /**
+     * Sincroniza os autores PRESERVANDO os já existentes: editar um nome não recria o autor,
+     * então certificados já emitidos continuam válidos. Quem não veio mais no formulário é removido.
+     */
     private function sincronizarAutores(Trabalho $trabalho, array $autores): void
     {
-        $trabalho->autores()->delete();
+        $existentes = $trabalho->autores()->get()->keyBy('id');
+        $casados = $this->casarAutores($existentes, $autores);
+        $mantidos = [];
 
         $principal = collect($autores)->contains(fn ($a) => !empty($a['correspondente']));
 
@@ -151,7 +208,7 @@ class TrabalhoWorkflow
             // Apenas vincula (nunca altera) um participante já existente com o mesmo CPF (quando informado)
             $participante = !empty($a['cpf']) ? Participante::where('cpf', $a['cpf'])->first() : null;
 
-            $trabalho->autores()->create([
+            $campos = [
                 'ordem' => $i + 1,
                 'participante_id' => $participante?->id,
                 'nome_completo' => $a['nome_completo'],
@@ -168,8 +225,17 @@ class TrabalhoWorkflow
                 'apresentador' => (bool) ($a['apresentador'] ?? false),
                 // Sem correspondente definido, o autor principal assume
                 'correspondente' => $principal ? (bool) ($a['correspondente'] ?? false) : $a['tipo_autor'] === 'autor_principal',
-            ]);
+            ];
+
+            if ($casados[$i]) {
+                $existentes[$casados[$i]]->update($campos);
+                $mantidos[] = $casados[$i];
+            } else {
+                $mantidos[] = $trabalho->autores()->create($campos)->id;
+            }
         }
+
+        $trabalho->autores()->whereNotIn('id', $mantidos)->delete();
     }
 
     /**

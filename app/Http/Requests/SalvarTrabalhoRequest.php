@@ -103,6 +103,7 @@ class SalvarTrabalhoRequest extends FormRequest
             'declaracao_regulamento' => [$submeter ? 'accepted' : 'nullable'],
 
             'autores' => [$submeter ? 'required' : 'nullable', 'array', 'min:' . ($submeter ? 1 : 0), 'max:' . ($config->max_autores + 4)],
+            'autores.*.id' => ['nullable', 'integer'],
             'autores.*.nome_completo' => ['required', 'string', 'max:255'],
             'autores.*.cpf' => ['nullable', 'string', 'size:14', new Cpf],
             'autores.*.email' => ['nullable', 'email', 'max:255'],

@@ -6,6 +6,7 @@ use App\Http\Requests\SalvarTrabalhoRequest;
 use App\Models\Evento;
 use App\Models\Trabalho;
 use App\Services\TrabalhoWorkflow;
+use App\Support\FormularioTrabalho;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,7 +22,7 @@ class TrabalhoController extends Controller
     public function index(Request $request)
     {
         $trabalhos = Trabalho::with(['evento', 'autores'])
-            ->where('submetido_por', $request->user()->id)
+            ->doAutor($request->user())
             ->latest()
             ->get();
 
@@ -32,7 +33,8 @@ class TrabalhoController extends Controller
             ->get();
 
         // Quantos trabalhos (não retirados) o usuário já tem em cada evento, para aplicar o limite por usuário
-        $meusPorEvento = $trabalhos->where('status', '!=', Trabalho::RETIRADO)->groupBy('evento_id')->map->count();
+        // (somente os que EU submeti: coautores não contam no limite)
+        $meusPorEvento = $trabalhos->where('submetido_por', $request->user()->id)->where('status', '!=', Trabalho::RETIRADO)->groupBy('evento_id')->map->count();
 
         return view('trabalhos.index', compact('trabalhos', 'eventos', 'meusPorEvento'));
     }
@@ -174,34 +176,6 @@ class TrabalhoController extends Controller
 
     private function dadosDoFormulario(Evento $evento, Trabalho $trabalho, Request $request): array
     {
-        $config = $evento->trabalhoConfig;
-
-        // O autor apresentador (principal) é sempre o primeiro; ao editar, vem dos dados salvos
-        $campos = ['nome_completo', 'cpf', 'email', 'instituicao', 'categoria_autor', 'tipo_autor', 'apresentador', 'correspondente'];
-        $autores = old('autores');
-
-        if ($autores === null && $trabalho->exists) {
-            $autores = $trabalho->autores
-                ->sortBy(fn ($a) => $a->tipo_autor === 'autor_principal' ? 0 : 1)
-                ->map(fn ($a) => $a->only($campos))->values()->all();
-        }
-
-        if (empty($autores)) {
-            // Apresentador pré-preenchido com os dados de quem está submetendo
-            $participante = $request->user()->participante;
-            $autores = [[
-                'nome_completo' => $request->user()->name, 'cpf' => $participante?->cpf, 'email' => $request->user()->email,
-                'categoria_autor' => match ($participante?->tipo_vinculo) { 'aluno' => 'discente', 'servidor' => 'docente', default => null },
-                'tipo_autor' => 'autor_principal', 'apresentador' => true, 'correspondente' => true,
-            ]];
-        }
-
-        return [
-            'evento' => $evento,
-            'trabalho' => $trabalho,
-            'config' => $config,
-            'areas' => $evento->areasTematicas,
-            'autores' => array_values($autores),
-        ];
+        return FormularioTrabalho::dados($evento, $trabalho, $request->user());
     }
 }
