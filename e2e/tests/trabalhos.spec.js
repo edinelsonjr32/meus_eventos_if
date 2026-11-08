@@ -119,3 +119,36 @@ test('máscara numérica descarta letras nos campos inteiros', async ({ page }) 
   await campo.pressSequentially('1a2b');
   await expect(campo).toHaveValue('12');
 });
+
+async function idDoEvento(page) {
+  await page.goto('/admin/eventos');
+  const hrefs = await page.locator('a').evaluateAll((as) => as.map((a) => a.getAttribute('href') || ''));
+  return hrefs.map((h) => h.match(/\/admin\/eventos\/(\d+)/)).find(Boolean)[1];
+}
+
+test('equipe: Select2 filtra participantes em tempo real e adiciona o escolhido', async ({ page }) => {
+  await entrar(page, 'admin@teste.com', 'Admin@12345');
+  const id = await idDoEvento(page);
+  await page.goto(`/admin/eventos/${id}/equipe`);
+  await page.locator('.select2-selection').first().click();
+  await page.locator('.select2-search__field').fill('thiago');
+  const opcao = page.locator('.select2-results__option', { hasText: 'Thiago' }).first();
+  await expect(opcao).toBeVisible();
+  await expect(page.locator('.select2-results__option', { hasText: 'Ana Beatriz' })).toHaveCount(0); // filtrou
+  await opcao.click();
+  await page.getByRole('button', { name: /Adicionar|Salvar/ }).first().click();
+  await expect(page.getByText(/Thiago Moura/).first()).toBeVisible();
+});
+
+test('papéis: Select2 busca usuário por nome ou e-mail', async ({ page }) => {
+  await entrar(page, 'admin@teste.com', 'Admin@12345');
+  const id = await idDoEvento(page);
+  await page.goto(`/admin/eventos/${id}/papeis`);
+  await page.locator('.select2-selection').first().click();
+  await page.locator('.select2-search__field').fill('avaliador@');
+  await expect(page.locator('.select2-results__option', { hasText: 'avaliador@teste.com' })).toBeVisible();
+  // envio sem escolher pessoa mostra alerta
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: /Designar/ }).click();
+  await expect(page.locator('.fb-toast.danger')).toContainText('Pessoa não selecionada');
+});

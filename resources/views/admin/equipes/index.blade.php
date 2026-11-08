@@ -37,11 +37,8 @@
                             @csrf
 
                             <div class="mb-3">
-                                <label class="small fw-bold text-secondary">Buscar Participante por CPF</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i class="fa-regular fa-id-card text-muted"></i></span>
-                                    <input type="text" name="cpf_busca" id="searchField" class="form-control border-start-0" placeholder="000.000.000-00" required>
-                                </div>
+                                <label class="small fw-bold text-secondary">Participante (nome, CPF, e-mail ou matrícula)</label>
+                                <x-select-pessoa :evento="$evento" tipo="participante" name="cpf_busca" :selecionado="old('cpf_busca')" placeholder="Digite para buscar…" />
                                 <div class="form-text small" style="font-size: 11px;">
                                     O participante precisa estar cadastrado no sistema.
                                 </div>
@@ -140,7 +137,7 @@
     <script>
         $(document).ready(function(){
             // Aplica a máscara de forma estável, sem complexidade de input/unmask/mask
-            $('#searchField').mask('000.000.000-00');
+            if ($('#searchField').length) $('#searchField').mask('000.000.000-00');
         });
     </script>
 </x-app-layout>

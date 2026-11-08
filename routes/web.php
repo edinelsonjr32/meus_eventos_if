@@ -215,6 +215,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::delete('frequencias/{id}', [AtividadeController::class, 'destroyFrequencia'])->name('frequencias.destroy');
     Route::patch('frequencias/{id}/role', [AtividadeController::class, 'updateRole'])->name('frequencias.role');
 
+    // Busca de pessoas em tempo real (Select2) para equipe e papéis
+    Route::get('eventos/{evento}/buscar-pessoas', \App\Http\Controllers\Admin\BuscaPessoaController::class)->middleware('throttle:60,1')->name('eventos.buscar-pessoas');
+
     // --- Gestão de Equipe / Staff ---
     Route::get('eventos/{evento}/equipe', [EquipeController::class, 'index'])->name('eventos.equipe.index');
     Route::post('eventos/{evento}/equipe', [EquipeController::class, 'store'])->name('eventos.equipe.store');

@@ -1,4 +1,5 @@
 <x-app-layout>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <div class="row justify-content-center">
         <div class="col-lg-10">
 
@@ -27,8 +28,8 @@
                         <form action="{{ route('admin.eventos.papeis.store', $evento->id) }}" method="POST">
                             @csrf
                             <div class="mb-3">
-                                <label class="small fw-bold text-secondary">E-mail do usuário</label>
-                                <input type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="pessoa@exemplo.com" required>
+                                <label class="small fw-bold text-secondary">Pessoa (nome ou e-mail)</label>
+                                <x-select-pessoa :evento="$evento" tipo="usuario" name="email" :selecionado="old('email')" placeholder="Digite o nome ou e-mail…" />
                                 <div class="form-text small">A pessoa precisa ter uma conta na plataforma.</div>
                             </div>
 
