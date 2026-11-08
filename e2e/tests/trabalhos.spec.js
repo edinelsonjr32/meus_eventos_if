@@ -78,3 +78,44 @@ test('avaliador acessa a própria área', async ({ page }) => {
   const r = await page.goto('/avaliador/avaliacoes');
   expect(r.status()).toBe(200);
 });
+
+test('configuração da chamada: erros aparecem como alerta e por campo; salvar mostra confirmação', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Editar chamada' }).first().click();
+
+  // campo obrigatório vazio + intervalo invertido + nenhuma categoria + link inválido
+  await page.fill('input[name=avaliadores_por_trabalho]', '');
+  await page.fill('input[name=resumo_min_palavras]', '500');
+  await page.fill('input[name=resumo_max_palavras]', '100');
+  await page.fill('input[name=template_url]', 'sem-protocolo');
+  for (const c of await page.locator('input[name="tipos_permitidos[]"]').all()) await c.uncheck();
+  await page.locator('button[name=acao][value=salvar]').click();
+
+  const toast = page.locator('.fb-toast.danger');
+  await expect(toast).toBeVisible();
+  await expect(toast).toContainText('problemas encontrados');
+  await expect(page.locator('.fb-erro-campo', { hasText: 'Preencha o campo' })).toBeVisible();
+  await expect(page.locator('.fb-erro-campo', { hasText: 'maior ou igual ao mínimo' })).toBeVisible();
+  await expect(page.locator('.fb-erro-campo', { hasText: 'ao menos uma categoria' })).toBeVisible();
+  await expect(page).toHaveURL(/config$/); // nada foi enviado
+
+  // corrige e salva
+  await page.fill('input[name=avaliadores_por_trabalho]', '2');
+  await page.fill('input[name=resumo_min_palavras]', '100');
+  await page.fill('input[name=resumo_max_palavras]', '300');
+  await page.fill('input[name=template_url]', '');
+  await page.locator('input[name="tipos_permitidos[]"]').first().check();
+  await page.locator('button[name=acao][value=salvar]').click();
+  await expect(page.locator('.fb-toast.success, .alert-success').first()).toBeVisible();
+});
+
+test('máscara numérica descarta letras nos campos inteiros', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Editar chamada' }).first().click();
+  const campo = page.locator('input[name=max_autores]');
+  await campo.fill('');
+  await campo.pressSequentially('1a2b');
+  await expect(campo).toHaveValue('12');
+});

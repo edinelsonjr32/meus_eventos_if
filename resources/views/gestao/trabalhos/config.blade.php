@@ -36,7 +36,7 @@
                 <div class="alert alert-danger"><ul class="mb-0 small">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div>
             @endif
 
-            <form action="{{ route('gestao.trabalhos.config.update', $evento) }}" method="POST">
+            <form action="{{ route('gestao.trabalhos.config.update', $evento) }}" method="POST" data-validar data-regras="regrasChamada">
                 @csrf @method('PUT')
 
                 <div class="glass-card bg-white mb-4">
@@ -49,11 +49,11 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="small fw-bold text-secondary">Início da submissão</label>
-                            <input type="datetime-local" name="submissao_inicio" class="form-control" value="{{ old('submissao_inicio', $config->submissao_inicio?->format('Y-m-d\TH:i')) }}">
+                            <input type="datetime-local" name="submissao_inicio" data-nome="Início da submissão" class="form-control" value="{{ old('submissao_inicio', $config->submissao_inicio?->format('Y-m-d\TH:i')) }}">
                         </div>
                         <div class="col-md-6">
                             <label class="small fw-bold text-secondary">Fim da submissão</label>
-                            <input type="datetime-local" name="submissao_fim" class="form-control" value="{{ old('submissao_fim', $config->submissao_fim?->format('Y-m-d\TH:i')) }}">
+                            <input type="datetime-local" name="submissao_fim" data-nome="Fim da submissão" class="form-control" value="{{ old('submissao_fim', $config->submissao_fim?->format('Y-m-d\TH:i')) }}">
                         </div>
                         <div class="col-md-6">
                             <label class="small fw-bold text-secondary">Prazo padrão das avaliações</label>
@@ -61,7 +61,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="small fw-bold text-secondary">Avaliadores por trabalho</label>
-                            <input type="number" min="1" max="10" name="avaliadores_por_trabalho" class="form-control" value="{{ old('avaliadores_por_trabalho', $config->avaliadores_por_trabalho ?? 2) }}" required>
+                            <input type="number" min="1" max="10" name="avaliadores_por_trabalho" data-mascara="inteiro" class="form-control" value="{{ old('avaliadores_por_trabalho', $config->avaliadores_por_trabalho ?? 2) }}" required>
                         </div>
                     </div>
                 </div>
@@ -107,23 +107,23 @@
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="small fw-bold text-secondary">Máx. de autores</label>
-                            <input type="number" min="1" max="30" name="max_autores" class="form-control" value="{{ old('max_autores', $config->max_autores ?? 10) }}" required>
+                            <input type="number" min="1" max="30" name="max_autores" data-mascara="inteiro" class="form-control" value="{{ old('max_autores', $config->max_autores ?? 10) }}" required>
                         </div>
                         <div class="col-md-3">
                             <label class="small fw-bold text-secondary">Tamanho máx. do PDF (MB)</label>
-                            <input type="number" min="1" max="100" name="max_arquivo_mb" class="form-control" value="{{ old('max_arquivo_mb', $config->max_arquivo_mb ?? 20) }}" required>
+                            <input type="number" min="1" max="100" name="max_arquivo_mb" data-mascara="inteiro" class="form-control" value="{{ old('max_arquivo_mb', $config->max_arquivo_mb ?? 20) }}" required>
                         </div>
                         <div class="col-md-3">
                             <label class="small fw-bold text-secondary">Resumo: mín. palavras</label>
-                            <input type="number" min="0" name="resumo_min_palavras" class="form-control" value="{{ old('resumo_min_palavras', $config->resumo_min_palavras ?? 100) }}" required>
+                            <input type="number" min="0" name="resumo_min_palavras" data-mascara="inteiro" class="form-control" value="{{ old('resumo_min_palavras', $config->resumo_min_palavras ?? 100) }}" required>
                         </div>
                         <div class="col-md-3">
                             <label class="small fw-bold text-secondary">Resumo: máx. palavras</label>
-                            <input type="number" min="1" name="resumo_max_palavras" class="form-control" value="{{ old('resumo_max_palavras', $config->resumo_max_palavras ?? 300) }}" required>
+                            <input type="number" min="1" name="resumo_max_palavras" data-mascara="inteiro" class="form-control" value="{{ old('resumo_max_palavras', $config->resumo_max_palavras ?? 300) }}" required>
                         </div>
                         <div class="col-md-4">
                             <label class="small fw-bold text-secondary">Trabalhos por usuário (vazio = sem limite)</label>
-                            <input type="number" min="1" name="max_trabalhos_por_usuario" class="form-control" value="{{ old('max_trabalhos_por_usuario', $config->max_trabalhos_por_usuario) }}">
+                            <input type="number" min="1" name="max_trabalhos_por_usuario" data-mascara="inteiro" class="form-control" value="{{ old('max_trabalhos_por_usuario', $config->max_trabalhos_por_usuario) }}">
                         </div>
                         <div class="col-md-8 d-flex align-items-end">
                             <div class="form-check form-switch">
@@ -229,7 +229,7 @@
                         <i class="fa-regular fa-floppy-disk me-1"></i> {{ $config->exists ? 'Salvar' : 'Salvar como rascunho' }}
                     </button>
                     @unless($config->exists && $config->ativo)
-                        <button name="acao" value="publicar" class="btn btn-primary-custom fw-bold px-4" onclick="return confirm('Publicar a chamada? Os participantes poderão submeter trabalhos dentro do período definido.')">
+                        <button name="acao" value="publicar" class="btn btn-primary-custom fw-bold px-4" data-confirmar="Publicar a chamada? Os participantes poderão submeter trabalhos dentro do período definido.">
                             <i class="fa-solid fa-bullhorn me-1"></i> Salvar e publicar chamada
                         </button>
                     @endunless
@@ -239,6 +239,25 @@
     </div>
 
     <script>
+        // Regras que cruzam campos (a validação básica vem do componente de feedback)
+        function regrasChamada(form, erro) {
+            const f = (n) => form.querySelector('[name="' + n + '"]');
+            const ini = f('submissao_inicio'), fim = f('submissao_fim');
+            if (ini.value && fim.value && fim.value < ini.value) erro(fim, 'O fim da submissão deve ser posterior ao início.');
+            if (form.querySelector('[name="ativo"][type=checkbox]:checked') || form.dataset.acao === 'publicar') {
+                if (!ini.value || !fim.value) erro(!ini.value ? ini : fim, 'Para publicar, defina o período de submissão (início e fim).');
+            }
+            const min = f('resumo_min_palavras'), max = f('resumo_max_palavras');
+            if (min.value !== '' && max.value !== '' && Number(max.value) < Number(min.value)) erro(max, 'O máximo de palavras deve ser maior ou igual ao mínimo.');
+            const tipos = form.querySelectorAll('[name="tipos_permitidos[]"]');
+            if (tipos.length && !form.querySelector('[name="tipos_permitidos[]"]:checked')) erro(tipos[0], 'Selecione ao menos uma categoria de trabalho.');
+            const link = f('template_url');
+            if (link.value && !/^https?:\/\//i.test(link.value)) erro(link, 'O link do template deve começar com https://');
+            const linhas = form.querySelectorAll('[name^="criterios["][name$="[nome]"]:not(:disabled)');
+            const nomes = new Set();
+            linhas.forEach((c) => { const n = c.value.trim().toLowerCase(); if (n && nomes.has(n)) erro(c, 'Critério repetido: "' + c.value.trim() + '".'); nomes.add(n); });
+        }
+
         function criteriosForm(iniciais, padroes, bloqueado) {
             return {
                 linhas: iniciais.map(c => ({ ...c })),

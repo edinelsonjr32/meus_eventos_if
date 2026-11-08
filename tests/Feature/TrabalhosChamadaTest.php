@@ -133,3 +133,20 @@ it('sem o campo, a exigência de apresentação para certificado nunca vira "nã
     $this->put($url, chamadaBase(['acao' => 'salvar']));   // campo ausente: mantém o valor atual
     expect(TrabalhoConfig::where('evento_id', $this->evento->id)->first()->exige_apresentacao_para_certificado)->toBeFalse();
 });
+
+it('a tela da chamada carrega o feedback de validação e devolve os erros do servidor por campo', function () {
+    $dono = mkUser('admin');
+    $evento = mkEvento($dono);
+
+    $this->actingAs($dono)->get(route('gestao.trabalhos.config', $evento))
+        ->assertOk()->assertSee('data-validar', false)->assertSee('id="fb-toasts"', false)->assertSee('regrasChamada', false);
+
+    // O servidor continua sendo a palavra final: a página reexibida leva as mensagens para o script marcar os campos
+    $this->actingAs($dono)->from(route('gestao.trabalhos.config', $evento))
+        ->put(route('gestao.trabalhos.config.update', $evento), ['avaliadores_por_trabalho' => '', 'tipos_permitidos' => []])
+        ->assertRedirect(route('gestao.trabalhos.config', $evento))->assertSessionHasErrors(['avaliadores_por_trabalho', 'tipos_permitidos']);
+
+    $this->actingAs($dono)->followingRedirects()->from(route('gestao.trabalhos.config', $evento))
+        ->put(route('gestao.trabalhos.config.update', $evento), ['avaliadores_por_trabalho' => '', 'tipos_permitidos' => []])
+        ->assertSee('Selecione ao menos uma categoria de trabalho.');
+});
