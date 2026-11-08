@@ -126,7 +126,7 @@
                                     <td class="text-end">{{ $fmt($t->nota_final) }}</td>
                                     <td class="text-end fw-bold">{{ $fmt($t->nota_apresentacao) }}</td>
                                     <td class="text-end fw-bold text-success">{{ $fmt($t->notaGeral()) }}</td>
-                                    <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->resultado_apresentacao === 'reprovado' ? 'apresentação não aprovada' : ($t->resultado_apresentacao === null ? 'aguardando apresentação' : null)" /></td>
+                                    <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" /></td>
                                 </tr>
                             @empty
                                 <tr><td colspan="9" class="text-center text-muted py-4">Nenhum trabalho aprovado{{ $atividadeId ? ' nesta sessão' : '' }}. Trabalhos com ressalvas entram aqui depois da correção e da aprovação.</td></tr>

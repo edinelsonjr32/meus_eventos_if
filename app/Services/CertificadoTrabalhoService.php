@@ -36,6 +36,13 @@ class CertificadoTrabalhoService
             return 'trabalho não aprovado';
         }
 
+        // Com avaliação de apresentação ativa, certificado só para quem foi aprovado nas duas partes (texto + apresentação)
+        if (!$trabalho->aprovadoCompleto()) {
+            return $trabalho->resultado_apresentacao === 'reprovado'
+                ? 'trabalho não aprovado na apresentação'
+                : 'aguardando a aprovação na apresentação';
+        }
+
         $exige = $trabalho->evento->trabalhoConfig?->exige_apresentacao_para_certificado ?? true;
         if ($exige && !$trabalho->apresentado) {
             return 'apresentação ainda não confirmada';

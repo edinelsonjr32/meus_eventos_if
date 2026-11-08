@@ -280,3 +280,31 @@ it('REGRA: a situação aparece tipificada para gestão e autor', function () {
     $this->actingAs($this->autor)->get(route('trabalhos.show', $this->trabalho))->assertSee('Aprovado (parte escrita e apresentação)');
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.ranking', $this->evento))->assertOk()->assertDontSee('Aprovado na parte escrita');
 });
+
+it('REGRA: o complemento do selo não diz "aguardando apresentação" quando ela já aconteceu', function () {
+    expect($this->trabalho->extraSituacao())->toBe('aguardando apresentação');
+
+    $this->trabalho->update(['apresentado' => true]);
+    expect($this->trabalho->fresh()->extraSituacao())->toBe('aguardando resultado da apresentação');
+
+    $this->trabalho->update(['resultado_apresentacao' => 'reprovado']);
+    expect($this->trabalho->fresh()->extraSituacao())->toBe('apresentação não aprovada');
+
+    $this->trabalho->update(['resultado_apresentacao' => 'aprovado']);
+    expect($this->trabalho->fresh()->extraSituacao())->toBeNull();
+});
+
+it('REGRA: certificado do trabalho exige aprovação nas duas partes quando a apresentação é avaliada', function () {
+    $cert = app(\App\Services\CertificadoTrabalhoService::class);
+    $this->trabalho->update(['apresentado' => true]);
+
+    expect($cert->motivoInelegivel($this->trabalho->fresh()))->toBe('aguardando a aprovação na apresentação');
+    $this->trabalho->update(['resultado_apresentacao' => 'reprovado']);
+    expect($cert->motivoInelegivel($this->trabalho->fresh()))->toBe('trabalho não aprovado na apresentação');
+    $this->trabalho->update(['resultado_apresentacao' => 'aprovado']);
+    expect($cert->motivoInelegivel($this->trabalho->fresh()))->toBeNull();
+
+    $this->evento->trabalhoConfig->update(['avaliacao_apresentacao_ativa' => false]);
+    $this->trabalho->update(['resultado_apresentacao' => null]);
+    expect($cert->motivoInelegivel($this->trabalho->fresh()))->toBeNull();   // sem avaliação de apresentação: regra anterior
+});

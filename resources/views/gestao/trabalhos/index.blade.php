@@ -117,7 +117,7 @@
                                 </td>
                                 <td>{{ \App\Models\TrabalhoConfig::TIPOS[$t->tipo_trabalho] ?? '—' }}</td>
                                 <td>{{ $t->area->nome ?? '—' }}</td>
-                                <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->resultado_apresentacao === 'reprovado' && $t->statusFinal() === 'aprovado_escrita' ? 'apresentação não aprovada' : null" /></td>
+                                <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" /></td>
                                 <td>{{ $t->avaliacoes->where('status', '!=', 'recusada')->count() }}/{{ $config?->avaliadores_por_trabalho ?? 2 }}</td>
                                 <td>{{ $t->submetido_em?->format('d/m/Y H:i') }}</td>
                                 <td class="text-end pe-3">

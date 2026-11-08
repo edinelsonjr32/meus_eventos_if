@@ -148,6 +148,19 @@ class Trabalho extends Model
         return self::STATUS[$this->statusFinal()] ?? self::STATUS_FINAL_EXTRA[$this->statusFinal()] ?? $this->statusFinal();
     }
 
+    /** Complemento do selo "Aprovado na parte escrita": diz o que falta, sem afirmar que não houve apresentação quando ela já ocorreu. */
+    public function extraSituacao(): ?string
+    {
+        if ($this->statusFinal() !== 'aprovado_escrita') {
+            return null;
+        }
+        if ($this->resultado_apresentacao === 'reprovado') {
+            return 'apresentação não aprovada';
+        }
+
+        return $this->apresentado ? 'aguardando resultado da apresentação' : 'aguardando apresentação';
+    }
+
     /** Aprovado nas duas partes (ou apenas no texto, quando o evento não avalia apresentações). */
     public function aprovadoCompleto(): bool
     {

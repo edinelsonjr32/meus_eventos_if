@@ -84,7 +84,7 @@
                                 </td>
                                 <td>{{ \App\Services\RelatorioNotas::rotuloRecomendacoes($l['recomendacoes']) ?: '—' }}</td>
                                 <td>
-                                    <x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->resultado_apresentacao === 'reprovado' && $t->statusFinal() === 'aprovado_escrita' ? 'apresentação não aprovada' : null" />
+                                    <x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" />
                                     @if($t->decisao) <div class="text-muted">{{ ['aprovado' => 'Aprovado', 'aprovado_com_ressalvas' => 'Com ressalvas', 'reprovado' => 'Reprovado'][$t->decisao] }}</div> @endif
                                 </td>
                                 <td class="text-end pe-3"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-folder-open"></i> Abrir</a></td>

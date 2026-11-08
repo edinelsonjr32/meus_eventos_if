@@ -21,7 +21,7 @@
                             <i class="fa-solid fa-pen me-1"></i> Editar dados
                         </a>
                     @endif
-                    <x-badge tipo="trabalho" :valor="$trabalho->statusFinal()" :extra="$trabalho->resultado_apresentacao === 'reprovado' && $trabalho->statusFinal() === 'aprovado_escrita' ? 'apresentação não aprovada' : null" style="font-size:.85rem; padding:.35rem .8rem;" />
+                    <x-badge tipo="trabalho" :valor="$trabalho->statusFinal()" :extra="$trabalho->extraSituacao()" style="font-size:.85rem; padding:.35rem .8rem;" />
                 </div>
             </div>
 
