@@ -11,7 +11,7 @@ Para quem coordena a chamada de trabalhos de um evento (dono do evento, editor c
 Em **Trabalhos do evento**, abra o trabalho:
 - **Aprovar triagem** → segue para avaliação.
 - **Devolver** (com motivo) → autor corrige e reenvia. **Rejeitar** → encerra.
-Use filtros (status, categoria, busca) e **ações em lote**.
+Use filtros (status, categoria, busca) e **ações em lote**: *Atribuir avaliadores*, *Iniciar triagem* e **Encaminhar para avaliação** em massa (só entram os trabalhos em triagem que já têm o mínimo de avaliadores da chamada; os demais são listados com o motivo, por exemplo "faltam 1 avaliador(es)").
 
 ## 3. Avaliação
 1. **Atribuir avaliadores** pela caixa de seleção com busca (digite para filtrar; quem tem conflito aparece desabilitado). O botão **Encaminhar para avaliação** só libera quando o **mínimo de avaliadores da chamada** foi atribuído (recusas não contam). No detalhe do trabalho a lista separa **Disponíveis**, **Já atribuídos a este trabalho** (inclui quem recusou) e **Conflito de interesse** (por exemplo, o avaliador é autor ou responsável pelo trabalho e não pode se avaliar): os impedidos aparecem desabilitados, com o motivo. No lote, o resumo lista, por avaliador, em quais trabalhos há impedimento antes de você confirmar. Colocou o avaliador errado? **Cancelar envio para avaliação** (volta à triagem, desde que nenhuma avaliação tenha sido concluída), remova o avaliador, atribua o certo e encaminhe de novo. Avaliadores são notificados.

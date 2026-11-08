@@ -334,7 +334,7 @@ class TrabalhoGestaoController extends Controller
         $this->authorize('gerirTrabalhos', $evento);
 
         $dados = $request->validate([
-            'acao' => ['required', Rule::in(['triagem', 'atribuir'])],
+            'acao' => ['required', Rule::in(['triagem', 'atribuir', 'avaliacao'])],
             'trabalhos' => ['required', 'array', 'min:1'],
             'trabalhos.*' => ['integer'],
             'avaliadores' => ['required_if:acao,atribuir', 'array'],
@@ -360,6 +360,23 @@ class TrabalhoGestaoController extends Controller
                 } catch (\DomainException $e) {
                     $resultado->ignorar($trabalho->codigo, $e->getMessage());
                 }
+            } elseif ($dados['acao'] === 'avaliacao') {
+                // Envio em massa para avaliação: só trabalhos em triagem que já têm o mínimo de avaliadores da chamada
+                if ($trabalho->status !== 'em_triagem') {
+                    $resultado->ignorar($trabalho->codigo, "Não está em triagem (status: {$trabalho->statusRotulo()})");
+                    continue;
+                }
+                [$atribuidos, $minimo] = $this->workflow->avaliadoresMinimos($trabalho);
+                if ($atribuidos < $minimo) {
+                    $resultado->ignorar("{$trabalho->codigo} ({$atribuidos}/{$minimo})", "Avaliadores insuficientes: a chamada exige no mínimo {$minimo}");
+                    continue;
+                }
+                try {
+                    $this->workflow->transicionar($trabalho, $request->user(), 'em_avaliacao');
+                    $resultado->ok();
+                } catch (\DomainException $e) {
+                    $resultado->ignorar($trabalho->codigo, $e->getMessage());
+                }
             } else {
                 $resultado->mesclar($this->atribuirVarios($trabalho, $request, $dados['avaliadores'], $dados['prazo'] ?? null));
             }
@@ -371,7 +388,11 @@ class TrabalhoGestaoController extends Controller
             $resultado->ignorar("{$faltando} item(ns)", 'Trabalho não encontrado neste evento');
         }
 
-        return $resultado->aplicar(back(), $dados['acao'] === 'triagem' ? 'triagem(ns) iniciada(s)' : 'atribuição(ões)');
+        return $resultado->aplicar(back(), match ($dados['acao']) {
+            'triagem' => 'triagem(ns) iniciada(s)',
+            'avaliacao' => 'trabalho(s) encaminhado(s) para avaliação',
+            default => 'atribuição(ões)',
+        });
     }
 
     /** Atribui os avaliadores ao trabalho; cada recusa (conflito, duplicado, status) vira um item ignorado com motivo. */

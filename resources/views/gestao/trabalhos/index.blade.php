@@ -77,6 +77,7 @@
             <x-lote-avaliadores :action="route('gestao.trabalhos.lote', $evento)" :avaliadores="$avaliadores" :restricoes="$restricoes" :acoes="[
                 ['valor' => 'atribuir', 'rotulo' => 'Atribuir avaliadores', 'icone' => 'fa-user-plus', 'tom' => 'btn-outline-success'],
                 ['valor' => 'triagem', 'rotulo' => 'Iniciar triagem', 'icone' => 'fa-filter', 'tom' => 'btn-outline-primary'],
+                ['valor' => 'avaliacao', 'rotulo' => 'Encaminhar para avaliação', 'icone' => 'fa-share', 'tom' => 'btn-outline-warning'],
             ]" />
 
             <div class="glass-card bg-white p-0 overflow-hidden">
@@ -87,8 +88,13 @@
                         </thead>
                         <tbody>
                         @forelse($trabalhos as $t)
+                            @php
+                                $ativas = $t->avaliacoes->where('status', '!=', 'recusada')->count();
+                                $minimo = $config?->avaliadores_por_trabalho ?? 2;
+                                $aptoAval = $t->status === 'em_triagem' && $ativas >= $minimo;
+                            @endphp
                             <tr>
-                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho" data-codigo="{{ $t->codigo }}" data-atribuir="{{ in_array($t->status, \App\Services\TrabalhoWorkflow::STATUS_ATRIBUICAO, true) ? 1 : 0 }}" data-triagem="{{ in_array($t->status, [\App\Models\Trabalho::SUBMETIDO, 'resubmetido'], true) ? 1 : 0 }}"></td>
+                                <td class="ps-3"><input type="checkbox" form="lote" name="trabalhos[]" value="{{ $t->id }}" class="form-check-input sel-trabalho" data-codigo="{{ $t->codigo }}" data-atribuir="{{ in_array($t->status, \App\Services\TrabalhoWorkflow::STATUS_ATRIBUICAO, true) ? 1 : 0 }}" data-triagem="{{ in_array($t->status, [\App\Models\Trabalho::SUBMETIDO, 'resubmetido'], true) ? 1 : 0 }}" data-avaliacao="{{ $aptoAval ? 1 : 0 }}" data-motivo-avaliacao="{{ $aptoAval ? '' : ($t->status !== 'em_triagem' ? 'não está em triagem' : 'faltam ' . ($minimo - $ativas) . ' avaliador(es)') }}"></td>
                                 <td class="fw-bold text-nowrap">{{ $t->codigo }}</td>
                                 <td>
                                     <div class="fw-bold">{{ \Illuminate\Support\Str::limit($t->titulo, 70) }}</div>

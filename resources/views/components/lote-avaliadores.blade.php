@@ -78,7 +78,7 @@
                 }
                 const acao = () => (form.querySelector('input[name=acao]:checked') || {}).value;
                 const nAval = () => form.querySelectorAll('select[name="avaliadores[]"] option:checked').length;
-                const rotuloAcao = { atribuir: 'Atribuir avaliadores', triagem: 'Iniciar triagem' };
+                const rotuloAcao = { atribuir: 'Atribuir avaliadores', triagem: 'Iniciar triagem', avaliacao: 'Encaminhar para avaliação' };
                 const restricoes = JSON.parse(form.dataset.restricoes || '{}');
                 const nomes = JSON.parse(form.dataset.avaliadores || '{}');
                 const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -101,7 +101,7 @@
                 function atualizar() {
                     const marcados = sel();
                     const a = acao();
-                    const campo = a === 'triagem' ? 'triagem' : 'atribuir';
+                    const campo = (a === 'triagem' || a === 'avaliacao') ? a : 'atribuir';
                     const aptos = marcados.filter(c => c.dataset[campo] === '1');
                     const ignorados = marcados.length - aptos.length;
                     const painel = form.querySelector('[data-lote-painel="atribuir"]');
@@ -124,6 +124,9 @@
                                 if (previstas === 0) texto = '<strong class="text-danger">Nenhuma atribuição possível:</strong> todos os pares avaliador × trabalho selecionados têm impedimento (veja abaixo).';
                                 else { ok = true; texto = 'Serão feitas <strong>' + previstas + '</strong> atribuição(ões) (' + aptos.length + ' trabalho(s) × ' + n + ' avaliador(es))' + (imp.bloqueados ? ', <strong class="text-warning">' + imp.bloqueados + ' impedida(s)</strong>' : '') + '.'; }
                             }
+                        } else if (a === 'avaliacao') {
+                            if (!aptos.length) texto = '<strong class="text-danger">Nenhum trabalho pode ser encaminhado:</strong> é preciso estar em triagem e já ter o mínimo de avaliadores da chamada.';
+                            else { ok = true; texto = '<strong>' + aptos.length + '</strong> trabalho(s) serão encaminhados para avaliação (os avaliadores já atribuídos passam a poder avaliar).'; }
                         } else {
                             if (!aptos.length) texto = 'Nenhum dos trabalhos selecionados está aguardando triagem (só submetidos ou resubmetidos).';
                             else { ok = true; texto = '<strong>' + aptos.length + '</strong> trabalho(s) irão para a triagem.'; }
@@ -147,6 +150,14 @@
                                 const motivo = (itens.find(i => i.r.tipo === tipo) || {}).r.motivo;
                                 html += '<div class="mb-1"><span class="sb" style="background:' + c[0] + ';color:' + c[1] + ';border-color:' + c[1] + '55;"><i class="fa-solid ' + c[2] + '"></i> ' + esc(nomes[id] || id) + ' — ' + c[3] + '</span> <span class="text-muted">em ' + esc(grupos[tipo].join(', ')) + (tipo === 'conflito' ? ' (' + esc(motivo) + ')' : '') + '</span></div>';
                             });
+                        });
+                    }
+                    if (a === 'avaliacao') {
+                        const barrados = marcados.filter(c => c.dataset.avaliacao !== '1');
+                        const grupos = {};
+                        barrados.forEach(c => { const m = c.dataset.motivoAvaliacao || 'não pode ser encaminhado'; (grupos[m] = grupos[m] || []).push(c.dataset.codigo); });
+                        Object.keys(grupos).forEach(m => {
+                            html += '<div class="mb-1"><span class="sb" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;"><i class="fa-solid fa-triangle-exclamation"></i> ' + esc(m) + '</span> <span class="text-muted">em ' + esc(grupos[m].join(', ')) + '</span></div>';
                         });
                     }
                     caixa.innerHTML = html;

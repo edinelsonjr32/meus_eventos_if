@@ -186,3 +186,45 @@ it('lote (apresentações): impedimentos usam as avaliações da apresentação;
 
     expect($mapa[$this->av1->id]['tipo'])->toBe('atribuido')->and($mapa[$this->autor->id]['tipo'])->toBe('conflito')->and($mapa)->not->toHaveKey($this->av2->id);
 });
+
+it('lote: encaminha para avaliação só os trabalhos em triagem com o mínimo de avaliadores e explica os demais', function () {
+    $w = app(\App\Services\TrabalhoWorkflow::class);
+    $pronto = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Pronto'], 'em_triagem');
+    $pronto2 = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Pronto 2'], 'em_triagem');
+    $falta = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Falta'], 'em_triagem');
+    $submetido = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Submetido'], 'submetido');
+    foreach ([$pronto, $pronto2] as $t) { $w->atribuirAvaliador($t, $this->av1, $this->gestor); $w->atribuirAvaliador($t, $this->av2, $this->gestor); }
+    $w->atribuirAvaliador($falta, $this->av1, $this->gestor);   // 1/2: abaixo do mínimo
+
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.lote', $this->evento), [
+        'acao' => 'avaliacao', 'trabalhos' => [$pronto->id, $pronto2->id, $falta->id, $submetido->id],
+    ])->assertSessionHas('success');
+
+    expect($pronto->fresh()->status)->toBe('em_avaliacao')->and($pronto2->fresh()->status)->toBe('em_avaliacao')
+        ->and($falta->fresh()->status)->toBe('em_triagem')->and($submetido->fresh()->status)->toBe('submetido');
+    $linhas = collect(session('erros_lote'));
+    expect($linhas->contains(fn ($l) => str_contains($l, 'Avaliadores insuficientes') && str_contains($l, "{$falta->codigo} (1/2)")))->toBeTrue()
+        ->and($linhas->contains(fn ($l) => str_contains($l, 'Não está em triagem') && str_contains($l, $submetido->codigo)))->toBeTrue();
+
+    // histórico registrado para quem foi encaminhado
+    expect($pronto->historico()->where('para', 'em_avaliacao')->exists())->toBeTrue();
+});
+
+it('lote: se nenhum trabalho puder ser encaminhado, a resposta é de erro e nada muda', function () {
+    $t = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Sem avaliador'], 'em_triagem');
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.lote', $this->evento), ['acao' => 'avaliacao', 'trabalhos' => [$t->id]])->assertSessionHas('error')->assertSessionHas('erros_lote');
+    expect($t->fresh()->status)->toBe('em_triagem');
+});
+
+it('tela de trabalhos: ação "Encaminhar para avaliação" e atributos de aptidão por linha', function () {
+    $w = app(\App\Services\TrabalhoWorkflow::class);
+    $ok = mkTrabalho($this->evento, $this->autor, ['titulo' => 'OK'], 'em_triagem');
+    $falta = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Falta'], 'em_triagem');
+    $w->atribuirAvaliador($ok, $this->av1, $this->gestor); $w->atribuirAvaliador($ok, $this->av2, $this->gestor);
+    $w->atribuirAvaliador($falta, $this->av1, $this->gestor);
+
+    $html = $this->actingAs($this->gestor)->get(route('gestao.trabalhos.index', $this->evento))->assertOk()->assertSee('Encaminhar para avaliação')->getContent();
+    preg_match('/value="' . $ok->id . '"[^>]*data-avaliacao="(\d)" data-motivo-avaliacao="([^"]*)"/', $html, $a);
+    preg_match('/value="' . $falta->id . '"[^>]*data-avaliacao="(\d)" data-motivo-avaliacao="([^"]*)"/', $html, $b);
+    expect($a[1])->toBe('1')->and($a[2])->toBe('')->and($b[1])->toBe('0')->and($b[2])->toBe('faltam 1 avaliador(es)');
+});

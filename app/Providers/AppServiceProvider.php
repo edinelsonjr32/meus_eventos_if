@@ -22,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // O sistema usa Bootstrap: sem isto a paginação sai no estilo Tailwind (setas SVG gigantes e sem estilo)
+        \Illuminate\Pagination\Paginator::useBootstrapFive();
+
         // Em produção com APP_URL https, todos os links e redirecionamentos saem em https
         if ($this->app->isProduction() && str_starts_with((string) config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
