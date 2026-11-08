@@ -58,28 +58,43 @@
 
             <div class="text-center mb-4">
                 <h5 class="fw-bold text-dark">{{ $atividade->titulo }}</h5>
-                <p class="text-secondary small">Preencha seus dados para confirmar.</p>
+                <p class="text-secondary small">{{ auth()->check() ? 'Confirme seus dados para registrar a presença.' : 'Entre ou crie sua conta para registrar a presença.' }}</p>
             </div>
 
+            @guest
+                <div class="text-center">
+                    <div class="mb-3"><i class="fa-solid fa-user-lock fs-1 text-success"></i></div>
+                    <p class="small text-muted">A presença fica ligada à sua conta, garantindo o certificado no seu nome. Depois de entrar você volta aqui para registrar.</p>
+                    <a href="{{ route('frequencia.acesso', [$atividade->token_frequencia, 'entrar']) }}" class="btn btn-success-custom w-100 mb-2 text-center text-decoration-none d-block"><i class="fa-solid fa-right-to-bracket me-1"></i> Já tenho conta — Entrar</a>
+                    <a href="{{ route('frequencia.acesso', [$atividade->token_frequencia, 'cadastrar']) }}" class="btn btn-outline-success w-100 fw-bold py-2"><i class="fa-solid fa-user-plus me-1"></i> Criar minha conta</a>
+                </div>
+            @else
             <form id="formPresenca" action="{{ route('frequencia.store', $atividade->token_frequencia) }}" method="POST">
                 @csrf
                 <input type="hidden" name="user_lat" x-model="lat">
                 <input type="hidden" name="user_lng" x-model="lng">
 
-                <div class="mb-3">
-                    <label class="fw-bold small text-secondary">CPF</label>
-                    <input type="text" name="cpf" class="form-control cpf-mask" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
-                </div>
+                <div class="alert alert-light border small py-2"><i class="fa-solid fa-user-check me-1 text-success"></i> Registrando como <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}).</div>
 
-                <div class="mb-3">
-                    <label class="fw-bold small text-secondary">Nome Completo</label>
-                    <input type="text" name="nome_completo" class="form-control" value="{{ old('nome_completo') }}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="fw-bold small text-secondary">E-mail</label>
-                    <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
-                </div>
+                @if($participanteLogado)
+                    <div class="mb-3">
+                        <label class="fw-bold small text-secondary">CPF</label>
+                        <input type="text" class="form-control bg-light" value="{{ $participanteLogado->cpf }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold small text-secondary">Nome Completo</label>
+                        <input type="text" class="form-control bg-light" value="{{ $participanteLogado->nome_completo }}" readonly>
+                    </div>
+                @else
+                    <div class="mb-3">
+                        <label class="fw-bold small text-secondary">CPF</label>
+                        <input type="text" name="cpf" class="form-control cpf-mask" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold small text-secondary">Nome Completo</label>
+                        <input type="text" name="nome_completo" class="form-control" value="{{ old('nome_completo', auth()->user()->name) }}" required>
+                    </div>
+                @endif
 
                 <div class="mb-3">
                     <label class="fw-bold small text-secondary">Vínculo</label>
@@ -93,7 +108,7 @@
                 <div x-show="['aluno', 'servidor'].includes(tipoVinculo)" class="bg-light p-3 rounded-3 mb-4 border">
                     <div class="mb-2">
                         <label class="fw-bold small text-dark">Matrícula</label>
-                        <input type="text" name="matricula" class="form-control bg-white" value="{{ old('matricula') }}">
+                        <input type="text" name="matricula" class="form-control bg-white" value="{{ old('matricula', $participanteLogado?->matricula) }}">
                     </div>
 
                     <div x-show="tipoVinculo === 'aluno'">
@@ -101,7 +116,7 @@
                         <select name="turma_id" class="form-select bg-white">
                             <option value="">Selecione...</option>
                             @foreach($turmas as $turma)
-                                <option value="{{ $turma->id }}">{{ $turma->nome_completo }}</option>
+                                <option value="{{ $turma->id }}" @selected((string) old('turma_id', $participanteLogado?->turma_id) === (string) $turma->id)>{{ $turma->nome_completo }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -110,6 +125,7 @@
                 <x-gps-button />
 
             </form>
+            @endguest
         </div>
     </div>
 
@@ -118,7 +134,7 @@
 
         function attendanceForm() {
             return {
-                tipoVinculo: '{{ old('tipo_vinculo', 'aluno') }}',
+                tipoVinculo: '{{ old('tipo_vinculo', $participanteLogado?->tipo_vinculo ?? 'aluno') }}',
                 lat: '', lng: '', isLoading: false, errorMessage: '', errorTitle: '',
 
                 submitForm() {
@@ -173,6 +189,7 @@
                             }
                         }
 
+                        if (res.status === 401) { window.location.reload(); return; }   // sessão acabou: recarrega para pedir login
                         const data = await res.json().catch(() => ({}));
                         if (res.ok && data.redirect) { window.location.href = data.redirect; return; }
 

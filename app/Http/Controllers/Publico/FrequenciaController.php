@@ -10,6 +10,7 @@ use App\Models\Participante;
 use App\Models\Frequencia;
 use App\Models\Inscricao;
 use App\Models\Turma;
+use App\Services\ParticipanteDaConta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -32,7 +33,23 @@ class FrequenciaController extends Controller
         });
 
 
-        return view('publico.registrar-frequencia', compact('atividade', 'turmas'));
+        $participanteLogado = Auth::check() ? app(ParticipanteDaConta::class)->daConta(Auth::user()) : null;
+
+        return view('publico.registrar-frequencia', compact('atividade', 'turmas', 'participanteLogado'));
+    }
+
+    /** Guarda a página do QR como destino e leva ao login ou ao cadastro (a presença exige conta). */
+    public function acesso($token, string $modo)
+    {
+        $atividade = Atividade::where('token_frequencia', $token)->firstOrFail();
+
+        if (Auth::check()) {
+            return redirect()->route('frequencia.form', $atividade->token_frequencia);
+        }
+
+        session(['url.intended' => route('frequencia.form', $atividade->token_frequencia)]);
+
+        return redirect()->route($modo === 'cadastrar' ? 'register' : 'login');
     }
 
     /**
@@ -70,24 +87,9 @@ class FrequenciaController extends Controller
             return $this->falha($request, 'Evento não encontrado para esta atividade.', 404);
         }
 
-        // 2. Validação dos dados recebidos
-        $rules = [
-            'nome_completo' => ['required', 'string', 'max:255'],
-            'cpf'           => ['required', 'string', 'size:14', new Cpf],
-            'tipo_vinculo'  => ['required', Rule::in(['aluno', 'servidor', 'externo'])],
-            'email'         => ['required', 'email'],
-
-            'matricula' => [
-                Rule::requiredIf(fn() => in_array($request->tipo_vinculo, ['aluno', 'servidor'])),
-                'nullable',
-                'string',
-                'max:50'
-            ],
-
-            'turma_id' => ['required_if:tipo_vinculo,aluno', 'nullable', 'exists:turmas,id'],
-        ];
-
-        $request->validate($rules);
+        // 2. Validação dos dados: a presença exige conta logada; CPF, nome e e-mail vêm do cadastro da conta
+        $contas = app(ParticipanteDaConta::class);
+        $request->validate($contas->regras($contas->daConta($request->user()) !== null, $request->tipo_vinculo));
 
         // 2.1 Validação de localização (somente se o evento tiver coordenadas configuradas)
         if (filled($evento->latitude) && filled($evento->longitude)) {
@@ -103,38 +105,11 @@ class FrequenciaController extends Controller
             }
         }
 
-        // 3. Verifica colisão de E-mail (Segurança)
-        // Impede usar um email que já pertence a OUTRO CPF
-        $emailEmUsoPorOutro = Participante::where('email', $request->email)
-            ->where('cpf', '!=', $request->cpf)
-            ->exists();
-
-        if ($emailEmUsoPorOutro) {
-            return $this->falha($request, 'Este e-mail já está em uso por outro CPF.', 422);
-        }
-
         try {
             DB::beginTransaction();
 
-            $userId = Auth::id();
-
-            // 4. Cria ou Atualiza o Participante (Dados Pessoais)
-            $dadosParticipante = [
-                'nome_completo' => $request->nome_completo,
-                'email'         => $request->email,
-                'tipo_vinculo'  => $request->tipo_vinculo,
-                'matricula'     => in_array($request->tipo_vinculo, ['aluno', 'servidor']) ? $request->matricula : null,
-                'turma_id'      => $request->tipo_vinculo === 'aluno' ? $request->turma_id : null,
-            ];
-
-            if ($userId) {
-                $dadosParticipante['user_id'] = $userId;
-            }
-
-            $participante = Participante::updateOrCreate(
-                ['cpf' => $request->cpf], // Chave de busca
-                $dadosParticipante        // Dados a atualizar
-            );
+            // 3. Participante da conta (nunca cria um cadastro paralelo para o mesmo CPF/e-mail)
+            $participante = $contas->resolver($request->user(), $request->only(['cpf', 'nome_completo', 'tipo_vinculo', 'matricula', 'turma_id']));
 
             // 5. Garante a Inscrição no Evento (Silencioso)
             // Se já existe, ele apenas retorna o registro. Se não existe, cria.
@@ -175,6 +150,10 @@ class FrequenciaController extends Controller
             return redirect()->route('evento.publico.sucesso', $evento->slug)
                 ->with('participante', $participante->nome_completo)
                 ->with('mensagem_extra', 'Presença confirmada na atividade: ' . $atividade->titulo);
+        } catch (\DomainException $e) {
+            DB::rollBack();
+
+            return $this->falha($request, $e->getMessage(), 422);
         } catch (\Exception $e) {
             DB::rollBack();
             if ($request->expectsJson()) {

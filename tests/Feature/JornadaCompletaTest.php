@@ -145,8 +145,12 @@ it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Anai
     expect($trabalho->fresh()->apresentado)->toBeFalse();
     $this->post(route('gestao.trabalhos.certificados.emitir', $trabalho))->assertSessionHas('error');   // ainda não apresentou
 
+    // A presença exige conta: sem login a página convida a entrar e o envio é barrado
     auth()->logout();
-    $this->get(route('frequencia.form', 'SESSAO-JORNADA'))->assertOk();
+    $this->get(route('frequencia.form', 'SESSAO-JORNADA'))->assertOk()->assertSee('Entre ou crie sua conta');
+    $this->post(route('frequencia.store', 'SESSAO-JORNADA'), ['tipo_vinculo' => 'externo'], ['Accept' => 'application/json'])->assertUnauthorized();
+
+    $this->actingAs($autor)->get(route('frequencia.form', 'SESSAO-JORNADA'))->assertOk()->assertSee('Registrando como');
     $this->post(route('frequencia.store', 'SESSAO-JORNADA'), [
         'nome_completo' => 'Ana Apresentadora', 'cpf' => '111.444.777-35', 'email' => 'ana@ifpa.edu.br', 'tipo_vinculo' => 'externo',
         'user_lat' => '-2.457763', 'user_lng' => '-54.743856',

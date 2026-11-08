@@ -64,7 +64,9 @@ Route::get('/frequencia/sucesso', function () {
 
 Route::get('/frequencia/{token}', [FrequenciaController::class, 'index'])->name('frequencia.form');
 Route::get('/frequencia/{token}/csrf', [FrequenciaController::class, 'csrf'])->name('frequencia.csrf');
-Route::post('/frequencia/{token}', [FrequenciaController::class, 'store'])->name('frequencia.store');
+Route::get('/frequencia/{token}/acesso/{modo}', [FrequenciaController::class, 'acesso'])->where('modo', 'entrar|cadastrar')->name('frequencia.acesso');
+// A presença exige conta: sem login a requisição é barrada (JSON recebe 401)
+Route::post('/frequencia/{token}', [FrequenciaController::class, 'store'])->middleware('auth')->name('frequencia.store');
 
 // Certificados de trabalhos (código aleatório; limite de requisições contra enumeração)
 Route::middleware('throttle:30,1')->group(function () {

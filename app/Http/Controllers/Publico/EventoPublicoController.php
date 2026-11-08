@@ -9,6 +9,7 @@ use App\Models\Participante;
 use App\Models\Inscricao;
 use App\Models\Turma;
 use App\Models\User;
+use App\Services\ParticipanteDaConta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth; // Importante para verificar login
@@ -79,45 +80,19 @@ class EventoPublicoController extends Controller
         $evento = Evento::where('slug', $slug)->firstOrFail();
         $user = $request->user();
 
-        $participante = Participante::where('user_id', $user->id)->first();
-
-        $request->validate([
-            // Com cadastro de participante existente, CPF e nome vêm da conta (não editáveis aqui)
-            'nome_completo' => [$participante ? 'nullable' : 'required', 'string', 'max:255'],
-            'cpf' => [$participante ? 'nullable' : 'required', 'string', 'size:14', new Cpf],
-            'tipo_vinculo' => ['required', Rule::in('aluno', 'servidor', 'externo')],
-            'matricula' => [
-                Rule::requiredIf(fn () => in_array($request->tipo_vinculo, ['aluno', 'servidor'])),
-                'nullable', 'string', 'max:50',
-            ],
-            'turma_id' => ['required_if:tipo_vinculo,aluno', 'nullable', 'exists:turmas,id'],
-        ]);
+        $contas = app(ParticipanteDaConta::class);
+        $request->validate($contas->regras($contas->daConta($user) !== null, $request->tipo_vinculo));
 
         try {
-            $inscricao = DB::transaction(function () use ($request, $evento, $user, &$participante) {
-                if (!$participante) {
-                    // CPF já cadastrado: só pode ser assumido se não pertencer a outra conta
-                    $existente = Participante::where('cpf', $request->cpf)->first();
-                    if ($existente && $existente->user_id && $existente->user_id !== $user->id) {
-                        throw new \DomainException('Este CPF já está vinculado a outra conta. Entre com a conta correta ou procure a organização do evento.');
-                    }
-                    $participante = $existente ?? new Participante(['cpf' => $request->cpf]);
-                    $participante->nome_completo = $existente?->nome_completo ?: $request->nome_completo;
-                }
-
-                $participante->fill([
-                    'user_id' => $user->id,
-                    'email' => $user->email,   // sempre o e-mail da conta
-                    'tipo_vinculo' => $request->tipo_vinculo,
-                    'matricula' => in_array($request->tipo_vinculo, ['aluno', 'servidor']) ? $request->matricula : null,
-                    'turma_id' => $request->tipo_vinculo === 'aluno' ? $request->turma_id : null,
-                ])->save();
+            $participante = null;
+            DB::transaction(function () use ($request, $evento, $user, $contas, &$participante) {
+                $participante = $contas->resolver($user, $request->only(['cpf', 'nome_completo', 'tipo_vinculo', 'matricula', 'turma_id']));
 
                 if (Inscricao::where('evento_id', $evento->id)->where('participante_id', $participante->id)->exists()) {
                     throw new \DomainException('Você já possui uma inscrição confirmada neste evento.');
                 }
 
-                return Inscricao::create(['evento_id' => $evento->id, 'participante_id' => $participante->id, 'data_inscricao' => now()]);
+                Inscricao::create(['evento_id' => $evento->id, 'participante_id' => $participante->id, 'data_inscricao' => now()]);
             });
         } catch (\DomainException $e) {
             return back()->with('error', $e->getMessage())->withInput();
