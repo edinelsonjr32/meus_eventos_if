@@ -9,6 +9,7 @@ docker compose exec -T laravel.test php artisan db:seed --class=EstruturaAcademi
 docker compose exec -T laravel.test php artisan db:seed --class=EventoTesteSeeder --force >/dev/null
 docker compose exec -T laravel.test php artisan db:seed --class=TrabalhosTesteSeeder --force >/dev/null
 
+docker compose exec -T laravel.test php artisan tinker --execute="require base_path('e2e/preparar.php');" >/dev/null
 docker compose exec -T laravel.test php artisan tinker --execute="App\\Models\\Equipe::whereHas('participante', fn(\$q) => \$q->where('nome_completo', 'Thiago Moura'))->delete();" >/dev/null
 
 echo "› Rodando Playwright…"

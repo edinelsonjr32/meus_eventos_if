@@ -110,7 +110,37 @@
         inteiro: (v) => v.replace(/\D/g, ''),
         decimal: (v) => v.replace(',', '.').replace(/[^\d.]/g, '').replace(/^(\d*\.\d*).*$/, '$1'),
     };
+    // Nota: só dígitos e UM separador decimal (vírgula ou ponto), até 2 casas, limitada a 0..data-max.
+    // Acima do máximo o valor volta ao máximo e o campo avisa; letras, sinais e valores negativos nem entram.
+    function aplicarNota(c) {
+        const max = parseFloat(c.dataset.max || '10');
+        const rotuloMax = String(max).replace('.', ',');
+        const avisar = (msg) => { marcar(c, msg); clearTimeout(c._fbT); c._fbT = setTimeout(() => limpar(c), 3500); };
+        const limparTexto = (v) => {
+            let t = v.replace(/[^\d.,]/g, '').replace(',', '.');
+            const i = t.indexOf('.');
+            if (i !== -1) t = t.slice(0, i + 1) + t.slice(i + 1).replace(/\./g, '').slice(0, 2);
+            return t;
+        };
+        c.setAttribute('maxlength', '6'); c.setAttribute('autocomplete', 'off'); c.setAttribute('inputmode', 'decimal');
+        c.title = 'Nota de 0 a ' + rotuloMax;
+        c.addEventListener('input', () => {
+            const antes = c.value;
+            let t = limparTexto(antes);
+            if (t !== '' && t !== '.' && parseFloat(t) > max) { t = String(max); avisar('A nota máxima deste critério é ' + rotuloMax + '.'); }
+            const mostrado = t.replace('.', ',');
+            if (mostrado !== antes) { c.value = mostrado; c.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+        c.addEventListener('blur', () => {
+            if (c.value === '' || c.value === ',') { c.value = ''; return; }
+            const n = Math.min(Math.max(parseFloat(c.value.replace(',', '.')) || 0, 0), max);
+            const f = String(Math.round(n * 100) / 100).replace('.', ',');
+            if (f !== c.value) { c.value = f; c.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+        c.addEventListener('paste', (e) => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text'); c.value = limparTexto(t).replace('.', ','); c.dispatchEvent(new Event('input', { bubbles: true })); });
+    }
     function aplicarMascara(c) {
+        if (c.dataset.mascara === 'nota' && !c.dataset.fbMask) { c.dataset.fbMask = '1'; aplicarNota(c); return; }
         const f = MASCARAS[c.dataset.mascara];
         if (!f || c.dataset.fbMask) return;
         c.dataset.fbMask = '1';

@@ -71,7 +71,7 @@
                                             @if($c->descricao) <div class="small text-muted">{{ $c->descricao }}</div> @endif
                                         </div>
                                         <div style="min-width: 110px;" class="input-group input-group-sm">
-                                            <input type="text" inputmode="decimal" name="notas[{{ $c->id }}]" x-model="notas[{{ $c->id }}]" class="form-control text-end" placeholder="0" @disabled(!$editavel)>
+                                            <input type="text" inputmode="decimal" name="notas[{{ $c->id }}]" x-model="notas[{{ $c->id }}]" class="form-control text-end" placeholder="0" data-mascara="nota" data-max="{{ $c->nota_max }}" data-nome="{{ $c->nome }}" @disabled(!$editavel)>
                                             <span class="input-group-text">/ {{ $fmt($c->nota_max) }}</span>
                                         </div>
                                     </div>

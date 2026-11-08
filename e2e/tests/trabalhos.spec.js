@@ -265,10 +265,35 @@ test('feedback de avaliador já atribuído: no lote e no detalhe do trabalho', a
 
   // detalhe: o trabalho com avaliador atribuído mostra o grupo "Já atribuídos" desabilitado
   await page.goto(lista + '?status=em_triagem');
-  const linhas = page.locator('tbody tr', { hasText: '1/2' });
+  const linhas = page.locator('tbody tr').filter({ has: page.locator('td', { hasText: /^\s*1\/2\s*$/ }) });   // coluna Aval. = 1/2 (não a data)
   await linhas.first().getByRole('link', { name: /Abrir/ }).click();
   await page.locator('.select2-container').first().click();
   await expect(page.locator('.select2-results__group', { hasText: 'Já atribuídos' })).toBeVisible();
   await expect(page.locator('.select2-results__option[aria-disabled=true]').first()).toContainText('já atribuído');
   await page.screenshot({ path: 'test-results/detalhe-impedidos.png' });
+});
+
+test('formulário de avaliação: nota só aceita 0 ao máximo, sem letras/negativos e com máximo travado', async ({ page }) => {
+  await entrar(page, 'avaliador@teste.com', 'Avaliador@12345');
+  await page.goto('/avaliador/avaliacoes');
+  await page.getByRole('link', { name: /Avaliar|Continuar avaliação/ }).first().click();
+
+  const campo = page.locator('input[name^="notas["]').first();
+  await campo.click();
+  await campo.pressSequentially('abc-7,5x');
+  await expect(campo).toHaveValue('7,5');                     // letras e sinal descartados
+
+  await campo.fill('');
+  await campo.pressSequentially('15');
+  await expect(campo).toHaveValue('10');                      // acima do máximo volta ao máximo
+  await expect(page.locator('.fb-erro-campo').first()).toContainText('máxima');
+
+  await campo.fill('');
+  await campo.pressSequentially('7,555');
+  await expect(campo).toHaveValue('7,55');                    // no máximo 2 casas
+
+  await campo.fill('');
+  await campo.pressSequentially('8');
+  await campo.blur();
+  await expect(campo).toHaveValue('8');
 });

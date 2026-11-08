@@ -25,7 +25,7 @@ class SalvarApresentacaoRequest extends FormRequest
             'notas' => ['nullable', 'array'],
         ];
         foreach ($avaliacao->trabalho->evento->criteriosApresentacao()->where('ativo', true)->get() as $c) {
-            $rules["notas.{$c->id}"] = ['nullable', 'numeric', 'min:0', 'max:' . $c->nota_max];
+            $rules["notas.{$c->id}"] = ['nullable', 'numeric', 'min:0', 'max:' . $c->nota_max, 'decimal:0,2'];
         }
 
         return $rules;
@@ -37,6 +37,7 @@ class SalvarApresentacaoRequest extends FormRequest
             'notas.*.numeric' => 'As notas devem ser numéricas.',
             'notas.*.min' => 'A nota não pode ser negativa.',
             'notas.*.max' => 'A nota excede o máximo do critério.',
+            'notas.*.decimal' => 'Use no máximo 2 casas decimais na nota.',
         ];
     }
 
