@@ -40,6 +40,10 @@ it('conduz o trabalho da triagem até a avaliação, exigindo avaliador atribuí
     expect($this->trabalho->fresh()->status)->toBe('em_triagem');
 
     $this->post(route('gestao.trabalhos.avaliadores.store', $this->trabalho), ['avaliadores' => [$this->av1->id]])->assertSessionHas('success');
+    $this->post($url, ['para' => 'em_avaliacao'])->assertSessionHas('error');   // mínimo da chamada = 2 avaliadores
+    expect($this->trabalho->fresh()->status)->toBe('em_triagem');
+
+    $this->post(route('gestao.trabalhos.avaliadores.store', $this->trabalho), ['avaliadores' => [$this->av2->id]])->assertSessionHas('success');
     $this->post($url, ['para' => 'em_avaliacao'])->assertSessionHas('success');
 
     $t = $this->trabalho->fresh();
@@ -167,16 +171,20 @@ it('bloqueia conflito de interesse por submissão, e-mail e CPF', function () {
     expect($this->w->conflitoDeInteresse($this->trabalho, $this->av1))->toBeNull();
 });
 
-it('remove avaliação pendente, mas não uma já iniciada', function () {
+it('remove avaliação pendente ou em andamento, mas não uma concluída', function () {
     $this->trabalho->update(['status' => 'em_triagem']);
     $a1 = $this->w->atribuirAvaliador($this->trabalho, $this->av1, $this->gestor);
     $a2 = $this->w->atribuirAvaliador($this->trabalho, $this->av2, $this->gestor);
     $a2->update(['status' => 'em_andamento']);
 
     $this->actingAs($this->gestor)->delete(route('gestao.trabalhos.avaliadores.destroy', [$this->trabalho, $a1]))->assertSessionHas('success');
-    $this->actingAs($this->gestor)->delete(route('gestao.trabalhos.avaliadores.destroy', [$this->trabalho, $a2]))->assertSessionHas('error');
+    $this->actingAs($this->gestor)->delete(route('gestao.trabalhos.avaliadores.destroy', [$this->trabalho, $a2]))->assertSessionHas('success');
+    expect($this->trabalho->avaliacoes()->count())->toBe(0);
 
-    expect($this->trabalho->avaliacoes()->pluck('avaliador_id')->all())->toBe([$this->av2->id]);
+    $a3 = $this->w->atribuirAvaliador($this->trabalho, $this->av1, $this->gestor);
+    $a3->update(['status' => 'concluida']);
+    $this->actingAs($this->gestor)->delete(route('gestao.trabalhos.avaliadores.destroy', [$this->trabalho, $a3]))->assertSessionHas('error');
+    expect($this->trabalho->avaliacoes()->count())->toBe(1);
 });
 
 it('não remove avaliação de outro trabalho pela rota', function () {
@@ -329,4 +337,88 @@ it('o autor NÃO acessa a tela da gestão (avaliadores, notas e comentários con
     $this->actingAs($this->autor)->get(route('gestao.trabalhos.show', $this->trabalho))->assertForbidden();
     // a visão própria do autor continua funcionando e não traz dados internos
     $this->actingAs($this->autor)->get(route('trabalhos.show', $this->trabalho))->assertOk()->assertDontSee('Segredo da comissão')->assertDontSee($this->av1->name);
+});
+
+// ---------- Mínimo de avaliadores, cancelar envio e seleção com busca ----------
+it('só encaminha para avaliação com o mínimo de avaliadores exigido pela chamada', function () {
+    $this->evento->trabalhoConfig->update(['avaliadores_por_trabalho' => 3]);
+    $av3 = mkUser('user', 'av3@x.com');
+    mkPapel($av3, $this->evento, 'avaliador');
+    $this->trabalho->update(['status' => 'em_triagem']);
+    $this->actingAs($this->gestor);
+
+    $this->w->atribuirAvaliador($this->trabalho, $this->av1, $this->gestor);
+    $this->w->atribuirAvaliador($this->trabalho, $this->av2, $this->gestor);
+
+    // a tela avisa e bloqueia o botão enquanto faltar avaliador
+    $this->get(route('gestao.trabalhos.show', $this->trabalho))->assertOk()->assertSee('Faltam 1 avaliador(es)')->assertSee('no mínimo 3', false);
+    $this->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_avaliacao'])->assertSessionHas('error');
+    expect($this->trabalho->fresh()->status)->toBe('em_triagem');
+    expect(fn () => $this->w->transicionar($this->trabalho->fresh(), $this->gestor, 'em_avaliacao'))->toThrow(DomainException::class, 'no mínimo 3');
+
+    // recusas não contam para o mínimo
+    $this->trabalho->avaliacoes()->first()->update(['status' => 'recusada']);
+    expect($this->w->avaliadoresMinimos($this->trabalho->fresh()))->toBe([1, 3]);
+
+    // com 3 válidos, libera
+    $this->w->atribuirAvaliador($this->trabalho, $av3, $this->gestor);
+    $this->trabalho->avaliacoes()->first()->update(['status' => 'pendente']);
+    expect($this->w->avaliadoresMinimos($this->trabalho->fresh()))->toBe([3, 3]);
+    $this->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_avaliacao'])->assertSessionHas('success');
+});
+
+it('com o mínimo atingido, o envio é liberado', function () {
+    $this->trabalho->update(['status' => 'em_triagem']);
+    $this->actingAs($this->gestor);
+    $this->w->atribuirAvaliador($this->trabalho, $this->av1, $this->gestor);
+    $this->w->atribuirAvaliador($this->trabalho, $this->av2, $this->gestor);
+
+    $this->get(route('gestao.trabalhos.show', $this->trabalho))->assertOk()->assertDontSee('Faltam')->assertSee('Encaminhar para avaliação');
+    $this->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_avaliacao'])->assertSessionHas('success');
+    expect($this->trabalho->fresh()->status)->toBe('em_avaliacao');
+});
+
+it('cancela o envio para avaliação (avaliador errado), troca o avaliador e reenvia', function () {
+    $this->trabalho->update(['status' => 'em_triagem']);
+    $this->actingAs($this->gestor);
+    $a1 = $this->w->atribuirAvaliador($this->trabalho, $this->av1, $this->gestor);
+    $a2 = $this->w->atribuirAvaliador($this->trabalho, $this->av2, $this->gestor);
+    $this->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_avaliacao'])->assertSessionHas('success');
+
+    // a tela oferece "Cancelar envio"
+    $this->get(route('gestao.trabalhos.show', $this->trabalho))->assertOk()->assertSee('Cancelar envio para avaliação');
+
+    $this->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_triagem'])->assertSessionHas('success');
+    $t = $this->trabalho->fresh();
+    expect($t->status)->toBe('em_triagem')->and($t->historico->last()->justificativa)->toBe('Envio para avaliação cancelado pela gestão');
+
+    // remove o errado, atribui outro e reenvia
+    $this->delete(route('gestao.trabalhos.avaliadores.destroy', [$this->trabalho, $a2]))->assertSessionHas('success');
+    $av3 = mkUser('user', 'certo@x.com');
+    mkPapel($av3, $this->evento, 'avaliador');
+    $this->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_avaliacao'])->assertSessionHas('error');   // falta 1
+    $this->post(route('gestao.trabalhos.avaliadores.store', $this->trabalho), ['avaliadores' => [$av3->id]])->assertSessionHas('success');
+    $this->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_avaliacao'])->assertSessionHas('success');
+    expect($this->trabalho->fresh()->status)->toBe('em_avaliacao')->and($this->trabalho->avaliacoes()->pluck('avaliador_id')->all())->toBe([$this->av1->id, $av3->id]);
+});
+
+it('não cancela o envio depois que alguém concluiu a avaliação; só quem gere cancela', function () {
+    $this->trabalho->update(['status' => 'em_triagem']);
+    $a1 = $this->w->atribuirAvaliador($this->trabalho, $this->av1, $this->gestor);
+    $this->w->atribuirAvaliador($this->trabalho, $this->av2, $this->gestor);
+    $this->w->transicionar($this->trabalho->fresh(), $this->gestor, 'em_avaliacao');
+
+    $this->actingAs($this->autor)->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_triagem'])->assertForbidden();
+
+    $a1->update(['status' => 'concluida', 'nota_final' => 8]);
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.triagem', $this->trabalho), ['para' => 'em_triagem'])->assertSessionHas('error');
+    expect($this->trabalho->fresh()->status)->toBe('em_avaliacao');
+});
+
+it('a atribuição de avaliadores usa seleção com busca (Select2) e mostra conflitos desabilitados', function () {
+    $this->trabalho->update(['status' => 'em_triagem']);
+    mkPapel($this->autor, $this->evento, 'avaliador');   // o autor também é avaliador: conflito
+
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $this->trabalho))->assertOk()
+        ->assertSee('js-select-avaliadores', false)->assertSee('select2', false)->assertSee('— conflito:', false)->assertSee('disabled', false);
 });

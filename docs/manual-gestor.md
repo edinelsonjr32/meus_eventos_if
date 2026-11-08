@@ -14,7 +14,7 @@ Em **Trabalhos do evento**, abra o trabalho:
 Use filtros (status, categoria, busca) e **ações em lote**.
 
 ## 3. Avaliação
-1. **Atribuir avaliadores** (mínimo conforme a chamada). Avaliadores são notificados.
+1. **Atribuir avaliadores** pela caixa de seleção com busca (digite para filtrar; quem tem conflito aparece desabilitado). O botão **Encaminhar para avaliação** só libera quando o **mínimo de avaliadores da chamada** foi atribuído (recusas não contam). Colocou o avaliador errado? **Cancelar envio para avaliação** (volta à triagem, desde que nenhuma avaliação tenha sido concluída), remova o avaliador, atribua o certo e encaminhe de novo. Avaliadores são notificados.
 2. Acompanhe pareceres no painel; **remova/reatribua** se alguém recusar ou atrasar.
 3. **Encerrar avaliação** quando houver notas suficientes → status *Avaliado*.
 4. **Decisão**: aprovado, aprovado com ressalvas (abre prazo de correção) ou reprovado, com justificativa.

@@ -37,6 +37,8 @@ class TrabalhoWorkflow
             'rejeitado_triagem' => true,
             'em_avaliacao' => false,
         ],
+        // Cancelar o envio (ex.: avaliador atribuído errado): volta à triagem, desde que ninguém tenha concluído
+        'em_avaliacao' => ['em_triagem' => false],
     ];
 
     /** Status em que ainda é possível atribuir ou remover avaliadores. */
@@ -323,8 +325,19 @@ class TrabalhoWorkflow
             throw new \DomainException('Defina os critérios de avaliação do evento antes de encaminhar trabalhos para avaliação.');
         }
 
-        if ($para === 'em_avaliacao' && $trabalho->avaliacoes()->where('status', '!=', 'recusada')->doesntExist()) {
-            throw new \DomainException('Atribua ao menos um avaliador antes de encaminhar para avaliação.');
+        if ($para === 'em_avaliacao') {
+            [$atribuidos, $minimo] = $this->avaliadoresMinimos($trabalho);
+            if ($atribuidos < $minimo) {
+                $falta = $minimo - $atribuidos;
+                throw new \DomainException("Atribua no mínimo {$minimo} avaliador(es) antes de encaminhar para avaliação (atribuídos: {$atribuidos}; faltam {$falta}).");
+            }
+        }
+
+        if ($trabalho->status === 'em_avaliacao' && $para === 'em_triagem') {
+            if ($trabalho->avaliacoes()->where('rodada', $trabalho->rodadaAtual())->where('status', 'concluida')->exists()) {
+                throw new \DomainException('Já existe avaliação concluída: não é possível cancelar o envio. Use "Encerrar avaliação" ou aguarde os demais avaliadores.');
+            }
+            $justificativa = $justificativa !== '' ? $justificativa : 'Envio para avaliação cancelado pela gestão';
         }
 
         DB::transaction(function () use ($trabalho, $gestor, $para, $justificativa) {
@@ -340,6 +353,20 @@ class TrabalhoWorkflow
         }
 
         return $trabalho->fresh();
+    }
+
+    /**
+     * Avaliadores atribuídos na rodada atual (sem contar recusas) e o mínimo exigido pela chamada.
+     *
+     * @return array{0:int,1:int}
+     */
+    public function avaliadoresMinimos(Trabalho $trabalho): array
+    {
+        $rodada = max(1, (int) $trabalho->avaliacoes()->max('rodada'));
+        $atribuidos = $trabalho->avaliacoes()->where('rodada', $rodada)->where('status', '!=', 'recusada')->count();
+        $minimo = max(1, (int) ($trabalho->evento->trabalhoConfig?->avaliadores_por_trabalho ?? 2));
+
+        return [$atribuidos, $minimo];
     }
 
     private function avisarAutores(Trabalho $trabalho, string $assunto, string $justificativa, bool $podeEditar): void
@@ -445,8 +472,8 @@ class TrabalhoWorkflow
      */
     public function removerAvaliacao(TrabalhoAvaliacao $avaliacao, User $gestor): void
     {
-        if ($avaliacao->status !== 'pendente') {
-            throw new \DomainException('Só é possível remover avaliações ainda não iniciadas.');
+        if (!in_array($avaliacao->status, ['pendente', 'em_andamento'], true)) {
+            throw new \DomainException('Só é possível remover avaliações que ainda não foram concluídas.');
         }
 
         $trabalho = $avaliacao->trabalho;

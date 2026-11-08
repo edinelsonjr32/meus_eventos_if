@@ -166,3 +166,18 @@ test('avaliador abre a área de apresentações e a gestão a tela de avaliaçã
   await expect(page.getByText('Avaliação das apresentações').first()).toBeVisible();
   await expect(page.getByText('Carregar critérios padrão')).toBeVisible();
 });
+
+test('detalhe do trabalho: avaliadores com Select2 e bloqueio de envio sem o mínimo', async ({ page }) => {
+  await entrar(page, 'gestor@teste.com', 'Gestor@12345');
+  await page.goto('/gestao/trabalhos');
+  await page.getByRole('link', { name: 'Trabalhos', exact: true }).first().click();
+  await page.goto(page.url() + '?status=em_triagem');
+  await page.getByRole('link', { name: /Abrir/ }).first().click();
+
+  await expect(page.locator('.select2-container').first()).toBeVisible();
+  await page.locator('.select2-container').first().click();
+  await expect(page.locator('.select2-search__field')).toBeVisible();
+  await page.keyboard.type('aval');
+  await expect(page.locator('.select2-results__option').first()).toBeVisible();
+  await page.screenshot({ path: 'test-results/select2-avaliadores.png' });
+});

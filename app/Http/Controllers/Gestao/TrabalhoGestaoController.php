@@ -110,6 +110,7 @@ class TrabalhoGestaoController extends Controller
 
         $acoesTriagem = collect(TrabalhoWorkflow::TRANSICOES_GESTAO[$trabalho->status] ?? []);
         $podeAtribuir = in_array($trabalho->status, TrabalhoWorkflow::STATUS_ATRIBUICAO, true);
+        [$atribuidosNaRodada, $minimoAvaliadores] = $this->workflow->avaliadoresMinimos($trabalho);
 
         $trabalho->load(['avaliacoes.notas.criterio', 'certificados.autor', 'sessao']);
         $certificacao = [
@@ -130,7 +131,7 @@ class TrabalhoGestaoController extends Controller
             'notaMinima' => $trabalho->evento->trabalhoConfig?->nota_minima_aprovacao ?? 7,
         ];
 
-        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao'));
+        return view('gestao.trabalhos.show', compact('trabalho', 'avaliadores', 'acoesTriagem', 'podeAtribuir', 'resultado', 'certificacao', 'atribuidosNaRodada', 'minimoAvaliadores'));
     }
 
     // ------------------------------------------------------------------
@@ -346,6 +347,11 @@ class TrabalhoGestaoController extends Controller
 
         foreach ($trabalhos as $trabalho) {
             if ($dados['acao'] === 'triagem') {
+                // "Iniciar triagem" em lote nunca cancela envios: só vale para submetidos/resubmetidos
+                if (!in_array($trabalho->status, [Trabalho::SUBMETIDO, 'resubmetido'], true)) {
+                    $erros[] = "{$trabalho->codigo}: não é possível iniciar a triagem (status atual: {$trabalho->statusRotulo()}).";
+                    continue;
+                }
                 try {
                     $this->workflow->transicionar($trabalho, $request->user(), 'em_triagem');
                     $ok++;

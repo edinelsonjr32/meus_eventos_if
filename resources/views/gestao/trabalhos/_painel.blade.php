@@ -65,17 +65,27 @@
             <div class="d-grid gap-2">
                 @foreach($acoesTriagem as $para => $exigeJustificativa)
                     @php
+                        $cancelaEnvio = $trabalho->status === 'em_avaliacao' && $para === 'em_triagem';
+                        $faltam = max(0, ($minimoAvaliadores ?? 1) - ($atribuidosNaRodada ?? 0));
+                        $bloqueado = $para === 'em_avaliacao' && $faltam > 0;
                         $rotulos = [
-                            'em_triagem' => ['Iniciar triagem', 'btn-primary-custom', 'fa-play'],
+                            'em_triagem' => $cancelaEnvio ? ['Cancelar envio para avaliação', 'btn-outline-warning', 'fa-ban'] : ['Iniciar triagem', 'btn-primary-custom', 'fa-play'],
                             'em_avaliacao' => ['Encaminhar para avaliação', 'btn-success', 'fa-share'],
                             'devolvido_triagem' => ['Devolver ao autor para ajustes', 'btn-warning', 'fa-rotate-left'],
                             'rejeitado_triagem' => ['Rejeitar na triagem', 'btn-outline-danger', 'fa-ban'],
                         ][$para];
                     @endphp
-                    <button type="submit" name="para" value="{{ $para }}" class="btn btn-sm {{ $rotulos[1] }} fw-bold"
-                            @if($para === 'rejeitado_triagem') onclick="return confirm('Rejeitar este trabalho? O autor será avisado por e-mail.')" @endif>
+                    <button type="submit" name="para" value="{{ $para }}" class="btn btn-sm {{ $rotulos[1] }} fw-bold" @disabled($bloqueado)
+                            @if($para === 'rejeitado_triagem') data-confirmar="Rejeitar este trabalho? O autor será avisado por e-mail." @endif
+                            @if($cancelaEnvio) data-confirmar="Cancelar o envio para avaliação? O trabalho volta à triagem; você poderá remover ou trocar os avaliadores e encaminhar de novo." @endif>
                         <i class="fa-solid {{ $rotulos[2] }} me-1"></i> {{ $rotulos[0] }}
                     </button>
+                    @if($bloqueado)
+                        <div class="small text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> Faltam {{ $faltam }} avaliador(es): a chamada exige no mínimo {{ $minimoAvaliadores }} ({{ $atribuidosNaRodada }} atribuído(s)).</div>
+                    @endif
+                    @if($cancelaEnvio)
+                        <div class="small text-muted">Atribuiu o avaliador errado? Cancele o envio, remova-o em <em>Avaliadores</em>, atribua o correto e encaminhe de novo.</div>
+                    @endif
                 @endforeach
             </div>
         </form>
@@ -86,7 +96,9 @@
 <div class="glass-card bg-white mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h6 class="fw-bold text-success m-0"><i class="fa-solid fa-user-check me-1"></i> Avaliadores</h6>
-        <span class="badge {{ $ativas->count() >= $metaAvaliadores ? 'bg-success' : 'bg-warning text-dark' }}">{{ $ativas->count() }}/{{ $metaAvaliadores }}</span>
+        <span class="sb" style="{{ $ativas->count() >= $metaAvaliadores ? 'background:#dcfce7;color:#15803d;border-color:#86efac;' : 'background:#fef3c7;color:#b45309;border-color:#fcd34d;' }}" title="Avaliadores atribuídos / mínimo exigido">
+            <i class="fa-solid {{ $ativas->count() >= $metaAvaliadores ? 'fa-circle-check' : 'fa-triangle-exclamation' }}"></i> {{ $ativas->count() }}/{{ $metaAvaliadores }} (mín.)
+        </span>
     </div>
 
     @forelse($trabalho->avaliacoes as $av)
@@ -95,10 +107,11 @@
                 <div class="fw-bold">{{ $av->avaliador->name }}</div>
                 <div class="text-muted"><x-badge tipo="avaliacao" :valor="$av->status" />@if($av->prazo) · prazo {{ $av->prazo->format('d/m/Y') }} @endif</div>
             </div>
-            @if($av->status === 'pendente')
-                <form action="{{ route('gestao.trabalhos.avaliadores.destroy', [$trabalho, $av]) }}" method="POST" onsubmit="return confirm('Remover este avaliador?')">
+            @if(in_array($av->status, ['pendente', 'em_andamento'], true))
+                <form action="{{ route('gestao.trabalhos.avaliadores.destroy', [$trabalho, $av]) }}" method="POST"
+                      onsubmit="return confirm('Remover {{ addslashes($av->avaliador->name) }} deste trabalho?{{ $av->status === 'em_andamento' ? ' A avaliação em andamento (rascunho) será descartada.' : '' }}')">
                     @csrf @method('DELETE')
-                    <button class="btn btn-sm btn-light text-danger" title="Remover"><i class="fa-solid fa-xmark"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" title="Remover avaliador"><i class="fa-solid fa-user-minus"></i> Remover</button>
                 </form>
             @endif
         </div>
@@ -109,18 +122,17 @@
     @if($podeAtribuir)
         <form action="{{ route('gestao.trabalhos.avaliadores.store', $trabalho) }}" method="POST" class="mt-3">
             @csrf
-            <label class="small fw-bold text-secondary">Atribuir avaliadores</label>
-            @forelse($avaliadores as $u)
-                <div class="form-check small">
-                    <input class="form-check-input" type="checkbox" name="avaliadores[]" value="{{ $u->id }}" id="av{{ $u->id }}" @disabled($u->conflito)>
-                    <label class="form-check-label {{ $u->conflito ? 'text-muted' : '' }}" for="av{{ $u->id }}">
-                        {{ $u->name }} <span class="text-muted">({{ $u->carga }} em aberto)</span>
-                        @if($u->conflito) <span class="text-danger">— conflito: {{ $u->conflito }}</span> @endif
-                    </label>
-                </div>
-            @empty
+            <label class="small fw-bold text-secondary" for="selAvaliadores">Atribuir avaliadores</label>
+            @if($avaliadores->isNotEmpty())
+                <select name="avaliadores[]" id="selAvaliadores" class="form-select js-select-avaliadores" multiple data-placeholder="Busque e selecione os avaliadores…" style="width:100%">
+                    @foreach($avaliadores as $u)
+                        <option value="{{ $u->id }}" @disabled($u->conflito) data-conflito="{{ $u->conflito }}">{{ $u->name }} ({{ $u->carga }} em aberto){{ $u->conflito ? ' — conflito: ' . $u->conflito : '' }}</option>
+                    @endforeach
+                </select>
+                <div class="form-text">Digite para filtrar. Quem tem conflito de interesse aparece desabilitado.</div>
+            @else
                 <p class="small text-muted">Não há avaliadores disponíveis. Designe avaliadores em "Papéis" do evento.</p>
-            @endforelse
+            @endif
 
             @if($avaliadores->isNotEmpty())
                 <label class="small fw-bold text-secondary mt-2">Prazo (opcional)</label>
@@ -345,3 +357,21 @@
     @endif
 </div>
 @endif
+
+@once('assets-select2-avaliadores')
+    @if($podeAtribuir && $avaliadores->isNotEmpty())
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap-5-theme/1.3.0/select2-bootstrap-5-theme.min.css" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/i18n/pt-BR.min.js"></script>
+        <script>
+            window.addEventListener('load', function () {
+                if (!window.jQuery || !jQuery.fn.select2) return;
+                jQuery('.js-select-avaliadores').each(function () {
+                    jQuery(this).select2({ theme: 'bootstrap-5', language: 'pt-BR', width: '100%', closeOnSelect: false, placeholder: this.dataset.placeholder, allowClear: true });
+                });
+            });
+        </script>
+    @endif
+@endonce
