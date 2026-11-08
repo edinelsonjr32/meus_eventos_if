@@ -195,3 +195,25 @@ it('no ranking só concorre à colocação (medalha) quem foi aprovado nas duas 
 
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.ranking', $this->evento))->assertOk()->assertSee('provisório');
 });
+
+it('apurar de novo várias vezes não repete trabalhos nem certificados; a impressão traz uma página por autor premiado', function () {
+    $p1 = premiavel($this, 'pesquisa', 'P1', 9, 9); $p2 = premiavel($this, 'pesquisa', 'P2', 8, 8);
+    premiavel($this, 'extensao', 'E1', 7, 7);
+
+    foreach (range(1, 3) as $_) {
+        $this->actingAs($this->gestor)->post(route('gestao.trabalhos.premiacao.sugerir', $this->evento))->assertSessionHas('success');
+        $this->put(route('gestao.trabalhos.premiacao.salvar', $this->evento), ['escolhas' => ['pesquisa' => [1 => $p1->id, 2 => $p2->id]]]);
+    }
+    // novo melhor trabalho entra: a apuração reorganiza sem acumular os antigos
+    $p0 = premiavel($this, 'pesquisa', 'P0', 10, 10);
+    $this->post(route('gestao.trabalhos.premiacao.sugerir', $this->evento));
+
+    $prem = Premiacao::where('evento_id', $this->evento->id)->get();
+    expect($prem->pluck('trabalho_id')->duplicates()->all())->toBe([])
+        ->and($prem->where('tipo_trabalho', 'pesquisa')->pluck('colocacao')->sort()->values()->all())->toBe([1, 2, 3])
+        ->and($prem->where('tipo_trabalho', 'pesquisa')->firstWhere('colocacao', 1)->trabalho_id)->toBe($p0->id)
+        ->and(CertificadoPremiacao::count())->toBe(2 * $prem->count());
+
+    $pdf = $this->get(route('gestao.trabalhos.premiacao.imprimir', $this->evento))->assertOk();
+    expect($pdf->headers->get('content-type'))->toContain('pdf');
+});
