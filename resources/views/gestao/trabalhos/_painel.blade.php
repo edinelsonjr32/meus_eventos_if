@@ -9,6 +9,41 @@
     </div>
 @endif
 
+
+{{-- Etapas do trabalho: onde ele está e o que falta --}}
+@php
+    $cfgEt = $trabalho->evento->trabalhoConfig;
+    $apAtiva = (bool) $cfgEt?->avaliacao_apresentacao_ativa;
+    $aprovado = $trabalho->status === 'aprovado';
+    $concluidasAp = $trabalho->avaliacoesApresentacao()->where('status', 'concluida')->count();
+    $totalAp = $trabalho->avaliacoesApresentacao()->where('status', '!=', 'recusada')->count();
+    $etapas = [
+        ['1. Triagem', in_array($trabalho->status, ['submetido', 'resubmetido', 'em_triagem', 'devolvido_triagem'], true) ? 'atual' : 'ok', null],
+        ['2. Avaliação do texto', in_array($trabalho->status, ['em_avaliacao', 'avaliado', 'aguardando_correcao'], true) ? 'atual' : ($trabalho->nota_final !== null ? 'ok' : 'futuro'), $trabalho->nota_final !== null ? 'nota ' . number_format($trabalho->nota_final, 2, ',', '.') : null],
+        ['3. Decisão', $aprovado ? 'ok' : ($trabalho->status === 'avaliado' ? 'atual' : 'futuro'), $aprovado ? 'aprovado' : null],
+        ['4. Apresentação', $trabalho->apresentado ? 'ok' : ($aprovado ? 'atual' : 'futuro'), $trabalho->apresentado ? 'apresentado' : ($aprovado ? 'marcar abaixo' : null)],
+    ];
+    if ($apAtiva) {
+        $etapas[] = ['5. Avaliação da apresentação', $trabalho->nota_apresentacao !== null && $concluidasAp >= $totalAp && $totalAp > 0 ? 'ok' : ($aprovado ? 'atual' : 'futuro'), $totalAp ? "{$concluidasAp}/{$totalAp} concluída(s)" : ($aprovado ? 'atribuir avaliadores' : null)];
+    }
+    $etapas[] = [($apAtiva ? '6' : '5') . '. Certificado', $trabalho->certificados->whereNull('revogado_em')->isNotEmpty() ? 'ok' : 'futuro', null];
+@endphp
+<div class="glass-card bg-white mb-4">
+    <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-route me-1"></i> Etapas</h6>
+    <ul class="list-unstyled small mb-0">
+        @foreach($etapas as [$nome, $estado, $detalhe])
+            <li class="d-flex align-items-center gap-2 mb-1">
+                <i class="fa-solid {{ $estado === 'ok' ? 'fa-circle-check text-success' : ($estado === 'atual' ? 'fa-circle-dot text-primary' : 'fa-circle text-secondary opacity-25') }}"></i>
+                <span class="{{ $estado === 'atual' ? 'fw-bold' : ($estado === 'futuro' ? 'text-muted' : '') }}">{{ $nome }}</span>
+                @if($detalhe) <span class="text-muted">· {{ $detalhe }}</span> @endif
+            </li>
+        @endforeach
+    </ul>
+    @if($aprovado)
+        <a href="#card-apresentacao" class="btn btn-sm btn-outline-success w-100 mt-2"><i class="fa-solid fa-person-chalkboard me-1"></i> Ir para Apresentação (marcar como apresentado)</a>
+    @endif
+</div>
+
 {{-- Triagem --}}
 <div class="glass-card bg-white mb-4">
     <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-filter me-1"></i> Triagem</h6>
@@ -212,26 +247,9 @@
 @endif
 
 
-{{-- Avaliação da apresentação (feira de trabalhos) --}}
-@if($trabalho->status === 'aprovado' && $trabalho->evento->trabalhoConfig?->avaliacao_apresentacao_ativa)
-    <div class="glass-card bg-white mb-4">
-        <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-star me-1"></i> Avaliação da apresentação</h6>
-        @php $avsAp = $trabalho->avaliacoesApresentacao()->with('avaliador')->get(); @endphp
-        @forelse($avsAp as $av)
-            <div class="small d-flex justify-content-between"><span>{{ $av->avaliador->name }}</span><span class="text-muted">{{ $av->statusRotulo() }}{{ $av->nota_final !== null ? ' · ' . number_format($av->nota_final, 2, ',', '.') : '' }}</span></div>
-        @empty
-            <div class="small text-muted">Nenhum avaliador atribuído.</div>
-        @endforelse
-        @if($trabalho->nota_apresentacao !== null)
-            <div class="small mt-2">Nota da apresentação: <strong>{{ number_format($trabalho->nota_apresentacao, 2, ',', '.') }}</strong> · Nota geral: <strong>{{ number_format($trabalho->notaGeral(), 2, ',', '.') }}</strong></div>
-        @endif
-        <a href="{{ route('gestao.trabalhos.apresentacoes.index', ['evento' => $trabalho->evento_id, 'atividade' => $trabalho->atividade_id]) }}" class="btn btn-sm btn-outline-success w-100 mt-2">Gerenciar avaliadores da apresentação</a>
-    </div>
-@endif
-
 {{-- Apresentação e certificados --}}
 @if($trabalho->status === 'aprovado' || $trabalho->certificados->isNotEmpty())
-<div class="glass-card bg-white mb-4">
+<div class="glass-card bg-white mb-4" id="card-apresentacao">
     <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-person-chalkboard me-1"></i> Apresentação</h6>
 
     <div class="small mb-2">
@@ -267,6 +285,22 @@
                 <button name="acao" value="marcar" class="btn btn-sm btn-success w-100 fw-bold"><i class="fa-solid fa-check me-1"></i> Marcar como apresentado</button>
             @endif
         </form>
+    @endif
+
+    @if($trabalho->status === 'aprovado' && $trabalho->evento->trabalhoConfig?->avaliacao_apresentacao_ativa)
+        <hr class="my-3">
+        <div class="fw-bold small mb-2"><i class="fa-solid fa-star me-1 text-warning"></i> Avaliação da apresentação</div>
+        @php $avsAp = $trabalho->avaliacoesApresentacao()->with('avaliador')->get(); @endphp
+        @forelse($avsAp as $av)
+            <div class="small d-flex justify-content-between"><span>{{ $av->avaliador->name }}</span><span class="text-muted">{{ $av->statusRotulo() }}{{ $av->nota_final !== null ? ' · ' . number_format($av->nota_final, 2, ',', '.') : '' }}</span></div>
+        @empty
+            <div class="small text-muted">Nenhum avaliador atribuído.</div>
+        @endforelse
+        @if($trabalho->nota_apresentacao !== null)
+            <div class="small mt-2">Nota da apresentação: <strong>{{ number_format($trabalho->nota_apresentacao, 2, ',', '.') }}</strong> · Nota geral: <strong>{{ number_format($trabalho->notaGeral(), 2, ',', '.') }}</strong></div>
+        @endif
+        <a href="{{ route('gestao.trabalhos.apresentacoes.index', ['evento' => $trabalho->evento_id, 'atividade' => $trabalho->atividade_id]) }}" class="btn btn-sm btn-outline-success w-100 mt-2">Gerenciar avaliadores da apresentação</a>
+        <div class="form-text">A nota da apresentação é independente de "apresentado": avaliar não marca presença, e marcar presença não dá nota.</div>
     @endif
 </div>
 

@@ -182,3 +182,18 @@ it('workflow de correção: com ressalvas, só entra na avaliação da apresenta
     $t->update(['status' => 'aprovado']);
     expect($this->svc->atribuir($t->fresh(), $this->av1, $this->gestor))->toBeInstanceOf(ApresentacaoAvaliacao::class);
 });
+
+it('a gestão marca o trabalho como apresentado pela tela de apresentações e vê as etapas no painel', function () {
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertOk()
+        ->assertSee('Como funciona')->assertSee('Marcar')->assertSee(route('gestao.trabalhos.apresentacao', $this->trabalho), false);
+
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.apresentacao', $this->trabalho), ['acao' => 'marcar'])->assertSessionHas('success');
+    expect($this->trabalho->fresh()->apresentado)->toBeTrue();
+
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertSee('Apresentado');
+
+    // painel do trabalho: linha do tempo + um único cartão de apresentação com a avaliação dentro
+    $r = $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $this->trabalho))->assertOk();
+    $r->assertSee('Etapas')->assertSee('4. Apresentação')->assertSee('5. Avaliação da apresentação')->assertSee('card-apresentacao', false)
+        ->assertSee('Desmarcar apresentação', false)->assertSee('avaliar não marca presença', false);
+});

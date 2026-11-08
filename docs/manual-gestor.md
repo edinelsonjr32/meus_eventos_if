@@ -33,6 +33,8 @@ Use filtros (status, categoria, busca) e **ações em lote**.
 2. **Certificados**: emissão individual ou **em lote**; cada autor recebe o seu; é possível **revogar**. Por padrão exige apresentação (configurável).
 3. Validação pública por código/QR em `/certificado-trabalho/validar/CÓDIGO`.
 
+> **Onde marco "apresentado"?** Em dois lugares: na página do trabalho, cartão **Apresentação → Marcar como apresentado** (há um atalho no cartão *Etapas*, no topo), ou em **Gestão de trabalhos → Apresentações**, botão **Marcar** na linha do trabalho. Se o trabalho tem sessão, a presença do autor apresentador na atividade também marca sozinha. "Apresentado" serve ao certificado; a **nota** da apresentação é separada.
+
 ## 6.1 Avaliação da apresentação (feira de trabalhos)
 Depois que o trabalho está **aprovado** (inclusive os "com ressalvas" depois da correção), a apresentação pode ser avaliada por avaliadores — os mesmos do texto ou **novos** (designe em *Papéis*).
 1. Crie a **atividade** do evento (ex.: "Feira de Trabalhos") e vincule os trabalhos a ela na página de cada trabalho (*Apresentação → Sessão*).

@@ -19,6 +19,10 @@
             @unless($config)
                 <div class="alert alert-warning">Crie a chamada de trabalhos antes de configurar a avaliação das apresentações.</div>
             @else
+            <div class="alert alert-light border small">
+                <strong>Como funciona:</strong> 1) o trabalho é <em>aprovado</em> (texto); 2) ele é apresentado na sessão/feira — marque <strong>Apresentado</strong> aqui na tabela (ou deixe a frequência do autor marcar sozinha); 3) os avaliadores lançam a nota da <strong>apresentação</strong>; 4) o ranking soma texto e apresentação. Marcar "apresentado" só serve ao certificado; a nota da apresentação é separada.
+            </div>
+
             {{-- Configuração e critérios --}}
             <form action="{{ route('gestao.trabalhos.apresentacoes.config', $evento) }}" method="POST" data-validar class="glass-card bg-white mb-4"
                   x-data="criteriosApresentacao({{ \Illuminate\Support\Js::from(old('criterios', $criterios->map(fn ($c) => ['id' => $c->id, 'nome' => $c->nome, 'descricao' => $c->descricao, 'peso' => (float) $c->peso, 'nota_max' => (float) $c->nota_max])->values())) }}, {{ \Illuminate\Support\Js::from(collect(\App\Models\CriterioApresentacao::PADROES)->map(fn ($p) => ['id' => null, 'nome' => $p[0], 'descricao' => $p[1], 'peso' => 1, 'nota_max' => 10])->values()) }}, {{ $criteriosBloqueados ? 'true' : 'false' }})">
@@ -89,14 +93,21 @@
                     @if($atividadeId) <input type="hidden" name="atividade" value="{{ $atividadeId }}"> @endif
                     <div class="table-responsive">
                         <table class="table table-sm align-middle small">
-                            <thead><tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.chk-trab').forEach(c => c.checked = this.checked)"></th><th>Trabalho</th><th>Sessão</th><th>Apresentou?</th><th>Avaliadores</th><th class="text-end">Texto</th><th class="text-end">Apresentação</th><th class="text-end">Geral</th></tr></thead>
+                            <thead><tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.chk-trab').forEach(c => c.checked = this.checked)"></th><th>Trabalho</th><th>Sessão</th><th>Apresentação</th><th>Avaliadores</th><th class="text-end">Texto</th><th class="text-end">Apresentação</th><th class="text-end">Geral</th></tr></thead>
                             <tbody>
                             @forelse($trabalhos as $t)
                                 <tr>
                                     <td><input type="checkbox" class="chk-trab" name="trabalhos[]" value="{{ $t->id }}"></td>
                                     <td><a href="{{ route('gestao.trabalhos.show', $t) }}" class="fw-bold text-decoration-none">{{ $t->codigo }}</a><div class="text-muted">{{ \Illuminate\Support\Str::limit($t->titulo, 55) }}</div></td>
                                     <td>{{ $t->sessao?->titulo ?? '—' }}</td>
-                                    <td>@if($t->apresentado) <span class="badge bg-success">Sim</span> @else <span class="badge bg-secondary bg-opacity-25 text-dark">Não</span> @endif</td>
+                                    <td>
+                                        @if($t->apresentado)
+                                            <span class="badge bg-success">Apresentado</span>
+                                            <button type="submit" form="ap{{ $t->id }}" name="acao" value="desmarcar" class="btn btn-sm btn-link text-danger p-0 ms-1" title="Desmarcar" onclick="return confirm('Desmarcar a apresentação?')"><i class="fa-solid fa-rotate-left"></i></button>
+                                        @else
+                                            <button type="submit" form="ap{{ $t->id }}" name="acao" value="marcar" class="btn btn-sm btn-outline-success py-0 fw-bold"><i class="fa-solid fa-check me-1"></i> Marcar</button>
+                                        @endif
+                                    </td>
                                     <td>
                                         @forelse($t->avaliacoesApresentacao as $av)
                                             <div class="d-flex align-items-center gap-1">
@@ -135,6 +146,9 @@
                         </div>
                     @endif
                 </form>
+                @foreach($trabalhos as $t)
+                    <form id="ap{{ $t->id }}" action="{{ route('gestao.trabalhos.apresentacao', $t) }}" method="POST" class="d-none">@csrf</form>
+                @endforeach
                 @foreach($trabalhos as $t) @foreach($t->avaliacoesApresentacao as $av)
                     <form id="rm{{ $av->id }}" action="{{ route('gestao.trabalhos.apresentacoes.remover', $av) }}" method="POST" class="d-none">@csrf @method('DELETE')</form>
                 @endforeach @endforeach
