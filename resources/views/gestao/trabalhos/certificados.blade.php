@@ -84,7 +84,7 @@
                                     <span class="text-muted">{{ $t->autores->pluck('nome_completo')->take(3)->implode(', ') }}</span>
                                 </td>
                                 <td>{{ $t->sessao->titulo ?? '—' }}</td>
-                                <td>@if($t->apresentado) <span class="badge bg-success">Sim</span> @else <span class="badge bg-secondary">Não</span> @endif</td>
+                                <td><x-badge tipo="sim-nao" :valor="$t->apresentado ? 'apresentado' : 'nao_apresentado'" /></td>
                                 <td>{{ $t->certificados->whereNull('revogado_em')->count() }}/{{ $t->autores->count() }}
                                     @if($t->motivo) <div class="text-muted">({{ $t->motivo }})</div> @endif</td>
                                 <td class="text-end pe-3"><a href="{{ route('gestao.trabalhos.show', $t) }}" class="btn btn-sm btn-light">Abrir</a></td>

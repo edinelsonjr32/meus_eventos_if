@@ -14,7 +14,7 @@
                         <div class="fw-bold">{{ $a->trabalho->titulo }}</div>
                         <small class="text-muted">{{ $a->trabalho->codigo }} · {{ $a->trabalho->evento->titulo }}</small>
                         <div class="small mt-1">
-                            <span class="badge bg-secondary bg-opacity-10 text-dark">{{ $a->statusRotulo() }}</span>
+                            <x-badge tipo="avaliacao" :valor="$a->status" />
                             @if($a->prazo)
                                 <span class="{{ $a->atrasada() ? 'text-danger fw-bold' : 'text-muted' }}">
                                     {{ $a->atrasada() ? 'Em atraso — prazo' : 'Prazo' }} {{ $a->prazo->format('d/m/Y') }}

@@ -11,7 +11,7 @@
                         <div class="fw-bold">{{ $evento->titulo }}</div>
                         <small class="text-muted">{{ $evento->data_inicio->format('d/m/Y') }}
                             @if($evento->trabalhoConfig) · {{ $evento->total_trabalhos }} trabalho(s) submetido(s) @endif</small>
-                        <div><span class="badge bg-{{ $sit['cor'] }} {{ in_array($sit['cor'], ['warning', 'info']) ? 'text-dark' : '' }}">{{ $sit['rotulo'] }}</span></div>
+                        <div><x-badge tipo="chamada" :valor="$sit['chave']" :rotulo="$sit['rotulo']" /></div>
                     </div>
                     <div class="d-flex gap-2">
                         @if($evento->trabalhoConfig)

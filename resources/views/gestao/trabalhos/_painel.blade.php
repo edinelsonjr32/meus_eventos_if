@@ -89,7 +89,7 @@
         <div class="d-flex justify-content-between align-items-start small mb-2 pb-2 border-bottom">
             <div>
                 <div class="fw-bold">{{ $av->avaliador->name }}</div>
-                <div class="text-muted">{{ $av->statusRotulo() }}@if($av->prazo) · prazo {{ $av->prazo->format('d/m/Y') }} @endif</div>
+                <div class="text-muted"><x-badge tipo="avaliacao" :valor="$av->status" />@if($av->prazo) · prazo {{ $av->prazo->format('d/m/Y') }} @endif</div>
             </div>
             @if($av->status === 'pendente')
                 <form action="{{ route('gestao.trabalhos.avaliadores.destroy', [$trabalho, $av]) }}" method="POST" onsubmit="return confirm('Remover este avaliador?')">
@@ -254,10 +254,10 @@
 
     <div class="small mb-2">
         @if($trabalho->apresentado)
-            <span class="badge bg-success">Apresentado</span>
+            <x-badge tipo="sim-nao" valor="apresentado" />
             <span class="text-muted">{{ $trabalho->apresentado_em?->format('d/m/Y H:i') }} · {{ $trabalho->apresentacao_origem === 'frequencia' ? 'confirmado pela frequência' : 'registrado pela gestão' }}</span>
         @else
-            <span class="badge bg-secondary">Não apresentado</span>
+            <x-badge tipo="sim-nao" valor="nao_apresentado" />
         @endif
     </div>
 
@@ -292,7 +292,7 @@
         <div class="fw-bold small mb-2"><i class="fa-solid fa-star me-1 text-warning"></i> Avaliação da apresentação</div>
         @php $avsAp = $trabalho->avaliacoesApresentacao()->with('avaliador')->get(); @endphp
         @forelse($avsAp as $av)
-            <div class="small d-flex justify-content-between"><span>{{ $av->avaliador->name }}</span><span class="text-muted">{{ $av->statusRotulo() }}{{ $av->nota_final !== null ? ' · ' . number_format($av->nota_final, 2, ',', '.') : '' }}</span></div>
+            <div class="small d-flex justify-content-between"><span>{{ $av->avaliador->name }}</span><x-badge tipo="avaliacao" :valor="$av->status" :extra="$av->nota_final !== null ? number_format($av->nota_final, 2, ',', '.') : null" /></div>
         @empty
             <div class="small text-muted">Nenhum avaliador atribuído.</div>
         @endforelse
@@ -313,7 +313,7 @@
                 <div>
                     <div class="fw-bold">{{ $c->autor->nome_completo }}</div>
                     <div class="text-muted">{{ $c->funcaoRotulo() }} · {{ $c->hash_validacao }} · {{ $c->downloads }} download(s)</div>
-                    @if($c->revogado()) <span class="badge bg-danger">Revogado: {{ $c->revogado_motivo }}</span> @endif
+                    @if($c->revogado()) <x-badge tipo="certificado" valor="revogado" :extra="$c->revogado_motivo" /> @endif
                 </div>
                 @unless($c->revogado())
                     <a href="{{ route('certificado.trabalho.download', $c->hash_validacao) }}" target="_blank" class="btn btn-sm btn-light" title="Baixar"><i class="fa-solid fa-download"></i></a>

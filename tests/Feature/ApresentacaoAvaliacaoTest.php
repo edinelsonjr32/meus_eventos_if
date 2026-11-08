@@ -197,3 +197,22 @@ it('a gestão marca o trabalho como apresentado pela tela de apresentações e v
     $r->assertSee('Etapas')->assertSee('4. Apresentação')->assertSee('5. Avaliação da apresentação')->assertSee('card-apresentacao', false)
         ->assertSee('Desmarcar apresentação', false)->assertSee('avaliar não marca presença', false);
 });
+
+it('critérios da apresentação: remover um já usado o desativa e preserva as notas', function () {
+    $this->svc->atribuir($this->trabalho, $this->av1, $this->gestor);
+    $a = $this->trabalho->avaliacoesApresentacao()->first();
+    $crits = $this->evento->criteriosApresentacao()->get();
+    $this->svc->concluir($a, ['notas' => [$crits[0]->id => 9, $crits[1]->id => 7], 'parecer' => 'Boa apresentação geral.']);
+
+    $this->actingAs($this->gestor)->put(route('gestao.trabalhos.apresentacoes.config', $this->evento), [
+        'avaliacao_apresentacao_ativa' => 1, 'peso_apresentacao' => 25,
+        'criterios' => [['id' => $crits[0]->id, 'nome' => 'Mudou?', 'peso' => 5, 'nota_max' => 3], ['nome' => 'Novo critério', 'peso' => 1, 'nota_max' => 10]],
+    ])->assertSessionHas('warning');
+
+    expect($crits[0]->fresh()->nome)->toBe('Domínio')->and($crits[0]->fresh()->peso)->toBe(1.0)        // fixo
+        ->and($crits[1]->fresh()->ativo)->toBeFalse()                                                   // removido -> desativado
+        ->and($this->evento->criteriosApresentacao()->where('ativo', true)->pluck('nome')->all())->toBe(['Domínio', 'Novo critério'])
+        ->and($a->fresh()->notas()->count())->toBe(2)->and($a->fresh()->nota_final)->toBe(8.0);
+
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertOk()->assertSee('Novo crit', false)->assertDontSee('Comunica', false);
+});

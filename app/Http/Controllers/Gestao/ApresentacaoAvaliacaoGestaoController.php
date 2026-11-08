@@ -33,7 +33,7 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
             ->with(['sessao', 'avaliacoesApresentacao.avaliador', 'autores'])
             ->orderBy('atividade_id')->orderBy('codigo')->get();
 
-        $criterios = $evento->criteriosApresentacao()->get();
+        $criterios = $evento->criteriosApresentacao()->where('ativo', true)->get();
 
         return view('gestao.trabalhos.apresentacoes', [
             'evento' => $evento,
@@ -42,7 +42,7 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
             'atividades' => $evento->atividades()->orderBy('data_inicio')->get(),
             'atividadeId' => $atividadeId,
             'criterios' => $criterios,
-            'criteriosBloqueados' => ApresentacaoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->exists(),
+            'criteriosUsados' => ApresentacaoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->pluck('criterio_id')->unique()->values()->all(),
             'avaliadores' => $this->workflow->avaliadoresDoEvento($evento),
         ]);
     }
@@ -79,20 +79,27 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
             ]);
 
             if (request()->has('criterios') || $linhas) {
-                $bloqueado = ApresentacaoAvaliacaoNota::whereIn('criterio_id', $evento->criteriosApresentacao()->pluck('id'))->exists();
-                if ($bloqueado) {
-                    $aviso = 'Os critérios não foram alterados: já existem notas lançadas.';
-
-                    return;
-                }
+                $existentes = $evento->criteriosApresentacao()->get()->keyBy('id');
+                $usados = ApresentacaoAvaliacaoNota::whereIn('criterio_id', $existentes->keys())->pluck('criterio_id')->unique()->flip();
                 $mantidos = [];
                 foreach (array_values($linhas) as $i => $l) {
-                    $valores = ['nome' => $l['nome'], 'descricao' => $l['descricao'] ?? null, 'peso' => $l['peso'], 'nota_max' => $l['nota_max'], 'ordem' => $i, 'ativo' => true];
-                    $c = !empty($l['id']) ? $evento->criteriosApresentacao()->find($l['id']) : null;
-                    $c ? $c->update($valores) : ($c = $evento->criteriosApresentacao()->create($valores));
+                    $c = !empty($l['id']) ? $existentes->get((int) $l['id']) : null;
+                    if ($c && $usados->has($c->id)) {
+                        $c->update(['descricao' => $l['descricao'] ?? null, 'ordem' => $i, 'ativo' => true]);   // nome/peso/máx. preservados
+                    } else {
+                        $valores = ['nome' => $l['nome'], 'descricao' => $l['descricao'] ?? null, 'peso' => $l['peso'], 'nota_max' => $l['nota_max'], 'ordem' => $i, 'ativo' => true];
+                        $c = $c ? tap($c)->update($valores) : $evento->criteriosApresentacao()->create($valores);
+                    }
                     $mantidos[] = $c->id;
                 }
-                $evento->criteriosApresentacao()->whereNotIn('id', $mantidos)->delete();
+                $desativados = 0;
+                foreach ($existentes->filter(fn ($c) => $c->ativo && !in_array($c->id, $mantidos, true)) as $c) {
+                    if ($usados->has($c->id)) { $c->update(['ativo' => false]); $desativados++; } else { $c->delete(); }
+                }
+                $evento->criteriosApresentacao()->where('ativo', false)->whereNotIn('id', $usados->keys())->delete();
+                if ($desativados) {
+                    $aviso = "{$desativados} critério(s) com notas lançadas foram retirados. As notas já lançadas continuam valendo; as próximas avaliações deixam de usá-los.";
+                }
             }
         });
 

@@ -12,7 +12,7 @@
                         <small class="text-muted">{{ $a->trabalho->codigo }} · {{ $a->trabalho->evento->titulo }}</small>
                         <div class="small mt-1">
                             @if($a->trabalho->sessao) <span class="badge bg-info text-dark"><i class="fa-regular fa-clock me-1"></i>{{ $a->trabalho->sessao->titulo }} · {{ $a->trabalho->sessao->data_inicio->format('d/m H:i') }}</span> @endif
-                            <span class="badge bg-secondary bg-opacity-10 text-dark">{{ $a->statusRotulo() }}</span>
+                            <x-badge tipo="avaliacao" :valor="$a->status" />
                             @if($a->prazo) <span class="{{ $a->atrasada() ? 'text-danger fw-bold' : 'text-muted' }}">{{ $a->atrasada() ? 'Em atraso — prazo' : 'Prazo' }} {{ $a->prazo->format('d/m/Y') }}</span> @endif
                         </div>
                     </div>

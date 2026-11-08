@@ -440,11 +440,11 @@ class TrabalhoGestaoController extends Controller
 
         $config = $evento->trabalhoConfig ?? new TrabalhoConfig(['evento_id' => $evento->id]);
         $areas = $evento->areasTematicas->pluck('nome')->implode("\n");
-        $criterios = $evento->criterios()->get();
-        // Critérios ficam bloqueados depois da primeira nota lançada (preserva a integridade das notas)
-        $criteriosBloqueados = \App\Models\TrabalhoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->exists();
+        $criterios = $evento->criterios()->where('ativo', true)->get();
+        // Critérios com notas lançadas não mudam de nome/peso/máximo, mas podem ser removidos (ficam desativados, preservando as notas)
+        $criteriosUsados = \App\Models\TrabalhoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->pluck('criterio_id')->unique()->values()->all();
 
-        return view('gestao.trabalhos.config', compact('evento', 'config', 'areas', 'criterios', 'criteriosBloqueados'));
+        return view('gestao.trabalhos.config', compact('evento', 'config', 'areas', 'criterios', 'criteriosUsados'));
     }
 
     public function updateConfig(Request $request, Evento $evento)
@@ -563,30 +563,36 @@ class TrabalhoGestaoController extends Controller
         }
 
         $existentes = $evento->criterios()->get()->keyBy('id');
-
-        if (\App\Models\TrabalhoAvaliacaoNota::whereIn('criterio_id', $existentes->keys())->exists()) {
-            return 'Os critérios não foram alterados: já existem notas lançadas.';
-        }
+        $usados = \App\Models\TrabalhoAvaliacaoNota::whereIn('criterio_id', $existentes->keys())->pluck('criterio_id')->unique()->flip();
 
         $mantidos = [];
         foreach (array_values($linhas) as $ordem => $linha) {
-            $campos = [
-                'nome' => $linha['nome'], 'descricao' => $linha['descricao'] ?? null,
-                'peso' => $linha['peso'], 'nota_max' => $linha['nota_max'], 'ordem' => $ordem, 'ativo' => true,
-            ];
-
             $criterio = !empty($linha['id']) ? $existentes->get((int) $linha['id']) : null;
-            if ($criterio) {
-                $criterio->update($campos);
+
+            if ($criterio && $usados->has($criterio->id)) {
+                // Já tem notas: preserva nome, peso e máximo (as notas lançadas dependem deles)
+                $criterio->update(['descricao' => $linha['descricao'] ?? null, 'ordem' => $ordem, 'ativo' => true]);
             } else {
-                $criterio = CriterioAvaliacao::create($campos + ['evento_id' => $evento->id]);
+                $campos = ['nome' => $linha['nome'], 'descricao' => $linha['descricao'] ?? null, 'peso' => $linha['peso'], 'nota_max' => $linha['nota_max'], 'ordem' => $ordem, 'ativo' => true];
+                $criterio = $criterio ? tap($criterio)->update($campos) : CriterioAvaliacao::create($campos + ['evento_id' => $evento->id]);
             }
             $mantidos[] = $criterio->id;
         }
 
-        $evento->criterios()->whereNotIn('id', $mantidos)->delete();
+        // Removidos: sem notas são apagados; com notas ficam desativados (histórico preservado)
+        $removidos = $existentes->reject(fn ($c) => in_array($c->id, $mantidos, true))->filter(fn ($c) => $c->ativo);
+        $desativados = 0;
+        foreach ($removidos as $c) {
+            if ($usados->has($c->id)) {
+                $c->update(['ativo' => false]);
+                $desativados++;
+            } else {
+                $c->delete();
+            }
+        }
+        $evento->criterios()->where('ativo', false)->whereNotIn('id', $usados->keys())->delete();
 
-        return null;
+        return $desativados ? "{$desativados} critério(s) com notas lançadas foram retirados da avaliação. As notas já lançadas continuam valendo; apenas as próximas avaliações deixam de usá-los." : null;
     }
 
     /** Uma área por linha; mantém as existentes (preserva vínculos), cria novas e remove as retiradas. */

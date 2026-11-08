@@ -33,13 +33,13 @@
 
                                 <div class="small mb-3">
                                     @if($aberta)
-                                        <span class="badge bg-success">Chamada aberta</span>
+                                        <x-badge tipo="chamada" valor="aberta" />
                                         @if($cfg->submissao_fim) <span class="text-muted">até {{ $cfg->submissao_fim->format('d/m/Y H:i') }}</span> @endif
                                     @elseif($emBreve)
-                                        <span class="badge bg-warning text-dark">Em breve</span>
+                                        <x-badge tipo="chamada" valor="em_breve" />
                                         <span class="text-muted">abre em {{ $cfg->submissao_inicio->format('d/m/Y H:i') }}</span>
                                     @else
-                                        <span class="badge bg-secondary">Encerrada</span>
+                                        <x-badge tipo="chamada" valor="encerrada" />
                                     @endif
                                     @if($meus) <div class="text-muted mt-1">Você tem {{ $meus }} trabalho(s) neste evento{{ $limite ? " (limite: {$limite})" : '' }}.</div> @endif
                                 </div>
@@ -84,14 +84,14 @@
                                             <small class="text-muted">{{ $t->codigo ?? 'Sem protocolo (rascunho)' }} · {{ $t->autores->count() }} autor(es)</small>
                                             <div>
                                                 @if($t->submetido_por === auth()->id())
-                                                    <span class="badge bg-success bg-opacity-10 text-success">Responsável pela submissão</span>
+                                                    <x-badge tipo="autor" valor="responsavel" />
                                                 @else
-                                                    <span class="badge bg-info bg-opacity-10 text-dark">Você consta como autor</span>
+                                                    <x-badge tipo="autor" valor="consta" />
                                                 @endif
                                             </div>
                                         </td>
                                         <td>{{ $t->evento->titulo }}</td>
-                                        <td><span class="badge bg-secondary bg-opacity-10 text-dark">{{ $t->statusRotulo() }}</span></td>
+                                        <td><x-badge tipo="trabalho" :valor="$t->status" /></td>
                                         <td class="text-end pe-4">
                                             <a href="{{ route('trabalhos.show', $t) }}" class="btn btn-sm btn-light">Ver</a>
                                             @can('update', $t)

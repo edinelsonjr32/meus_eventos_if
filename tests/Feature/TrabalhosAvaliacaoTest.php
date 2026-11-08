@@ -372,7 +372,7 @@ it('exige critérios para encaminhar à avaliação', function () {
     expect(fn () => $this->w->transicionar($t->fresh(), $this->gestor, 'em_avaliacao'))->toThrow(DomainException::class, 'critérios');
 });
 
-it('configura critérios (criar, editar, remover) e bloqueia depois da primeira nota', function () {
+it('configura critérios (criar, editar, remover); critérios com notas ficam fixos e são desativados ao remover', function () {
     $base = ['max_autores' => 5, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa'],
         'avaliadores_por_trabalho' => 2, 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
     $url = route('gestao.trabalhos.config.update', $this->evento);
@@ -391,10 +391,28 @@ it('configura critérios (criar, editar, remover) e bloqueia depois da primeira 
     expect($lista->pluck('nome')->all())->toBe(['Conteúdo (novo nome)', 'Apresentação'])
         ->and($lista->first()->peso)->toBe(3.0)->and($lista->first()->id)->toBe($existentes[0]->id);
 
-    // com nota lançada: alterações são ignoradas e o usuário é avisado
-    $this->a1->notas()->create(['criterio_id' => $lista[0]->id, 'nota' => 4]);
-    $this->put($url, $base + ['criterios' => [['nome' => 'Tentativa', 'peso' => 1, 'nota_max' => 10]]])->assertSessionHas('warning');
-    expect($this->evento->criterios()->pluck('nome')->all())->toBe(['Conteúdo (novo nome)', 'Apresentação']);
+    // com nota lançada: o critério usado fica fixo (nome/peso/máx.), pode ser removido (desativado) e novos podem ser criados
+    $usado = $lista[0];
+    $this->a1->notas()->create(['criterio_id' => $usado->id, 'nota' => 4]);
+
+    // 1) tentar alterar nome/peso do critério usado: ignorado, descrição/ordem passam
+    $this->put($url, $base + ['criterios' => [
+        ['id' => $usado->id, 'nome' => 'Tentativa', 'peso' => 9, 'nota_max' => 1, 'descricao' => 'nova descrição'],
+        ['id' => $lista[1]->id, 'nome' => 'Apresentação', 'peso' => 1, 'nota_max' => 10],
+    ]])->assertSessionHasNoErrors();
+    $usado->refresh();
+    expect($usado->nome)->toBe('Conteúdo (novo nome)')->and($usado->peso)->toBe(3.0)->and($usado->descricao)->toBe('nova descrição');
+
+    // 2) remover o critério usado: fica desativado (as notas continuam), o não usado é apagado, um novo entra
+    $this->put($url, $base + ['criterios' => [['nome' => 'Clareza', 'peso' => 1, 'nota_max' => 10]]])->assertSessionHas('warning');
+    expect($this->evento->criterios()->pluck('nome', 'ativo')->all())->toHaveKey(0)   // o desativado
+        ->and($this->evento->criterios()->where('ativo', true)->pluck('nome')->all())->toBe(['Clareza'])
+        ->and(\App\Models\CriterioAvaliacao::whereKey($usado->id)->value('ativo'))->toBeFalse()
+        ->and(\App\Models\CriterioAvaliacao::whereKey($lista[1]->id)->exists())->toBeFalse()
+        ->and($this->a1->notas()->where('criterio_id', $usado->id)->exists())->toBeTrue();
+
+    // 3) a tela não lista o desativado e marca os usados com cadeado
+    $this->get(route('gestao.trabalhos.config', $this->evento))->assertOk()->assertSee('Clareza', false)->assertDontSee('(novo nome)', false);
 });
 
 it('valida critérios inválidos na configuração', function () {

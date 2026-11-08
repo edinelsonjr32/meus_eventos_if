@@ -75,7 +75,7 @@
                                                     <div class="fw-bold">{{ $d->name }}</div>
                                                     <small class="text-muted">{{ $d->email }}</small>
                                                 </td>
-                                                <td><span class="badge bg-success bg-opacity-10 text-success">{{ $papeis[$d->papel] ?? $d->papel }}</span></td>
+                                                <td><x-badge tipo="papel" :valor="$d->papel" :rotulo="$papeis[$d->papel] ?? null" /></td>
                                                 <td class="text-end pe-4">
                                                     @if($d->papel !== 'editor' || $ehDono)
                                                         <form action="{{ route('admin.eventos.papeis.destroy', [$evento->id, $d->user_id, $d->papel]) }}" method="POST" onsubmit="return confirm('Remover este papel?')">

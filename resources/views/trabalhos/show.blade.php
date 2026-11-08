@@ -21,7 +21,7 @@
                             <i class="fa-solid fa-pen me-1"></i> Editar dados
                         </a>
                     @endif
-                    <span class="badge bg-success bg-opacity-10 text-success fs-6">{{ $trabalho->statusRotulo() }}</span>
+                    <x-badge tipo="trabalho" :valor="$trabalho->status" style="font-size:.85rem; padding:.35rem .8rem;" />
                 </div>
             </div>
 
@@ -70,8 +70,8 @@
                                         <td>{{ $a->instituicao ?: '—' }}<br><span class="text-muted">{{ $a->titulacao }}</span></td>
                                         <td>{{ $a->email ?: '—' }}<br>{{ $a->telefone }}</td>
                                         <td>
-                                            @if($a->apresentador) <span class="badge bg-success bg-opacity-10 text-success">Apresentador</span> @endif
-                                            @if($a->correspondente) <span class="badge bg-primary bg-opacity-10 text-primary">Correspondente</span> @endif
+                                            @if($a->apresentador) <x-badge tipo="autor" valor="apresentador" /> @endif
+                                            @if($a->correspondente) <x-badge tipo="autor" valor="correspondente" /> @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -96,7 +96,7 @@
                             <div class="glass-card bg-white mb-4">
                                 <h6 class="fw-bold text-success mb-3">Resultado da avaliação</h6>
                                 @if($rotuloDecisao)
-                                    <span class="badge bg-{{ $rotuloDecisao[1] }} {{ $rotuloDecisao[1] === 'warning' ? 'text-dark' : '' }} mb-2">{{ $rotuloDecisao[0] }}</span>
+                                    <x-badge tipo="trabalho" :valor="$trabalho->decisao" :rotulo="$rotuloDecisao[0]" class="mb-2" />
                                 @endif
                                 @if(($cfg->autor_ve_notas ?? true) && $trabalho->nota_final !== null)
                                     <div class="small mb-2">Nota final: <strong>{{ number_format($trabalho->nota_final, 2, ',', '.') }}</strong></div>

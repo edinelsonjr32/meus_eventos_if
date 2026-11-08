@@ -56,8 +56,8 @@
 
             <div class="d-flex flex-wrap gap-2 mb-3">
                 @foreach($contagem as $status => $total)
-                    <a href="{{ request()->fullUrlWithQuery(['status' => $status]) }}" class="badge bg-secondary bg-opacity-10 text-dark text-decoration-none p-2">
-                        {{ \App\Models\Trabalho::STATUS[$status] ?? $status }}: {{ $total }}
+                    <a href="{{ request()->fullUrlWithQuery(['status' => $status]) }}" class="text-decoration-none" title="Filtrar por este status">
+                        <x-badge tipo="trabalho" :valor="$status" :extra="$total" />
                     </a>
                 @endforeach
             </div>
@@ -133,7 +133,7 @@
                                 </td>
                                 <td>{{ \App\Models\TrabalhoConfig::TIPOS[$t->tipo_trabalho] ?? '—' }}</td>
                                 <td>{{ $t->area->nome ?? '—' }}</td>
-                                <td><span class="badge bg-secondary bg-opacity-10 text-dark">{{ $t->statusRotulo() }}</span></td>
+                                <td><x-badge tipo="trabalho" :valor="$t->status" /></td>
                                 <td>{{ $t->avaliacoes->where('status', '!=', 'recusada')->count() }}/{{ $config?->avaliadores_por_trabalho ?? 2 }}</td>
                                 <td>{{ $t->submetido_em?->format('d/m/Y H:i') }}</td>
                                 <td class="text-end pe-3">

@@ -25,7 +25,7 @@
 
             {{-- Configuração e critérios --}}
             <form action="{{ route('gestao.trabalhos.apresentacoes.config', $evento) }}" method="POST" data-validar class="glass-card bg-white mb-4"
-                  x-data="criteriosApresentacao({{ \Illuminate\Support\Js::from(old('criterios', $criterios->map(fn ($c) => ['id' => $c->id, 'nome' => $c->nome, 'descricao' => $c->descricao, 'peso' => (float) $c->peso, 'nota_max' => (float) $c->nota_max])->values())) }}, {{ \Illuminate\Support\Js::from(collect(\App\Models\CriterioApresentacao::PADROES)->map(fn ($p) => ['id' => null, 'nome' => $p[0], 'descricao' => $p[1], 'peso' => 1, 'nota_max' => 10])->values()) }}, {{ $criteriosBloqueados ? 'true' : 'false' }})">
+                  x-data="criteriosApresentacao({{ \Illuminate\Support\Js::from(old('criterios', $criterios->map(fn ($c) => ['id' => $c->id, 'nome' => $c->nome, 'descricao' => $c->descricao, 'peso' => (float) $c->peso, 'nota_max' => (float) $c->nota_max, 'usado' => in_array($c->id, $criteriosUsados, true)])->values())) }}, {{ \Illuminate\Support\Js::from(collect(\App\Models\CriterioApresentacao::PADROES)->map(fn ($p) => ['id' => null, 'nome' => $p[0], 'descricao' => $p[1], 'peso' => 1, 'nota_max' => 10])->values()) }})">
                 @csrf @method('PUT')
                 <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-sliders me-1"></i> Configuração</h6>
                 <div class="row g-3 mb-3">
@@ -50,22 +50,22 @@
 
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="small fw-bold text-secondary m-0">Critérios da apresentação (nota ponderada de 0 a 10)</label>
-                    <div class="d-flex gap-2" x-show="!bloqueado">
+                    <div class="d-flex gap-2" >
                         <button type="button" class="btn btn-sm btn-outline-secondary" @click="padroes()">Carregar critérios padrão</button>
                         <button type="button" class="btn btn-sm btn-outline-success" @click="adicionar()"><i class="fa-solid fa-plus"></i> Critério</button>
                     </div>
                 </div>
-                <div class="alert alert-warning small py-2" x-show="bloqueado" x-cloak>Já existem notas lançadas: os critérios estão bloqueados.</div>
-                <div class="alert alert-info small py-2" x-show="!bloqueado && linhas.length === 0" x-cloak>Defina ao menos um critério para ativar a avaliação.</div>
+                <div class="alert alert-info small py-2" x-show="linhas.length === 0" x-cloak>Defina ao menos um critério para ativar a avaliação.</div>
                 <template x-for="(c, i) in linhas" :key="i">
-                    <div class="row g-2 align-items-start mb-2">
-                        <input type="hidden" :name="`criterios[${i}][id]`" :value="c.id ?? ''" :disabled="bloqueado">
-                        <div class="col-md-4"><input type="text" class="form-control form-control-sm" placeholder="Nome" data-nome="Nome do critério" :name="`criterios[${i}][nome]`" x-model="c.nome" :disabled="bloqueado" required></div>
-                        <div class="col-md-4"><input type="text" class="form-control form-control-sm" placeholder="Descrição (opcional)" :name="`criterios[${i}][descricao]`" x-model="c.descricao" :disabled="bloqueado"></div>
-                        <div class="col-md-2"><input type="number" step="0.1" min="0.1" class="form-control form-control-sm" placeholder="Peso" data-nome="Peso do critério" :name="`criterios[${i}][peso]`" x-model="c.peso" :disabled="bloqueado" required></div>
-                        <div class="col-md-1"><input type="number" step="0.1" min="0.1" class="form-control form-control-sm" placeholder="Máx" data-nome="Nota máxima" :name="`criterios[${i}][nota_max]`" x-model="c.nota_max" :disabled="bloqueado" required></div>
-                        <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-light text-danger" @click="remover(i)" x-show="!bloqueado"><i class="fa-solid fa-trash"></i></button></div>
-                    </div>
+                <div class="row g-2 align-items-start mb-2">
+                    <input type="hidden" :name="`criterios[${i}][id]`" :value="c.id ?? ''">
+                    <div class="col-md-4"><input type="text" class="form-control form-control-sm" :class="c.usado ? 'bg-light' : ''" placeholder="Nome" data-nome="Nome do critério" :name="`criterios[${i}][nome]`" x-model="c.nome" :readonly="c.usado" required></div>
+                    <div class="col-md-4"><input type="text" class="form-control form-control-sm" placeholder="Descrição (opcional)" :name="`criterios[${i}][descricao]`" x-model="c.descricao"></div>
+                    <div class="col-md-2"><input type="number" step="0.1" min="0.1" class="form-control form-control-sm" :class="c.usado ? 'bg-light' : ''" placeholder="Peso" data-nome="Peso do critério" :name="`criterios[${i}][peso]`" x-model="c.peso" :readonly="c.usado" required></div>
+                    <div class="col-md-1"><input type="number" step="0.1" min="0.1" class="form-control form-control-sm" :class="c.usado ? 'bg-light' : ''" placeholder="Máx" data-nome="Nota máxima" :name="`criterios[${i}][nota_max]`" x-model="c.nota_max" :readonly="c.usado" required></div>
+                    <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-light text-danger" @click="remover(i)" title="Remover critério"><i class="fa-solid fa-trash"></i></button></div>
+                    <div class="col-12 small text-muted" x-show="c.usado" x-cloak style="margin-top:-2px"><i class="fa-solid fa-lock me-1"></i>Já tem notas lançadas: nome, peso e máximo ficam fixos. Ao remover, ele deixa de ser usado nas próximas avaliações e as notas atuais são mantidas.</div>
+                </div>
                 </template>
                 <div class="text-end mt-3"><button class="btn btn-primary-custom fw-bold"><i class="fa-regular fa-floppy-disk me-1"></i> Salvar configuração</button></div>
             </form>
@@ -102,7 +102,7 @@
                                     <td>{{ $t->sessao?->titulo ?? '—' }}</td>
                                     <td>
                                         @if($t->apresentado)
-                                            <span class="badge bg-success">Apresentado</span>
+                                            <x-badge tipo="sim-nao" valor="apresentado" />
                                             <button type="submit" form="ap{{ $t->id }}" name="acao" value="desmarcar" class="btn btn-sm btn-link text-danger p-0 ms-1" title="Desmarcar" onclick="return confirm('Desmarcar a apresentação?')"><i class="fa-solid fa-rotate-left"></i></button>
                                         @else
                                             <button type="submit" form="ap{{ $t->id }}" name="acao" value="marcar" class="btn btn-sm btn-outline-success py-0 fw-bold"><i class="fa-solid fa-check me-1"></i> Marcar</button>
@@ -112,7 +112,7 @@
                                         @forelse($t->avaliacoesApresentacao as $av)
                                             <div class="d-flex align-items-center gap-1">
                                                 <span>{{ $av->avaliador->name }}</span>
-                                                <span class="badge {{ $av->status === 'concluida' ? 'bg-success' : ($av->status === 'recusada' ? 'bg-danger' : 'bg-warning text-dark') }}">{{ $av->statusRotulo() }}@if($av->nota_final !== null) · {{ $fmt($av->nota_final) }} @endif</span>
+                                                <x-badge tipo="avaliacao" :valor="$av->status" :extra="$av->nota_final !== null ? $fmt($av->nota_final) : null" />
                                                 @if($av->status !== 'concluida')
                                                     <button type="submit" form="rm{{ $av->id }}" class="btn btn-sm btn-link text-danger p-0" title="Remover" onclick="return confirm('Remover este avaliador?')"><i class="fa-solid fa-xmark"></i></button>
                                                 @endif
@@ -158,12 +158,20 @@
     </div>
 
     <script>
-        function criteriosApresentacao(iniciais, padroes, bloqueado) {
+        function criteriosApresentacao(iniciais, padroes) {
             return {
-                linhas: iniciais.map(c => ({ ...c })), bloqueado,
-                adicionar() { this.linhas.push({ id: null, nome: '', descricao: '', peso: 1, nota_max: 10 }); },
-                remover(i) { this.linhas.splice(i, 1); },
-                padroes() { if (this.linhas.length && !confirm('Substituir os critérios atuais pelos padrão?')) return; this.linhas = padroes.map(c => ({ ...c })); },
+                linhas: iniciais.map(c => ({ ...c })),
+                adicionar() { this.linhas.push({ id: null, nome: '', descricao: '', peso: 1, nota_max: 10, usado: false }); },
+                remover(i) {
+                    const c = this.linhas[i];
+                    const aviso = c.usado ? 'Este critério já tem notas lançadas. Remover o retira das próximas avaliações; as notas existentes continuam valendo. Remover?' : 'Remover este critério?';
+                    if (!confirm(aviso)) return;
+                    this.linhas.splice(i, 1);
+                },
+                padroes() {
+                    if (this.linhas.length && !confirm('Substituir os critérios atuais pelos critérios padrão? Critérios com notas lançadas serão retirados das próximas avaliações.')) return;
+                    this.linhas = padroes.map(c => ({ ...c, usado: false }));
+                },
             };
         }
     </script>
