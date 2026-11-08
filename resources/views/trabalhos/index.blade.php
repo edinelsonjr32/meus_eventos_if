@@ -91,7 +91,10 @@
                                             </div>
                                         </td>
                                         <td>{{ $t->evento->titulo }}</td>
-                                        <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" /></td>
+                                        <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" />
+                                            @if($t->status === 'aprovado' && !$t->autoriza_publicacao)
+                                                <div class="mt-1"><x-badge tipo="anais" valor="pendente" /></div>
+                                            @endif</td>
                                         <td class="text-end pe-4">
                                             <a href="{{ route('trabalhos.show', $t) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i> Ver</a>
                                             @can('update', $t)

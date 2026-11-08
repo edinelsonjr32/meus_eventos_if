@@ -45,6 +45,11 @@
             'aberta' => ['verde-forte', 'fa-door-open', 'Chamada aberta'], 'em_breve' => ['ambar', 'fa-clock', 'Em breve'],
             'encerrada' => ['ardosia', 'fa-lock', 'Encerrada'], 'rascunho' => ['cinza', 'fa-pencil', 'Rascunho'], 'nao_criada' => ['cinza', 'fa-circle-plus', 'Não criada'],
         ],
+        'anais' => [
+            'pendente' => ['laranja', 'fa-book-open', 'Pendente de aprovação · Anais do evento'],
+            'autorizado' => ['verde', 'fa-book-bookmark', 'Publicação nos Anais autorizada'],
+            'nao_autorizado' => ['cinza', 'fa-book', 'Publicação nos Anais não autorizada'],
+        ],
         'certificado' => [
             'valido' => ['verde', 'fa-award', 'Válido'], 'revogado' => ['vermelho-forte', 'fa-ban', 'Revogado'],
         ],

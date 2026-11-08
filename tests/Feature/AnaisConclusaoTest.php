@@ -110,3 +110,27 @@ it('concluído sem PDF publicável é apontado como "Sem PDF publicável"', func
     $t->update(['apresentado' => true]);
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()->assertSee($t->codigo)->assertSee('Sem PDF publicável');
 });
+
+it('o autor vê o selo "Pendente de aprovação · Anais do evento" (diferente dos demais) enquanto não autoriza', function () {
+    $t = concluidoSemAutorizacao($this);
+
+    $this->actingAs($this->autor)->get(route('trabalhos.index'))->assertOk()->assertSee('Pendente de aprovação · Anais do evento');
+    $this->get(route('trabalhos.show', $t))->assertOk()->assertSee('Pendente de aprovação · Anais do evento')->assertDontSee('Publicação nos Anais não autorizada');
+
+    $this->post(route('trabalhos.autorizacao-publicacao', $t), ['autoriza' => 1]);
+    $this->get(route('trabalhos.index'))->assertDontSee('Pendente de aprovação · Anais do evento');
+    $this->get(route('trabalhos.show', $t))->assertSee('Publicação nos Anais autorizada')->assertDontSee('Pendente de aprovação · Anais do evento');
+
+    // fora das fases em que dá para autorizar, não aparece como pendência
+    $triagem = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Em triagem', 'autoriza_publicacao' => false], 'em_triagem');
+    $this->get(route('trabalhos.show', $triagem))->assertSee('Publicação nos Anais não autorizada')->assertDontSee('Pendente de aprovação · Anais do evento');
+});
+
+it('o selo dos Anais tem cor e ícone próprios, distintos dos de status do trabalho', function () {
+    $html = fn ($v) => \Illuminate\Support\Facades\Blade::render('<x-badge tipo="anais" :valor="$v" />', ['v' => $v]);
+    preg_match('/background: (#\w+);.*?fa-solid (fa-[\w-]+)/s', $html('pendente'), $p);
+    foreach (array_keys(\App\Models\Trabalho::STATUS) as $s) {
+        preg_match('/background: (#\w+);.*?fa-solid (fa-[\w-]+)/s', \Illuminate\Support\Facades\Blade::render('<x-badge tipo="trabalho" :valor="$v" />', ['v' => $s]), $o);
+        expect([$p[1], $p[2]])->not->toBe([$o[1], $o[2]]);
+    }
+});

@@ -47,7 +47,7 @@
                             <dd class="col-sm-8">{{ $trabalho->comite_etica ?: '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Publicação nos Anais</dt>
                             <dd class="col-sm-8">
-                                <x-badge tipo="sim-nao" :valor="$trabalho->autoriza_publicacao ? 'sim' : 'nao'" :rotulo="$trabalho->autoriza_publicacao ? 'Autorizada' : 'Não autorizada'" />
+                                <x-badge tipo="anais" :valor="$trabalho->autoriza_publicacao ? 'autorizado' : (in_array($trabalho->status, ['aprovado', 'aguardando_correcao', 'avaliado', 'resubmetido'], true) ? 'pendente' : 'nao_autorizado')" />
                                 @unless($gestao)
                                     @if($trabalho->ehAutor(auth()->user()) && in_array($trabalho->status, ['aprovado', 'aguardando_correcao', 'avaliado', 'resubmetido'], true))
                                         <form action="{{ route('trabalhos.autorizacao-publicacao', $trabalho) }}" method="POST" class="d-inline ms-2">
