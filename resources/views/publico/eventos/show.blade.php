@@ -260,7 +260,7 @@
                 <div class="booking-card">
                     <div class="booking-header">
                         <h4 class="fw-bold m-0"><i class="fa-solid fa-ticket me-2" style="color: var(--brand);"></i> Inscrição</h4>
-                        <p class="text-muted small m-0 mt-1">Preencha seus dados para garantir a vaga.</p>
+                        <p class="text-muted small m-0 mt-1">{{ auth()->check() ? 'Confirme seus dados para garantir a vaga.' : 'Entre ou crie sua conta para garantir a vaga.' }}</p>
                     </div>
 
                     <div class="p-4">
@@ -272,14 +272,37 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('evento.publico.store', $evento->slug) }}" method="POST" x-data="{ tipo: '{{ old('tipo_vinculo', 'aluno') }}' }">
+                        @guest
+                            <div id="inscricao" class="text-center py-2">
+                                <div class="mb-3"><i class="fa-solid fa-user-lock fs-1" style="color: var(--brand);"></i></div>
+                                <h5 class="fw-bold">Entre ou crie sua conta para se inscrever</h5>
+                                <p class="text-muted small mb-4">A inscrição fica ligada à sua conta, o que garante a presença e o certificado no seu nome sem duplicidades.</p>
+                                <a href="{{ route('evento.publico.acesso', [$evento->slug, 'entrar']) }}" class="btn w-100 py-3 fw-bold text-white shadow-lg mb-2" style="background-color: var(--brand); border-radius: 12px;">
+                                    <i class="fa-solid fa-right-to-bracket me-1"></i> Já tenho conta — Entrar
+                                </a>
+                                <a href="{{ route('evento.publico.acesso', [$evento->slug, 'cadastrar']) }}" class="btn w-100 py-3 fw-bold shadow-sm" style="border: 2px solid var(--brand); color: var(--brand); border-radius: 12px;">
+                                    <i class="fa-solid fa-user-plus me-1"></i> Criar minha conta
+                                </a>
+                                <p class="text-center mt-3 mb-0 text-muted small"><i class="fa-solid fa-shield-alt me-1"></i> Depois de entrar você volta aqui para concluir.</p>
+                            </div>
+                        @else
+                        @if($inscrito)
+                            <div id="inscricao" class="alert alert-success border-0 small mb-0"><i class="fa-solid fa-circle-check me-1"></i> Você já está inscrito(a) neste evento. Acompanhe em <a href="{{ route('inscrito.dashboard') }}" class="fw-bold">Minha Agenda</a>.</div>
+                        @else
+                        <form id="inscricao" action="{{ route('evento.publico.store', $evento->slug) }}" method="POST" x-data="{ tipo: '{{ old('tipo_vinculo', $participanteLogado?->tipo_vinculo ?? 'aluno') }}' }">
                             @csrf
+
+                            <div class="alert alert-light border small py-2"><i class="fa-solid fa-user-check me-1 text-success"></i> Inscrevendo como <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}).</div>
 
                             <div class="mb-3">
                                 <label class="fw-bold small text-secondary text-uppercase mb-1">CPF</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-regular fa-id-card"></i></span>
-                                    <input type="text" name="cpf" class="form-control border-start-0 cpf-mask" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
+                                    @if($participanteLogado)
+                                        <input type="text" class="form-control border-start-0 bg-light" value="{{ $participanteLogado->cpf }}" readonly>
+                                    @else
+                                        <input type="text" name="cpf" class="form-control border-start-0 cpf-mask" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
+                                    @endif
                                 </div>
                             </div>
 
@@ -287,16 +310,13 @@
                                 <label class="fw-bold small text-secondary text-uppercase mb-1">Nome Completo</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-regular fa-user"></i></span>
-                                    <input type="text" name="nome_completo" class="form-control border-start-0" placeholder="Seu nome oficial" value="{{ old('nome_completo') }}" required>
+                                    @if($participanteLogado)
+                                        <input type="text" class="form-control border-start-0 bg-light" value="{{ $participanteLogado->nome_completo }}" readonly>
+                                    @else
+                                        <input type="text" name="nome_completo" class="form-control border-start-0" placeholder="Seu nome oficial" value="{{ old('nome_completo', auth()->user()->name) }}" required>
+                                    @endif
                                 </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="fw-bold small text-secondary text-uppercase mb-1">E-mail</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-regular fa-envelope"></i></span>
-                                    <input type="email" name="email" class="form-control border-start-0" placeholder="Para receber o certificado" value="{{ old('email') }}" required>
-                                </div>
+                                @if($participanteLogado) <div class="form-text">CPF e nome vêm do seu cadastro. Para corrigir, use <a href="{{ route('profile.edit') }}">Minha Conta</a>.</div> @endif
                             </div>
 
                             <div class="mb-4">
@@ -311,7 +331,7 @@
                             <div x-show="['aluno', 'servidor'].includes(tipo)" x-transition class="bg-light p-3 rounded-3 mb-4 border border-dashed">
                                 <div class="mb-3">
                                     <label class="fw-bold small text-dark mb-1" x-text="tipo === 'aluno' ? 'Matrícula Acadêmica' : 'Matrícula SIAPE'"></label>
-                                    <input type="text" name="matricula" class="form-control bg-white" value="{{ old('matricula') }}">
+                                    <input type="text" name="matricula" class="form-control bg-white" value="{{ old('matricula', $participanteLogado?->matricula) }}">
                                 </div>
 
                                 <div x-show="tipo === 'aluno'">
@@ -319,7 +339,7 @@
                                     <select name="turma_id" class="form-select bg-white">
                                         <option value="">Selecione sua turma...</option>
                                         @foreach($turmas as $turma)
-                                            <option value="{{ $turma->id }}" {{ old('turma_id') == $turma->id ? 'selected' : '' }}>
+                                            <option value="{{ $turma->id }}" {{ (string) old('turma_id', $participanteLogado?->turma_id) === (string) $turma->id ? 'selected' : '' }}>
                                                 {{ $turma->nome_completo }}
                                             </option>
                                         @endforeach
@@ -336,6 +356,8 @@
                                 <i class="fa-solid fa-shield-alt me-1"></i> Seus dados estão seguros.
                             </p>
                         </form>
+                        @endif
+                        @endguest
                     </div>
                 </div>
             </div>

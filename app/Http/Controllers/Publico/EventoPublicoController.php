@@ -43,101 +43,91 @@ class EventoPublicoController extends Controller
         // Carrega turmas para o select do formulário
         $turmas = Turma::with('curso')->get()->sortBy('nome_completo');
 
-        return view('publico.eventos.show', compact('evento', 'cronogramaPorDia', 'inscrito', 'turmas'));
+        return view('publico.eventos.show', compact('evento', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado'));
     }
 
 
 
+    /** Guarda o evento como destino e leva ao login ou ao cadastro (a inscrição exige conta). */
+    public function acesso(Request $request, string $slug, string $modo)
+    {
+        $evento = Evento::where('slug', $slug)->firstOrFail();
+
+        if (Auth::check()) {
+            return redirect()->route('evento.publico.show', $evento->slug);
+        }
+
+        session(['url.intended' => route('evento.publico.show', $evento->slug) . '#inscricao']);
+
+        return redirect()->route($modo === 'cadastrar' ? 'register' : 'login');
+    }
+
+    /** Destino pós-login: mostra o formulário de inscrição do evento. */
+    public function inscrever(string $slug)
+    {
+        $evento = Evento::where('slug', $slug)->firstOrFail();
+
+        return redirect()->to(route('evento.publico.show', $evento->slug) . '#inscricao');
+    }
+
     /**
-     * Processa a Inscrição no Evento (Com Vínculo de Usuário).
+     * Processa a inscrição. Exige conta logada: a inscrição fica sempre ligada ao mesmo participante da conta
+     * (mesmo CPF, nome e e-mail), o que mantém credenciamento e frequência consistentes.
      */
     public function store(Request $request, $slug)
     {
-
-
         $evento = Evento::where('slug', $slug)->firstOrFail();
+        $user = $request->user();
 
+        $participante = Participante::where('user_id', $user->id)->first();
 
-
-        // 1. Definição de Regras de Validação
-        $rules = [
-            'nome_completo' => ['required', 'string', 'max:255'],
-            'cpf' => ['required', 'string', 'size:14', new Cpf],
+        $request->validate([
+            // Com cadastro de participante existente, CPF e nome vêm da conta (não editáveis aqui)
+            'nome_completo' => [$participante ? 'nullable' : 'required', 'string', 'max:255'],
+            'cpf' => [$participante ? 'nullable' : 'required', 'string', 'size:14', new Cpf],
             'tipo_vinculo' => ['required', Rule::in('aluno', 'servidor', 'externo')],
-
-            // Matrícula é obrigatória se for aluno ou servidor
             'matricula' => [
-                Rule::requiredIf(fn() => in_array($request->tipo_vinculo, ['aluno', 'servidor'])),
-                'nullable',
-                'string',
-                'max:50'
+                Rule::requiredIf(fn () => in_array($request->tipo_vinculo, ['aluno', 'servidor'])),
+                'nullable', 'string', 'max:50',
             ],
-
-            // Turma_id é obrigatória se for aluno
             'turma_id' => ['required_if:tipo_vinculo,aluno', 'nullable', 'exists:turmas,id'],
-
-            'email' => ['required', 'email'] // Email é sempre required para o Participante
-
-            // Regras de 'password' e validação 'unique:users' REMOVIDAS.
-        ];
-
-        $request->validate($rules);
-
-        // =================================================================
-        // VALIDAÇÃO DE DUPLICIDADE (CPF NO EVENTO) - MANTIDA
-        // =================================================================
-        $jaInscrito = Inscricao::where('evento_id', $evento->id)
-            ->whereHas('participante', function ($q) use ($request) {
-                $q->where('cpf', $request->cpf);
-            })
-            ->exists();
-
-
-
-        if ($jaInscrito) {
-            return back()
-                ->with('error', 'Este CPF já possui uma inscrição confirmada neste evento.')
-                ->withInput();
-        }
-        // =================================================================
+        ]);
 
         try {
-            DB::beginTransaction();
+            $inscricao = DB::transaction(function () use ($request, $evento, $user, &$participante) {
+                if (!$participante) {
+                    // CPF já cadastrado: só pode ser assumido se não pertencer a outra conta
+                    $existente = Participante::where('cpf', $request->cpf)->first();
+                    if ($existente && $existente->user_id && $existente->user_id !== $user->id) {
+                        throw new \DomainException('Este CPF já está vinculado a outra conta. Entre com a conta correta ou procure a organização do evento.');
+                    }
+                    $participante = $existente ?? new Participante(['cpf' => $request->cpf]);
+                    $participante->nome_completo = $existente?->nome_completo ?: $request->nome_completo;
+                }
 
-            $userId = Auth::id(); // Pega o ID do usuário logado (será NULL se ninguém estiver logado)
+                $participante->fill([
+                    'user_id' => $user->id,
+                    'email' => $user->email,   // sempre o e-mail da conta
+                    'tipo_vinculo' => $request->tipo_vinculo,
+                    'matricula' => in_array($request->tipo_vinculo, ['aluno', 'servidor']) ? $request->matricula : null,
+                    'turma_id' => $request->tipo_vinculo === 'aluno' ? $request->turma_id : null,
+                ])->save();
 
-            // 2. Cria/Atualiza Participante (O foco principal)
-            $dadosParticipante = [
-                'nome_completo' => $request->nome_completo,
-                'email' => $request->email,
-                'tipo_vinculo' => $request->tipo_vinculo,
-                'matricula' => in_array($request->tipo_vinculo, ['aluno', 'servidor']) ? $request->matricula : null,
-                'turma_id' => $request->tipo_vinculo === 'aluno' ? $request->turma_id : null,
+                if (Inscricao::where('evento_id', $evento->id)->where('participante_id', $participante->id)->exists()) {
+                    throw new \DomainException('Você já possui uma inscrição confirmada neste evento.');
+                }
 
-            ];
-            
+                return Inscricao::create(['evento_id' => $evento->id, 'participante_id' => $participante->id, 'data_inscricao' => now()]);
+            });
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage())->withInput();
+        } catch (\Throwable $e) {
+            report($e);
 
-            // Atualiza o Participante se o CPF já existir, ou cria um novo
-            $participante = Participante::updateOrCreate(
-                ['cpf' => $request->cpf],
-                $dadosParticipante
-            );
-
-            // 3. Cria a Inscrição
-            Inscricao::create([
-                'evento_id' => $evento->id,
-                'participante_id' => $participante->id,
-                'data_inscricao' => now()
-            ]);
-
-            DB::commit();
-
-            return redirect()->route('evento.publico.sucesso', $slug)
-                ->with('participante', $participante->nome_completo);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Erro ao processar inscrição: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Não foi possível concluir a inscrição. Tente novamente.')->withInput();
         }
+
+        return redirect()->route('evento.publico.sucesso', $slug)->with('participante', $participante->nome_completo);
     }
 
     /**

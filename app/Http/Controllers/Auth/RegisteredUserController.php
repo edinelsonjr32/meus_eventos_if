@@ -81,6 +81,7 @@ class RegisteredUserController extends Controller
         // 4. Login e Redirecionamento
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // Volta para onde a pessoa estava (ex.: a inscrição em um evento)
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 }

@@ -2,6 +2,9 @@
 
 Para quem quer apresentar um trabalho em um evento. Política de dados: `/privacidade`.
 
+## 0. Inscrição no evento
+Para se inscrever é preciso ter **conta**: na página do evento escolha **Entrar** ou **Criar minha conta**; depois você volta ao evento para confirmar. A inscrição usa o CPF, o nome e o e-mail da sua conta (para corrigir, use *Minha Conta*), o que garante credenciamento, presença e certificado no seu nome, sem duplicidades.
+
 ## 1. Antes de começar
 - Tenha conta (cadastre-se na tela de login) e entre no sistema.
 - Separe: **PDF do trabalho** (até o limite da chamada, geralmente 20 MB), título, resumo e 3 a 5 palavras-chave (quando exigidos), e os dados de todos os autores.

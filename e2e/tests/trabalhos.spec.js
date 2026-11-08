@@ -213,3 +213,36 @@ test('lote: resumo ao vivo, Select2 e botão só habilita com seleção válida 
   await page.locator('[data-lote-limpar]').click();
   await expect(page.locator('[data-lote-contagem]')).toContainText('0 selecionado');
 });
+
+function cpfValido() {
+  const n = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));
+  for (let t = 9; t < 11; t++) {
+    let s = 0;
+    for (let i = 0; i < t; i++) s += n[i] * (t + 1 - i);
+    n.push(((s * 10) % 11) % 10);
+  }
+  const d = n.join('');
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+test('inscrição exige conta: visitante vê o convite, cria a conta e volta ao evento para se inscrever', async ({ page }) => {
+  await page.goto('/e/semana-de-tecnologia-2026');
+  await expect(page.getByText('Entre ou crie sua conta para se inscrever')).toBeVisible();
+  await expect(page.locator('input[name=cpf]')).toHaveCount(0);
+
+  await page.getByRole('link', { name: /Criar minha conta/ }).click();
+  await expect(page).toHaveURL(/\/register/);
+  const email = `e2e${Date.now()}@teste.local`;
+  await page.fill('input[name=name]', 'Pessoa E2E Inscricao');
+  await page.fill('input[name=email]', email);
+  await page.fill('input[name=cpf]', cpfValido());
+  await page.fill('input[name=password]', 'Senha@12345');
+  await page.fill('input[name=password_confirmation]', 'Senha@12345');
+  await page.locator('form[action$="/register"] button[type=submit]').click();
+
+  await expect(page).toHaveURL(/\/e\/semana-de-tecnologia-2026/);
+  await expect(page.getByText('Inscrevendo como')).toBeVisible();
+  await page.locator('select[name=tipo_vinculo]').selectOption('externo');
+  await page.getByRole('button', { name: /Confirmar Inscri/ }).click();
+  await expect(page).toHaveURL(/confirmado/);
+});

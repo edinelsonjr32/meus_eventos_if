@@ -50,7 +50,10 @@ Route::prefix('e/{slug}/anais')->name('anais.')->middleware('throttle:anais')->g
 // Landing Pages de Eventos Específicos & Inscrição
 Route::prefix('e')->group(function () {
     Route::get('/{slug}', [EventoPublicoController::class, 'show'])->name('evento.publico.show');
-    Route::post('/{slug}', [EventoPublicoController::class, 'store'])->name('evento.publico.store');
+    // A inscrição exige conta: quem não está logado é levado ao login/cadastro e volta ao evento depois
+    Route::post('/{slug}', [EventoPublicoController::class, 'store'])->middleware('auth')->name('evento.publico.store');
+    Route::get('/{slug}/inscrever', [EventoPublicoController::class, 'inscrever'])->middleware('auth')->name('evento.publico.inscrever');
+    Route::get('/{slug}/acesso/{modo}', [EventoPublicoController::class, 'acesso'])->where('modo', 'entrar|cadastrar')->name('evento.publico.acesso');
     Route::get('/{slug}/confirmado', [EventoPublicoController::class, 'sucesso'])->name('evento.publico.sucesso');
 });
 
