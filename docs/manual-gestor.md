@@ -77,3 +77,10 @@ Pedidos de titulares (acesso, correção, eliminação): `php artisan lgpd:expor
 - **Check-in repetido**: o servidor decide se o check-in é novo; clicar de novo em quem já chegou apenas avisa, sem alterar o contador.
 - **Frequência**: quem já registrou presença em uma atividade vê o aviso "Presença já registrada" e não consegue registrar de novo.
 - **PDF dos QR Codes**: na programação do evento, o botão *PDF dos QR Codes* gera uma página por atividade com cabeçalho do evento, QR Code, título, responsável e local. Preencha *Responsável* e *Local* ao cadastrar a atividade.
+
+## Equipe do evento e certificado de equipe
+
+- **Equipe** (menu do evento): adicione membros com **função** (lista fixa) e **carga horária**; edite função e C.H. pelo lápis; a mesma pessoa não entra duas vezes. A C.H. mostrada é a que está salva (antes aparecia "N/A").
+- **Certificado**: *Emitir* por membro ou *Emitir certificados de todos*. O código é mantido ao reemitir; editar função/C.H. atualiza o PDF já emitido; *Revogar* invalida o código. Validação pública em `/certificado-equipe/validar/{código}`.
+- **Texto**: ajuste em "Texto do certificado da equipe" (variáveis `{PARTICIPANTE} {CPF} {FUNCAO} {EVENTO} {DATA_EVENTO} {CARGA_HORARIA} {DATA_EMISSAO}`); cabeçalho, rodapé, fundo e assinaturas vêm de *Certificado do evento*.
+- **Atividades**: o lápis da programação edita título, tipo, responsável (sugere os nomes da equipe), local, data, C.H. e vagas. O horário de término é recalculado pela C.H. e as vagas não podem ficar abaixo do número de inscritos.

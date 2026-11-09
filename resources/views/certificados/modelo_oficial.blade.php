@@ -59,6 +59,12 @@
     </style>
 </head>
 <body>
+    @php
+        // Aceita certificado de frequência ($frequencia) ou dados avulsos (equipe): código, link e data de emissão
+        $hashCert = $hashCert ?? $frequencia->hash_validacao;
+        $urlValidacao = $urlValidacao ?? route('certificado.validar', $hashCert);
+        $emitidoEm = $emitidoEm ?? $frequencia->created_at;
+    @endphp
 
     @if($imgFundo)
         <img src="{{ $imgFundo }}" class="background-full">
@@ -106,16 +112,16 @@
         @endif
 
         <div class="footer-validation">
-            <img src="data:image/svg+xml;base64,{{ base64_encode((string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(150)->margin(0)->generate(route('certificado.validar', $frequencia->hash_validacao))) }}" class="qr-code">
+            <img src="data:image/svg+xml;base64,{{ base64_encode((string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(150)->margin(0)->generate($urlValidacao)) }}" class="qr-code">
 
-            <strong>Registro de Autenticidade:</strong> {{ $frequencia->hash_validacao }} <br>
-            Verifique em: {{ route('certificado.validar', $frequencia->hash_validacao) }}<br>
+            <strong>Registro de Autenticidade:</strong> {{ $hashCert }} <br>
+            Verifique em: {{ $urlValidacao }}<br>
 
             @if($textoRodape)
                 <br><span style="color: #888;">{!! nl2br(e($textoRodape)) !!}</span>
             @endif
 
-            <br>Emitido eletronicamente em: {{ $frequencia->created_at->format('d/m/Y H:i') }}
+            <br>Emitido eletronicamente em: {{ $emitidoEm->format('d/m/Y H:i') }}
         </div>
 
     </div>

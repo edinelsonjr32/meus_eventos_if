@@ -73,6 +73,8 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('/certificado-trabalho/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'validar'])->name('certificado.trabalho.validar');
     Route::get('/certificado-trabalho/download/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'download'])->name('certificado.trabalho.download');
     Route::get('/certificado-premiacao/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoPremiacaoController::class, 'validar'])->name('certificado.premiacao.validar');
+    Route::get('/certificado-equipe/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoEquipeController::class, 'validar'])->name('certificado.equipe.validar');
+    Route::get('/certificado-equipe/download/{hash}', [\App\Http\Controllers\Publico\CertificadoEquipeController::class, 'download'])->name('certificado.equipe.download');
     Route::get('/certificado-premiacao/download/{hash}', [\App\Http\Controllers\Publico\CertificadoPremiacaoController::class, 'download'])->name('certificado.premiacao.download');
 });
 
@@ -289,7 +291,13 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // --- Gestão de Equipe / Staff ---
     Route::get('eventos/{evento}/equipe', [EquipeController::class, 'index'])->name('eventos.equipe.index');
     Route::post('eventos/{evento}/equipe', [EquipeController::class, 'store'])->name('eventos.equipe.store');
+    Route::put('equipe/{equipe}', [EquipeController::class, 'update'])->name('equipe.update');
     Route::delete('equipe/{equipe}', [EquipeController::class, 'destroy'])->name('equipe.destroy');
+    Route::post('equipe/{equipe}/certificado', [EquipeController::class, 'emitir'])->name('equipe.emitir');
+    Route::post('equipe/{equipe}/certificado/revogar', [EquipeController::class, 'revogar'])->name('equipe.revogar');
+    Route::get('equipe/{equipe}/certificado', [EquipeController::class, 'certificado'])->name('equipe.certificado');
+    Route::post('eventos/{evento}/equipe/certificados', [EquipeController::class, 'emitirTodos'])->name('eventos.equipe.emitir-todos');
+    Route::put('eventos/{evento}/equipe/modelo', [EquipeController::class, 'modelo'])->name('eventos.equipe.modelo');
 
     // --- Papéis por evento (co-administrador, gestor de trabalhos, avaliador) ---
     Route::get('eventos/{evento}/papeis', [\App\Http\Controllers\Admin\EventoPapelController::class, 'index'])->name('eventos.papeis.index');

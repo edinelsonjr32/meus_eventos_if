@@ -35,7 +35,7 @@ class AtividadeController extends Controller
             'responsavel' => 'nullable|string|max:255',
             'local' => 'nullable|string|max:255',
             'data_inicio' => 'required|date',
-            'carga_horaria' => 'required|integer|min:1',
+            'carga_horaria' => 'required|integer|min:1|max:1000',
             'vagas' => 'nullable|integer|min:0',
         ]);
 
@@ -54,11 +54,61 @@ class AtividadeController extends Controller
             'data_inicio' => $validated['data_inicio'],
             'data_fim' => $fim, // Agora o Model aceitará este campo
             'carga_horaria' => $horas,
-            'vagas' => $request->vagas,
+            'vagas' => $validated['vagas'] ?? null,
             'token_frequencia' => Str::random(10),
         ]);
 
         return back()->with('success', 'Atividade adicionada com sucesso à programação!');
+    }
+
+    public const TIPOS = ['palestra' => 'Palestra', 'minicurso' => 'Minicurso', 'oficina' => 'Oficina', 'mesa_redonda' => 'Mesa Redonda'];
+
+    public function edit(Atividade $atividade)
+    {
+        $this->authorize('gerenciar', $atividade->evento);
+
+        return view('admin.atividades.edit', [
+            'atividade' => $atividade,
+            'evento' => $atividade->evento,
+            'tipos' => self::TIPOS,
+            'inscritos' => $atividade->inscritos()->count(),
+            'equipe' => $atividade->evento->equipe()->with('participante')->get()->pluck('participante.nome_completo')->filter()->unique()->sort()->values(),
+        ]);
+    }
+
+    /** Atualiza os dados da atividade; o fim é recalculado pela carga horária e o certificado reflete a C.H. nova. */
+    public function update(Request $request, Atividade $atividade)
+    {
+        $this->authorize('gerenciar', $atividade->evento);
+
+        $dados = $request->validate([
+            'titulo' => 'required|string|max:255',
+            'tipo' => ['required', Rule::in(array_keys(self::TIPOS))],
+            'responsavel' => 'nullable|string|max:255',
+            'local' => 'nullable|string|max:255',
+            'data_inicio' => 'required|date',
+            'carga_horaria' => 'required|integer|min:1|max:1000',
+            'vagas' => 'nullable|integer|min:0',
+        ]);
+
+        $inscritos = $atividade->inscritos()->count();
+        if (!empty($dados['vagas']) && $dados['vagas'] < $inscritos) {
+            return back()->withInput()->withErrors(['vagas' => "Já existem {$inscritos} inscrito(s): as vagas não podem ser menores que isso (use 0 para ilimitado)."]);
+        }
+
+        $inicio = Carbon::parse($dados['data_inicio']);
+        $atividade->update([
+            'titulo' => $dados['titulo'],
+            'tipo' => $dados['tipo'],
+            'responsavel' => $dados['responsavel'] ?? null,
+            'local' => $dados['local'] ?? null,
+            'data_inicio' => $inicio,
+            'data_fim' => $inicio->copy()->addHours((int) $dados['carga_horaria']),
+            'carga_horaria' => (int) $dados['carga_horaria'],
+            'vagas' => $dados['vagas'] ?? null,
+        ]);
+
+        return redirect()->route('admin.eventos.show', $atividade->evento_id)->with('success', 'Atividade atualizada.');
     }
 
     /** PDF com uma página por atividade: cabeçalho do evento, QR Code de frequência, título e responsável. */

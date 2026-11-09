@@ -424,6 +424,9 @@ test('credenciamento: check-in repetido não conta de novo (tela desatualizada) 
   // lista de todos os inscritos com o status
   await page.getByRole('link', { name: /Lista de inscritos/ }).click();
   await expect(page.getByRole('heading', { name: 'Lista de inscritos' })).toBeVisible();
+  // a lista é paginada: filtra pela busca para não depender da página em que a pessoa cai
+  await page.fill('input[name="q"]', 'Thiago');
+  await page.keyboard.press('Enter');
   await expect(page.locator('tbody tr', { hasText: 'Thiago Moura' }).getByText('Check-in feito')).toBeVisible();
   await page.getByRole('button', { name: /Pendentes/ }).click();
   await expect(page.locator('tbody tr', { hasText: 'Thiago Moura' })).toHaveCount(0);

@@ -109,7 +109,8 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-secondary">RESPONSÁVEL / PALESTRANTE</label>
-                        <input type="text" name="responsavel" class="form-control" placeholder="Ex: Profa. Maria Silva" maxlength="255">
+                        <input type="text" name="responsavel" class="form-control" placeholder="Ex: Profa. Maria Silva" maxlength="255" list="equipe-nomes">
+                        <datalist id="equipe-nomes">@foreach($evento->equipe()->with('participante')->get() as $mb)<option value="{{ $mb->participante->nome_completo }}">@endforeach</datalist>
                     </div>
 
                     <div class="mb-3">
@@ -226,6 +227,8 @@
                                     <a href="{{ route('admin.atividades.participantes', $atividade->id) }}" class="btn btn-outline-primary btn-sm fw-bold d-flex align-items-center gap-2" title="Gerenciar Presença">
                                         <i class="fa-solid fa-clipboard-user"></i> <span class="d-none d-lg-inline">Lista</span>
                                     </a>
+
+                                    <a href="{{ route('admin.atividades.edit', $atividade->id) }}" class="btn btn-outline-primary btn-sm" title="Editar atividade"><i class="fa-solid fa-pen"></i></a>
 
                                     <button type="button" class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#modalQr-{{ $atividade->id }}" title="Exibir QR Code">
                                         <i class="fa-solid fa-qrcode"></i>

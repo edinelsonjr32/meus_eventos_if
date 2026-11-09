@@ -32,7 +32,8 @@ class Evento extends Model
         'caminho_brasao',
         'cert_cabecalho',
         'cert_corpo',
-        'cert_rodape'
+        'cert_rodape',
+        'cert_equipe_corpo',
     ];
 
     /**
