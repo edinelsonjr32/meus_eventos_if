@@ -25,3 +25,7 @@ Thumbs.db
 
 # Pacotes de publicação gerados
 /deploy/dist
+
+# Rodada de testes (contem senhas de teste; nao comitar)
+/docs/rodada-teste-2026-11-10/
+/Rodada_Testes_10-11-2026.zip

@@ -31,6 +31,8 @@ Route::view('/privacidade', 'privacidade')->name('privacidade');
 Route::get('/', function () {
     // Busca os próximos 9 eventos ativos ou futuros
     $proximosEventos = \App\Models\Evento::where('data_fim', '>=', now())
+        // eventos criados por contas fictícias de teste não aparecem no portal público
+        ->whereNotIn('criado_por', \App\Models\User::where('email', 'like', '%@teste.com')->select('id'))
         ->orderBy('data_inicio', 'asc')
         ->take(9)
         ->get();
@@ -238,7 +240,9 @@ Route::middleware(['auth', 'verified'])->get('/recepcao', [\App\Http\Controllers
 */
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
+    // Lista/edita todos os usuários do sistema: somente superadmin (SUPERADMIN_EMAILS)
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)
+        ->middleware('can:superadmin')
         ->names('users')
         ->except(['show']);
 

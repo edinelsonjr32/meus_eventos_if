@@ -263,9 +263,11 @@
                         <i class="fa-solid fa-inbox w-25 text-center"></i> Trabalhos
                     </a>
 
+                    @can('superadmin')
                     <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
                         <i class="fa-solid fa-layer-group w-25 text-center"></i> Usuários
                     </a>
+                    @endcan
                 </div>
             @endif
 

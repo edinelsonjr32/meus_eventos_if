@@ -32,15 +32,20 @@ class BuscaPessoaController extends Controller
         $like = '%' . addcslashes($termo, '%_\\') . '%';
         $digitos = preg_replace('/\D/', '', $termo);
 
+        // Administrador que não é geral só encontra usuários pelo e-mail completo e participantes já inscritos no próprio evento
+        $geral = $request->user()->can('superadmin');
+
         if ($dados['tipo'] === 'usuario') {
             $consulta = User::query()->where('email', 'not like', '%@anonimizado.invalid')
-                ->when($termo !== '', fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('email', 'like', $like)))
+                ->when(!$geral, fn ($q) => $q->where('email', $termo))
+                ->when($geral && $termo !== '', fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('email', 'like', $like)))
                 ->orderBy('name')->orderBy('id');
             $itens = $consulta->offset(($pagina - 1) * self::POR_PAGINA)->limit(self::POR_PAGINA + 1)->get(['id', 'name', 'email']);
             $mapa = fn ($u) => ['id' => $u->email, 'text' => "{$u->name} ({$u->email})"];
         } else {
             $naEquipe = DB::table('equipes')->where('evento_id', $evento->id)->pluck('participante_id');
             $consulta = Participante::query()->whereNotIn('id', $naEquipe)->where('cpf', 'not like', 'ANON-%')
+                ->when(!$geral, fn ($q) => $q->whereIn('id', DB::table('inscricoes')->where('evento_id', $evento->id)->select('participante_id')))
                 ->when($termo !== '', fn ($q) => $q->where(function ($w) use ($like, $digitos) {
                     $w->where('nome_completo', 'like', $like)->orWhere('email', 'like', $like)->orWhere('matricula', 'like', $like);
                     if ($digitos !== '') {

@@ -16,6 +16,9 @@ return [
 
     'default' => env('MAIL_MAILER', 'log'),
 
+    // Domínios fictícios de teste: nenhuma mensagem só para eles é enviada (ver AppServiceProvider)
+    'bloquear_dominios' => env('MAIL_BLOQUEAR_DOMINIOS', 'teste.com'),
+
     /*
     |--------------------------------------------------------------------------
     | Mailer Configurations

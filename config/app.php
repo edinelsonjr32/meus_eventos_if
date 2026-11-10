@@ -65,6 +65,9 @@ return [
     |
     */
 
+    // E-mails (separados por vírgula) dos administradores gerais; vazio = todo admin é geral
+    'superadmin_emails' => env('SUPERADMIN_EMAILS', ''),
+
     'timezone' => env('APP_TIMEZONE', 'America/Belem'),
 
     /*
