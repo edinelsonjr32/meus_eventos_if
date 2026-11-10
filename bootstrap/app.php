@@ -21,5 +21,30 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Todo erro registrado no log leva um código de referência e o contexto da requisição (sem dados digitados, sem senha,
+        // sem query string). O mesmo código aparece na página de erro 500, para o usuário informar e o log ser achado pelo código.
+        $exceptions->context(function (\Throwable $e): array {
+            if (app()->runningInConsole() && !app()->runningUnitTests()) {
+                return [];
+            }
+
+            $ref = strtoupper(\Illuminate\Support\Str::random(8));
+            app()->instance('erro.ref', $ref);
+
+            $contexto = ['ref' => $ref];
+            try {
+                $req = request();
+                $contexto += [
+                    'metodo' => $req->method(),
+                    'url' => $req->url(),
+                    'usuario' => $req->user()?->id,
+                    'ip' => $req->ip(),
+                    'agente' => \Illuminate\Support\Str::limit((string) $req->userAgent(), 90, ''),
+                ];
+            } catch (\Throwable) {
+                // contexto parcial: nunca atrapalhar o registro do erro
+            }
+
+            return $contexto;
+        });
     })->create();
