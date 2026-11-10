@@ -25,20 +25,39 @@ it('enviar a inscrição sem estar logado é barrado e nada é gravado', functio
     expect(Inscricao::count())->toBe(0)->and(Participante::count())->toBe(0);
 });
 
-it('login e cadastro levam de volta ao evento depois de autenticar', function () {
+it('login e cadastro levam sempre à dashboard da pessoa, mesmo vindo da página do evento', function () {
     $this->get(route('evento.publico.acesso', ['semana-x', 'entrar']))->assertRedirect(route('login'));
-    expect(session('url.intended'))->toContain('/e/semana-x');
 
     $user = mkUser('user', 'volta@x.com');
-    $this->post('/login', ['email' => 'volta@x.com', 'password' => 'password'])->assertRedirect();
-    expect(session('url.intended'))->toBeNull();   // consumido
+    $this->post('/login', ['email' => 'volta@x.com', 'password' => 'password'])->assertRedirect(route('inscrito.dashboard'));
+    expect(session('url.intended'))->toBeNull();
 
     auth()->logout();
     $this->get(route('evento.publico.acesso', ['semana-x', 'cadastrar']))->assertRedirect(route('register'));
     $this->post('/register', ['name' => 'Nova Pessoa', 'email' => 'nova@x.com', 'password' => 'Senha@12345', 'password_confirmation' => 'Senha@12345', 'cpf' => '529.982.247-25'])
-        ->assertRedirect();
-    expect(url()->current())->not->toBeNull();
+        ->assertRedirect(route('inscrito.dashboard'));
     expect(Participante::where('cpf', '529.982.247-25')->first()->user_id)->toBe(User::where('email', 'nova@x.com')->first()->id);
+});
+
+it('um link intermediário (ex.: uma tela protegida) também não desvia a pessoa da dashboard no login', function () {
+    mkUser('user', 'direto@x.com');
+    $this->get('/minha-area/trabalhos')->assertRedirect(route('login'));   // grava url.intended
+
+    $this->post('/login', ['email' => 'direto@x.com', 'password' => 'password'])->assertRedirect(route('inscrito.dashboard'));
+});
+
+it('o admin cai na dashboard de administração ao entrar', function () {
+    mkUser('admin', 'chefe@x.com');
+    $this->post('/login', ['email' => 'chefe@x.com', 'password' => 'password'])->assertRedirect(route('admin.dashboard'));
+});
+
+it('a inscrição concluída volta à dashboard com o aviso de confirmação', function () {
+    $user = mkUser('user', 'ok@x.com');
+    Participante::create(['user_id' => $user->id, 'nome_completo' => 'Maria da Conta', 'cpf' => '111.444.777-35', 'email' => 'ok@x.com', 'tipo_vinculo' => 'externo']);
+
+    $this->actingAs($user)->post($this->url, ['tipo_vinculo' => 'externo'])->assertRedirect(route('inscrito.dashboard'))
+        ->assertSessionHas('success');
+    $this->get(route('inscrito.dashboard'))->assertOk()->assertSee('Inscrição confirmada');
 });
 
 it('a rota /inscrever manda o visitante ao login e o logado ao formulário', function () {
@@ -55,7 +74,7 @@ it('inscreve a pessoa logada usando o cadastro da conta (CPF, nome e e-mail da c
 
     // tentativa de forjar outros dados: CPF/nome/e-mail do POST são ignorados
     $this->post($this->url, ['nome_completo' => 'Outra Pessoa', 'cpf' => '529.982.247-25', 'email' => 'outro@x.com', 'tipo_vinculo' => 'aluno', 'matricula' => '2024', 'turma_id' => null])->assertSessionHasErrors('turma_id');
-    $this->post($this->url, ['nome_completo' => 'Outra Pessoa', 'cpf' => '529.982.247-25', 'email' => 'outro@x.com', 'tipo_vinculo' => 'externo'])->assertRedirect(route('evento.publico.sucesso', 'semana-x'));
+    $this->post($this->url, ['nome_completo' => 'Outra Pessoa', 'cpf' => '529.982.247-25', 'email' => 'outro@x.com', 'tipo_vinculo' => 'externo'])->assertRedirect(route('inscrito.dashboard'));
 
     $p->refresh();
     expect(Inscricao::where('evento_id', $this->evento->id)->where('participante_id', $p->id)->exists())->toBeTrue()
@@ -66,7 +85,7 @@ it('inscreve a pessoa logada usando o cadastro da conta (CPF, nome e e-mail da c
 it('não duplica a inscrição e mostra o estado "já inscrito"', function () {
     $user = mkUser('user', 'dup@x.com');
     Participante::create(['user_id' => $user->id, 'nome_completo' => 'Dup', 'cpf' => '111.444.777-35', 'email' => 'dup@x.com', 'tipo_vinculo' => 'externo']);
-    $this->actingAs($user)->post($this->url, ['tipo_vinculo' => 'externo'])->assertRedirect(route('evento.publico.sucesso', 'semana-x'));
+    $this->actingAs($user)->post($this->url, ['tipo_vinculo' => 'externo'])->assertRedirect(route('inscrito.dashboard'));
 
     $this->post($this->url, ['tipo_vinculo' => 'externo'])->assertSessionHas('error');
     expect(Inscricao::count())->toBe(1);
@@ -78,7 +97,7 @@ it('conta sem cadastro de participante informa o CPF e passa a ter um, ligado à
     $this->actingAs($user)->get(route('evento.publico.show', 'semana-x'))->assertOk()->assertSee('name="cpf"', false);
 
     $this->post($this->url, ['tipo_vinculo' => 'externo'])->assertSessionHasErrors(['cpf', 'nome_completo']);
-    $this->post($this->url, ['cpf' => '111.444.777-35', 'nome_completo' => 'Sem Cadastro', 'tipo_vinculo' => 'externo'])->assertRedirect(route('evento.publico.sucesso', 'semana-x'));
+    $this->post($this->url, ['cpf' => '111.444.777-35', 'nome_completo' => 'Sem Cadastro', 'tipo_vinculo' => 'externo'])->assertRedirect(route('inscrito.dashboard'));
 
     $p = Participante::where('cpf', '111.444.777-35')->first();
     expect($p->user_id)->toBe($user->id)->and($p->email)->toBe('semcad@x.com')->and(Inscricao::where('participante_id', $p->id)->exists())->toBeTrue();
@@ -88,7 +107,7 @@ it('assume o participante antigo (sem conta) do mesmo CPF, mas recusa CPF de out
     // participante criado antes (sem conta): é ligado à conta de quem se inscreve
     $antigo = Participante::create(['nome_completo' => 'Histórico', 'cpf' => '111.444.777-35', 'email' => 'velho@x.com', 'tipo_vinculo' => 'aluno']);
     $user = mkUser('user', 'novo@x.com');
-    $this->actingAs($user)->post($this->url, ['cpf' => '111.444.777-35', 'nome_completo' => 'Qualquer', 'tipo_vinculo' => 'externo'])->assertRedirect(route('evento.publico.sucesso', 'semana-x'));
+    $this->actingAs($user)->post($this->url, ['cpf' => '111.444.777-35', 'nome_completo' => 'Qualquer', 'tipo_vinculo' => 'externo'])->assertRedirect(route('inscrito.dashboard'));
     $antigo->refresh();
     expect($antigo->user_id)->toBe($user->id)->and($antigo->nome_completo)->toBe('Histórico')->and($antigo->email)->toBe('novo@x.com');
 

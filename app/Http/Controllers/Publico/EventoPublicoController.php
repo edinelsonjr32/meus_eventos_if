@@ -58,8 +58,7 @@ class EventoPublicoController extends Controller
             return redirect()->route('evento.publico.show', $evento->slug);
         }
 
-        session(['url.intended' => route('evento.publico.show', $evento->slug) . '#inscricao']);
-
+        // Depois de entrar ou criar a conta a pessoa vai para a própria dashboard (de onde acessa os eventos)
         return redirect()->route($modo === 'cadastrar' ? 'register' : 'login');
     }
 
@@ -102,7 +101,8 @@ class EventoPublicoController extends Controller
             return back()->with('error', 'Não foi possível concluir a inscrição. Tente novamente.')->withInput();
         }
 
-        return redirect()->route('evento.publico.sucesso', $slug)->with('participante', $participante->nome_completo);
+        // Inscrição concluída: volta para a própria dashboard, com o aviso de confirmação
+        return redirect()->route(\App\Support\DestinoPosAutenticacao::rotaDashboard($user))->with('success', 'Inscrição confirmada em "' . $evento->titulo . '", ' . $participante->nome_completo . '!');
     }
 
     /**

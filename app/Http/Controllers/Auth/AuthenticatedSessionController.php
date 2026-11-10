@@ -28,7 +28,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Sempre a dashboard da própria pessoa (exceto quem veio de um QR Code de presença)
+        return \App\Support\DestinoPosAutenticacao::redirecionar($request);
     }
 
     /**

@@ -94,3 +94,16 @@ it('gera o PDF dos QR Codes de frequência com uma página por atividade', funct
 
     $this->actingAs(mkUser('user', 'comum-qr@x.com'))->get(route('admin.eventos.atividades.qrcodes', $this->evento->id))->assertRedirect();
 });
+
+it('quem vem de um QR Code de presença volta ao QR depois de entrar (única exceção à dashboard)', function () {
+    mkUser('user', 'qr@x.com');
+    $this->get(route('frequencia.acesso', ['QR-TESTE', 'entrar']))->assertRedirect(route('login'));
+
+    $this->post('/login', ['email' => 'qr@x.com', 'password' => 'password'])->assertRedirect(route('frequencia.form', 'QR-TESTE'));
+});
+
+it('um endereço de outro site gravado como destino é ignorado no login', function () {
+    mkUser('user', 'fora@x.com');
+    $this->withSession(['url.intended' => 'https://site-malicioso.example/frequencia/abc'])
+        ->post('/login', ['email' => 'fora@x.com', 'password' => 'password'])->assertRedirect(route('inscrito.dashboard'));
+});

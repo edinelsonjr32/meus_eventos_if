@@ -51,6 +51,12 @@
     <div class="py-4">
         <div class="container-fluid px-4">
 
+            @if(session('success'))
+                <div class="alert alert-success border-0 shadow-sm mb-4 fw-bold">
+                    <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
+                </div>
+            @endif
+
             @if(session('error'))
                 <div class="alert alert-danger border-0 shadow-sm mb-4 fw-bold">
                     <i class="fa-solid fa-circle-exclamation me-2"></i> {{ session('error') }}

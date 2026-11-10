@@ -81,7 +81,7 @@ class RegisteredUserController extends Controller
         // 4. Login e Redirecionamento
         Auth::login($user);
 
-        // Volta para onde a pessoa estava (ex.: a inscrição em um evento)
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Conta criada: vai para a própria dashboard (exceto quem veio de um QR Code de presença)
+        return \App\Support\DestinoPosAutenticacao::redirecionar($request);
     }
 }
