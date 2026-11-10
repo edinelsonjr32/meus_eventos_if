@@ -188,6 +188,10 @@
             background-color: white;
         }
 
+        /* Texto livre (pareceres, mensagens): respeita as quebras e nunca estoura o cartão */
+        .texto-quebra { white-space: pre-line; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
+        .glass-card, .glass-card details { min-width: 0; }
+
         /* Utilitários Alpine */
         [x-cloak] { display: none !important; }
 
@@ -214,7 +218,15 @@
 
         <div class="nav flex-column">
 
-            <small class="text-uppercase text-secondary fw-bold mb-2 px-3" style="font-size: 0.7rem; letter-spacing: 1px;">Área do Participante</small>
+            @php
+                $ehAvaliador = \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'avaliador')->exists();
+                $ehAdmin = Auth::user()->role === 'admin';
+                $ehRecepcao = !$ehAdmin && \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'recepcao')->exists();
+                $ehGestorTrab = !$ehAdmin && \App\Models\Evento::gestaoTrabalhosPor(Auth::user())->exists();
+            @endphp
+
+            {{-- ===== Área do participante ===== --}}
+            <small class="text-uppercase text-secondary fw-bold mb-2 px-3" style="font-size: 0.7rem; letter-spacing: 1px;">Área do participante</small>
 
             <a href="{{ route('inscrito.dashboard') }}" class="nav-link {{ request()->routeIs('inscrito.dashboard') ? 'active' : '' }}">
                 <i class="fa-solid fa-calendar-check w-25 text-center"></i> Minha Agenda
@@ -224,49 +236,53 @@
                 <i class="fa-solid fa-file-lines w-25 text-center"></i> Meus Trabalhos
             </a>
 
-            @if(\Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'avaliador')->exists())
-                <a href="{{ route('avaliador.avaliacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.avaliacoes.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-clipboard-check w-25 text-center"></i> Minhas Avaliações
-                </a>
-                <a href="{{ route('avaliador.apresentacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.apresentacoes.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-person-chalkboard w-25 text-center"></i> Apresentações
-                </a>
-            @endif
-
-            @if(Auth::user()->role !== 'admin' && \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'recepcao')->exists())
-                <a href="{{ route('recepcao.index') }}" class="nav-link {{ request()->routeIs('recepcao.*') || request()->routeIs('admin.eventos.credenciamento.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-id-badge w-25 text-center"></i> Recepção
-                </a>
-            @endif
-
-            @if(Auth::user()->role !== 'admin' && \App\Models\Evento::gestaoTrabalhosPor(Auth::user())->exists())
-                <a href="{{ route('gestao.trabalhos.eventos') }}" class="nav-link {{ request()->routeIs('gestao.trabalhos.*') ? 'active' : '' }}">
-                    <i class="fa-solid fa-inbox w-25 text-center"></i> Gestão de Trabalhos
-                </a>
-            @endif
-
-            @if(Auth::user()->role === 'admin')
+            {{-- ===== Área do avaliador ===== --}}
+            @if($ehAvaliador)
                 <div class="mt-4 pt-4 border-top border-secondary border-opacity-25">
-                    <small class="text-uppercase text-warning fw-bold mb-2 px-3" style="font-size: 0.7rem; letter-spacing: 1px;">
-                        <i class="fa-solid fa-lock me-1"></i> Gestão
+                    <small class="text-uppercase text-info fw-bold mb-2 px-3 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">
+                        <i class="fa-solid fa-clipboard-check me-1"></i> Área do avaliador
+                    </small>
+                    <a href="{{ route('avaliador.avaliacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.avaliacoes.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-file-pen w-25 text-center"></i> Trab. Escrito
+                    </a>
+                    <a href="{{ route('avaliador.apresentacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.apresentacoes.*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-person-chalkboard w-25 text-center"></i> Trab. Oral
+                    </a>
+                </div>
+            @endif
+
+            {{-- ===== Área de gestão ===== --}}
+            @if($ehAdmin || $ehRecepcao || $ehGestorTrab)
+                <div class="mt-4 pt-4 border-top border-secondary border-opacity-25">
+                    <small class="text-uppercase text-warning fw-bold mb-2 px-3 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">
+                        <i class="fa-solid fa-lock me-1"></i> Área de gestão
                     </small>
 
-                    <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                        <i class="fa-solid fa-gauge-high w-25 text-center"></i> Dashboard
-                    </a>
+                    @if($ehAdmin)
+                        <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                            <i class="fa-solid fa-gauge-high w-25 text-center"></i> Dashboard
+                        </a>
+                        <a href="{{ route('admin.eventos.index') }}" class="nav-link {{ request()->routeIs('admin.eventos*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-layer-group w-25 text-center"></i> Meus Eventos
+                        </a>
+                    @endif
 
-                    <a href="{{ route('admin.eventos.index') }}" class="nav-link {{ request()->routeIs('admin.eventos*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-layer-group w-25 text-center"></i> Meus Eventos
-                    </a>
+                    @if($ehRecepcao)
+                        <a href="{{ route('recepcao.index') }}" class="nav-link {{ request()->routeIs('recepcao.*') || request()->routeIs('admin.eventos.credenciamento.*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-id-badge w-25 text-center"></i> Recepção
+                        </a>
+                    @endif
 
-                    <a href="{{ route('gestao.trabalhos.eventos') }}" class="nav-link {{ request()->routeIs('gestao.trabalhos.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-inbox w-25 text-center"></i> Trabalhos
-                    </a>
+                    @if($ehAdmin || $ehGestorTrab)
+                        <a href="{{ route('gestao.trabalhos.eventos') }}" class="nav-link {{ request()->routeIs('gestao.trabalhos.*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-inbox w-25 text-center"></i> {{ $ehAdmin ? 'Trabalhos' : 'Gestão de Trabalhos' }}
+                        </a>
+                    @endif
 
                     @can('superadmin')
-                    <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-layer-group w-25 text-center"></i> Usuários
-                    </a>
+                        <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-users w-25 text-center"></i> Usuários
+                        </a>
                     @endcan
                 </div>
             @endif

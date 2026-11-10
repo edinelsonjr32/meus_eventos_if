@@ -84,7 +84,7 @@
 
                         <div class="glass-card bg-white mb-4">
                             <h6 class="fw-bold text-success mb-3">Parecer</h6>
-                            <label class="small fw-bold text-secondary">Parecer sobre a apresentação * (mín. 10 caracteres)</label>
+                            <label class="small fw-bold text-secondary">Parecer sobre a apresentação (opcional)</label>
                             <textarea name="parecer" rows="6" class="form-control mb-3" @disabled(!$editavel)>{{ old('parecer', $avaliacao->parecer) }}</textarea>
 
                             <label class="small fw-bold text-secondary">Comentário confidencial à gestão (opcional)</label>

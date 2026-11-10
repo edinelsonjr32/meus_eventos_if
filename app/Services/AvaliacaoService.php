@@ -95,7 +95,7 @@ class AvaliacaoService
     }
 
     /**
-     * Conclui a avaliação: exige todas as notas, parecer e recomendação.
+     * Conclui a avaliação: exige todas as notas e a recomendação (o parecer escrito é opcional).
      *
      * @throws \DomainException
      */
@@ -112,9 +112,6 @@ class AvaliacaoService
         }
         if ($criterios->contains(fn ($c) => !$notas->has($c->id))) {
             throw new \DomainException('Atribua nota a todos os critérios.');
-        }
-        if (mb_strlen(trim((string) $avaliacao->parecer)) < 20) {
-            throw new \DomainException('Escreva o parecer (mínimo de 20 caracteres).');
         }
         if (!array_key_exists((string) $avaliacao->recomendacao, TrabalhoAvaliacao::RECOMENDACOES)) {
             throw new \DomainException('Selecione a recomendação final.');

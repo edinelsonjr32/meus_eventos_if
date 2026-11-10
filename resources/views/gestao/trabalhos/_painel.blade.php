@@ -243,10 +243,10 @@
                     @endforeach
                 </table>
                 <div class="fw-bold">Parecer</div>
-                <p style="white-space: pre-line;">{{ $av->parecer }}</p>
+                <p class="texto-quebra">{{ $av->parecer ?: '(sem parecer escrito)' }}</p>
                 @if($av->parecer_confidencial)
                     <div class="fw-bold text-danger">Confidencial (só gestão)</div>
-                    <p style="white-space: pre-line;">{{ $av->parecer_confidencial }}</p>
+                    <p class="texto-quebra">{{ $av->parecer_confidencial }}</p>
                 @endif
             @elseif($av->status === 'recusada')
                 <p class="mt-2 mb-0"><strong>Motivo da recusa:</strong> {{ $av->parecer_confidencial }}</p>

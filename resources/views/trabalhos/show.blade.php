@@ -119,12 +119,12 @@
                                 @endif
                                 @if($trabalho->decisao_justificativa)
                                     <div class="small fw-bold">Mensagem da gestão</div>
-                                    <p class="small" style="white-space: pre-line;">{{ $trabalho->decisao_justificativa }}</p>
+                                    <p class="small texto-quebra">{{ $trabalho->decisao_justificativa }}</p>
                                 @endif
-                                @if(($cfg->autor_ve_pareceres ?? true) && $pareceres->isNotEmpty())
-                                    @foreach($pareceres as $i => $p)
+                                @if(($cfg->autor_ve_pareceres ?? true) && $pareceres->filter(fn ($p) => filled($p->parecer))->isNotEmpty())
+                                    @foreach($pareceres->filter(fn ($p) => filled($p->parecer)) as $i => $p)
                                         <div class="small fw-bold mt-2">Parecer {{ $i + 1 }}</div>
-                                        <p class="small mb-1" style="white-space: pre-line;">{{ $p->parecer }}</p>
+                                        <p class="small mb-1 texto-quebra">{{ $p->parecer }}</p>
                                     @endforeach
                                 @endif
                             </div>
@@ -156,7 +156,7 @@
                                 @endif
                                 @foreach($paresAp->filter(fn ($p) => filled($p->parecer)) as $i => $p)
                                     <div class="small fw-bold mt-2">Parecer {{ $i + 1 }}</div>
-                                    <p class="small mb-1" style="white-space: pre-line;">{{ $p->parecer }}</p>
+                                    <p class="small mb-1 texto-quebra">{{ $p->parecer }}</p>
                                 @endforeach
                             </div>
                         @endif

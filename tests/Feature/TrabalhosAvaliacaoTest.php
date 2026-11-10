@@ -124,7 +124,7 @@ it('rejeita nota fora da escala do critério', function (string $nota) {
     expect($this->a1->fresh()->notas)->toHaveCount(0);
 })->with(['negativa' => '-1', 'acima do máximo' => '10.5', 'texto' => 'abc']);
 
-it('só conclui com todas as notas, parecer mínimo e recomendação', function (array $alteracao, string $trecho) {
+it('só conclui com todas as notas e recomendação (parecer é opcional)', function (array $alteracao, string $trecho) {
     $dados = array_merge(dadosAvaliacao($this->evento), $alteracao);
     if (isset($alteracao['notas'])) {
         $ids = $this->evento->criterios()->pluck('id')->all();
@@ -136,9 +136,15 @@ it('só conclui com todas as notas, parecer mínimo e recomendação', function 
     expect($this->a1->fresh()->status)->not->toBe('concluida');
 })->with([
     'falta nota' => [['notas' => []], 'todos os critérios'],
-    'parecer curto' => [['parecer' => 'curto'], 'parecer'],
     'sem recomendação' => [['recomendacao' => ''], 'recomendação'],
 ]);
+
+it('conclui sem parecer escrito: o parecer é opcional', function () {
+    $this->actingAs($this->av1)->post(route('avaliador.avaliacoes.concluir', $this->a1), dadosAvaliacao($this->evento, [8, 8], ['parecer' => '']))
+        ->assertSessionHasNoErrors()->assertRedirect(route('avaliador.avaliacoes.index'));
+
+    expect($this->a1->fresh()->status)->toBe('concluida');
+});
 
 it('calcula a nota ponderada (pesos 1 e 2: 10 e 5 → 6,67) e conclui', function () {
     $this->actingAs($this->av1)->post(route('avaliador.avaliacoes.concluir', $this->a1), dadosAvaliacao($this->evento, [10, 5]))

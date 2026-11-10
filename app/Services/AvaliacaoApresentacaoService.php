@@ -177,9 +177,6 @@ class AvaliacaoApresentacaoService
         if ($criterios->contains(fn ($c) => !$notas->has($c->id))) {
             throw new \DomainException('Atribua nota a todos os critérios.');
         }
-        if (mb_strlen(trim((string) $avaliacao->parecer)) < 10) {
-            throw new \DomainException('Escreva um breve parecer (mínimo de 10 caracteres).');
-        }
 
         DB::transaction(function () use ($avaliacao, $criterios, $notas) {
             $avaliacao->update(['nota_final' => $this->calcularNota($notas, $criterios), 'status' => 'concluida', 'concluida_em' => now()]);
