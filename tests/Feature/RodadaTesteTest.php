@@ -206,6 +206,22 @@ it('com SUPERADMIN_EMAILS, só o superadmin lista usuários e busca pessoas de t
     $this->actingAs($geral)->getJson(route('admin.eventos.buscar-pessoas', mkEvento($geral)->id) . '?tipo=participante&q=real')->assertJsonCount(1, 'results');
 });
 
+it('um administrador real que não é superadmin continua listando usuários e pessoas para designar papéis', function () {
+    config(['app.superadmin_emails' => 'geral@ifpa.edu.br']);
+    $colega = mkUser('admin', 'colega@ifpa.edu.br');
+    $evento = mkEvento($colega);
+    mkUser('user', 'maria.silva@exemplo.com')->update(['name' => 'Maria Silva']);
+    Participante::create(['nome_completo' => 'Pessoa Real', 'cpf' => '529.982.247-25', 'email' => 'real@x.com', 'tipo_vinculo' => 'externo']);
+
+    $url = route('admin.eventos.buscar-pessoas', $evento->id);
+    // lista inicial (termo vazio, como o Select2 faz ao abrir) e busca por nome
+    expect($this->actingAs($colega)->getJson($url . '?tipo=usuario&q=')->json('results'))->not->toBeEmpty();
+    $this->actingAs($colega)->getJson($url . '?tipo=usuario&q=maria')->assertJsonCount(1, 'results');
+    $this->actingAs($colega)->getJson($url . '?tipo=participante&q=real')->assertJsonCount(1, 'results');
+    // a página de papéis abre
+    $this->actingAs($colega)->get(route('admin.eventos.papeis.index', $evento->id))->assertOk();
+});
+
 it('sem SUPERADMIN_EMAILS o comportamento anterior é mantido (todo admin é geral)', function () {
     config(['app.superadmin_emails' => '']);
     $this->actingAs(mkUser('admin'))->get(route('admin.users.index'))->assertOk();

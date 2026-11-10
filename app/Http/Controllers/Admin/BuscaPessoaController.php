@@ -32,8 +32,10 @@ class BuscaPessoaController extends Controller
         $like = '%' . addcslashes($termo, '%_\\') . '%';
         $digitos = preg_replace('/\D/', '', $termo);
 
-        // Administrador que não é geral só encontra usuários pelo e-mail completo e participantes já inscritos no próprio evento
-        $geral = $request->user()->can('superadmin');
+        // Só as contas fictícias de teste (domínio em MAIL_BLOQUEAR_DOMINIOS, ex.: @teste.com) ficam restritas: encontram usuários
+        // pelo e-mail completo e participantes já inscritos no próprio evento. Qualquer outro administrador busca normalmente
+        // (é preciso listar as pessoas para designar papéis e montar equipes).
+        $geral = !$this->contaDeTeste($request->user()) || $request->user()->can('superadmin');
 
         if ($dados['tipo'] === 'usuario') {
             $consulta = User::query()->where('email', 'not like', '%@anonimizado.invalid')
@@ -62,5 +64,13 @@ class BuscaPessoaController extends Controller
             'results' => $itens->take(self::POR_PAGINA)->map($mapa)->values(),
             'pagination' => ['more' => $itens->count() > self::POR_PAGINA],
         ]);
+    }
+
+    private function contaDeTeste(\App\Models\User $user): bool
+    {
+        $dominios = array_filter(array_map('trim', explode(',', mb_strtolower((string) config('mail.bloquear_dominios')))));
+        $dominio = mb_strtolower(substr(strrchr($user->email, '@') ?: '', 1));
+
+        return $dominio !== '' && in_array($dominio, $dominios, true);
     }
 }
