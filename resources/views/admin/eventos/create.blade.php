@@ -42,7 +42,7 @@
 
                     <div class="mb-4">
                         <label class="form-label fw-bold text-secondary small">DESCRIÇÃO</label>
-                        <x-editor-rico name="descricao" :value="old('descricao')" :upload-url="route('admin.eventos.imagens.store')" :altura="260" />
+                        <x-editor-rico name="descricao" :value="old('descricao')" :upload-url="\Illuminate\Support\Facades\Route::has('admin.eventos.imagens.store') ? route('admin.eventos.imagens.store') : null" :altura="260" />
                     </div>
 
                     <hr class="my-4 text-secondary opacity-25">

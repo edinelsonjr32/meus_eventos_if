@@ -52,7 +52,7 @@
 
                     <div class="mb-4">
                         <label class="form-label fw-bold text-secondary small">DESCRIÇÃO DO EVENTO <span class="fw-normal">(aparece na página pública)</span></label>
-                        <x-editor-rico name="descricao" :value="old('descricao', $evento->descricaoHtml())" :upload-url="route('admin.eventos.imagens.store')" />
+                        <x-editor-rico name="descricao" :value="old('descricao', $evento->descricaoHtml())" :upload-url="\Illuminate\Support\Facades\Route::has('admin.eventos.imagens.store') ? route('admin.eventos.imagens.store') : null" />
                     </div>
 
                     <div class="mb-4">

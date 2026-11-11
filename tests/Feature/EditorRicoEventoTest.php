@@ -123,3 +123,23 @@ it('imagens enviadas (caminho relativo) sobrevivem à limpeza do HTML', function
     $limpo = HtmlSeguro::limpar('<figure class="image"><img src="/storage/eventos/descricoes/2026/11/a.png"></figure>');
     expect($limpo)->toContain('src="/storage/eventos/descricoes/2026/11/a.png"')->toContain('<figure class="image">');
 });
+
+it('se o purificador falhar, a tela não cai: o texto sai escapado, sem tags', function () {
+    $falho = Mockery::mock(\HTMLPurifier::class);
+    $falho->shouldReceive('purify')->andThrow(new RuntimeException('pasta de cache sem permissão'));
+    $prop = new ReflectionProperty(HtmlSeguro::class, 'purifier');
+    $prop->setAccessible(true);
+    $original = $prop->getValue();
+    $prop->setValue(null, $falho);
+
+    try {
+        $r = HtmlSeguro::limpar("<p onclick=\"x()\">Olá <script>alert(1)</script>mundo</p>\nlinha 2");
+        expect($r)->toContain('Olá')->toContain('mundo')->not->toContain('<script')->not->toContain('onclick');
+
+        $e = Evento::create(['titulo' => 'Resiliente', 'slug' => 'resiliente-2026', 'descricao' => '<p>Texto <b>x</b></p>', 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDays(2), 'local' => 'L', 'criado_por' => $this->admin->id]);
+        $this->actingAs($this->admin)->get(route('admin.eventos.edit', $e))->assertOk();
+        $this->get(route('evento.publico.show', $e->slug))->assertOk();
+    } finally {
+        $prop->setValue(null, $original);
+    }
+});

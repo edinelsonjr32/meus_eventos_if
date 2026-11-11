@@ -16,7 +16,14 @@ class HtmlSeguro
             return null;
         }
 
-        $limpo = trim(self::purifier()->purify($html));
+        try {
+            $limpo = trim(self::purifier()->purify($html));
+        } catch (\Throwable $e) {
+            // Falha do purificador (ex.: pasta de cache sem permissão): nunca derruba a tela nem deixa passar HTML sem limpar.
+            report($e);
+
+            return trim(nl2br(e(strip_tags($html)))) ?: null;
+        }
 
         // Editor vazio ("<p>&nbsp;</p>") não conta como conteúdo
         $visivel = preg_replace('/[\s\x{00A0}]+/u', '', strip_tags($limpo, '<img><table><hr>'));
@@ -40,14 +47,25 @@ class HtmlSeguro
             return self::$purifier;
         }
 
-        $cache = storage_path('framework/cache/purifier');
-        if (!is_dir($cache)) {
-            @mkdir($cache, 0775, true);
+        // Pasta de cache do purificador: a do projeto, ou a temporária do sistema; sem nenhuma gravável, funciona sem cache
+        $cache = null;
+        foreach ([storage_path('framework/cache/purifier'), sys_get_temp_dir() . '/purifier-' . md5(base_path())] as $candidata) {
+            if (!is_dir($candidata)) {
+                @mkdir($candidata, 0775, true);
+            }
+            if (is_dir($candidata) && is_writable($candidata)) {
+                $cache = $candidata;
+                break;
+            }
         }
 
         $c = \HTMLPurifier_Config::createDefault();
         $c->set('Core.Encoding', 'UTF-8');
-        $c->set('Cache.SerializerPath', is_writable($cache) ? $cache : null);
+        if ($cache) {
+            $c->set('Cache.SerializerPath', $cache);
+        } else {
+            $c->set('Cache.DefinitionImpl', null);
+        }
         $c->set('HTML.Doctype', 'HTML 4.01 Transitional');
         $c->set('HTML.DefinitionID', 'html-seguro');
         $c->set('HTML.DefinitionRev', 1);
