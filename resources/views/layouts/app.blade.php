@@ -248,22 +248,141 @@
             .main-content .sb i { margin-right: .35rem; }
             .main-content .sb .sb-extra { display: inline; }
         }
+
+        /* =====================================================================
+           SISTEMA VISUAL — tokens e componentes (verde institucional do IFPA)
+           ===================================================================== */
+        :root {
+            --brand-950: #022c22; --brand-900: #064e3b; --brand-800: #065f46; --brand-700: #047857; --brand-600: #059669;
+            --brand-500: #10b981; --brand-400: #34d399; --brand-100: #d1fae5; --brand-50: #ecfdf5;
+            --ink: #0f172a; --ink-2: #334155; --muted: #64748b; --line: #e4e9ef; --bg: #f3f6f4;
+            --r-md: 14px; --r-lg: 20px;
+            --sh-1: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.05);
+            --sh-2: 0 4px 6px -2px rgba(15,23,42,.05), 0 12px 28px -10px rgba(15,23,42,.12);
+            --sidebar-width: 272px;
+            --bs-link-color-rgb: 4,120,87; --bs-link-hover-color-rgb: 6,78,59;
+        }
+        html { scroll-behavior: smooth; }
+        body { background: radial-gradient(1100px 380px at 85% -8%, rgba(16,185,129,.09), transparent 70%), var(--bg); color: var(--ink); font-size: .94rem; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+        ::selection { background: var(--brand-100); color: var(--brand-900); }
+
+        /* --- Menu lateral --- */
+        .sidebar { background: linear-gradient(185deg, #053b2d 0%, #064e3b 55%, #065f46 100%); padding: 1.15rem .9rem; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,.06); box-shadow: 6px 0 28px -12px rgba(2,44,34,.45); }
+        .sidebar-marca { display: flex; align-items: center; gap: .75rem; padding: .3rem .5rem 1.05rem; margin-bottom: .5rem; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.1); }
+        .sidebar-marca-icone { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #34d399, #10b981); display: grid; place-items: center; color: #fff; font-size: 1.1rem; box-shadow: 0 8px 16px -6px rgba(16,185,129,.6); flex: 0 0 40px; }
+        .sidebar-marca-texto strong { display: block; color: #fff; font-size: 1rem; line-height: 1.15; letter-spacing: -.01em; }
+        .sidebar-marca-texto small { color: #a7f3d0; font-size: .7rem; }
+        .sidebar-nav { flex: 1 1 auto; overflow-y: auto; flex-wrap: nowrap; margin: 0 -.35rem; padding: 0 .35rem; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; }
+        .nav-secao { font-size: .66rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #6ee7b7; opacity: .85; padding: .15rem .8rem; margin: 1rem 0 .35rem; display: flex; align-items: center; gap: .4rem; }
+        .nav-grupo { margin-top: .5rem; padding-top: .1rem; border-top: 1px solid rgba(255,255,255,.09); }
+        .sidebar .nav-link { color: #c9e9de; padding: .6rem .8rem; border-radius: 11px; margin-bottom: 2px; font-weight: 500; font-size: .9rem; gap: .7rem; position: relative; transform: none; }
+        .sidebar .nav-link:hover { background: rgba(255,255,255,.08); color: #fff; transform: none; }
+        .sidebar .nav-link.active { background: rgba(16,185,129,.24); color: #fff; box-shadow: inset 0 0 0 1px rgba(110,231,183,.18); font-weight: 600; }
+        .sidebar .nav-link.active::before { content: ""; position: absolute; left: -.35rem; top: 22%; bottom: 22%; width: 4px; border-radius: 0 4px 4px 0; background: #34d399; }
+        .nav-ico { width: 20px; flex: 0 0 20px; text-align: center; font-size: .95rem; opacity: .92; }
+        .sidebar .nav-sair { color: #fecaca; }
+        .sidebar .nav-sair:hover { background: rgba(239,68,68,.18); color: #fff; }
+        .sidebar-usuario { display: flex; align-items: center; gap: .7rem; padding: .85rem .5rem 0; margin-top: .6rem; border-top: 1px solid rgba(255,255,255,.1); }
+        .sidebar-avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-weight: 700; display: grid; place-items: center; }
+        .sidebar-usuario-texto { min-width: 0; }
+        .sidebar-usuario-texto strong { color: #fff; font-size: .82rem; display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sidebar-usuario-texto small { color: #a7f3d0; font-size: .7rem; }
+
+        /* --- Conteúdo --- */
+        .pagina { max-width: 1320px; margin: 0 auto; }
+        .topbar-mobile { display: none; }
+        .main-content h3, .main-content .h3 { font-weight: 700; letter-spacing: -.02em; font-size: 1.6rem; }
+        .main-content h4 { font-weight: 700; letter-spacing: -.015em; }
+        .main-content h5, .main-content h6 { letter-spacing: -.005em; }
+        .main-content .text-secondary { color: var(--muted) !important; }
+        .main-content small.text-secondary { font-size: .82rem; }
+        .main-content hr { border-color: var(--line); opacity: 1; }
+
+        /* --- Cartões --- */
+        .glass-card { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-1); padding: 1.5rem; }
+        .glass-card:hover { transform: none; }
+        .glass-card h6.fw-bold.text-success, .glass-card h6.text-success { font-size: 1rem; color: var(--brand-800) !important; letter-spacing: -.005em; }
+        .glass-card .bg-light { background: #f6f8fa !important; }
+
+        /* --- Botões --- */
+        .btn { font-weight: 600; border-radius: 11px; padding: .52rem 1.05rem; font-size: .9rem; letter-spacing: -.003em; }
+        .btn-sm { padding: .36rem .8rem; font-size: .8rem; border-radius: 9px; }
+        .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(16,185,129,.35); }
+        .btn-primary-custom { background: linear-gradient(180deg, var(--brand-600), var(--brand-700)); border-radius: 11px; padding: .62rem 1.3rem; box-shadow: 0 1px 2px rgba(4,120,87,.35), 0 8px 18px -8px rgba(4,120,87,.6); font-size: .9rem; letter-spacing: 0; }
+        .btn-primary-custom:hover { background: linear-gradient(180deg, #06a06f, var(--brand-800)); transform: translateY(-1px); box-shadow: 0 1px 2px rgba(4,120,87,.4), 0 12px 22px -8px rgba(4,120,87,.65); }
+        .btn-primary-custom:active { transform: translateY(0); }
+        .btn-success { background: var(--brand-600); border-color: var(--brand-600); }
+        .btn-success:hover { background: var(--brand-700); border-color: var(--brand-700); }
+        .btn-light { background: #fff; border-color: var(--line); }
+
+        /* --- Formulários --- */
+        .form-control, .form-select { background-color: #fff; border: 1px solid #d5dce5; border-radius: 11px; padding: .62rem .85rem; font-size: .92rem; color: var(--ink); }
+        .form-control-sm, .form-select-sm { padding: .4rem .65rem; border-radius: 9px; font-size: .85rem; }
+        .form-control::placeholder { color: #9aa7b6; }
+        .form-control:focus, .form-select:focus { background-color: #fff; border-color: var(--brand-500); box-shadow: 0 0 0 4px rgba(16,185,129,.14); }
+        .form-control:disabled, .form-select:disabled, .form-control[readonly] { background-color: #f3f6f8; }
+        .form-check-input:checked { background-color: var(--brand-600); border-color: var(--brand-600); }
+        .form-check-input:focus { border-color: var(--brand-500); box-shadow: 0 0 0 4px rgba(16,185,129,.15); }
+        .main-content label.small.fw-bold, .main-content .form-label { color: var(--ink-2) !important; font-size: .76rem !important; letter-spacing: .01em; margin-bottom: .35rem; }
+        .main-content .form-text { color: var(--muted); font-size: .78rem; }
+
+        /* --- Tabelas --- */
+        .table { --bs-table-bg: transparent; margin-bottom: 0; }
+        .table > thead th { background: #f6f8fa; color: #5b6b7d; font-size: .67rem; letter-spacing: .07em; padding: .8rem 1rem; border-bottom: 1px solid var(--line); }
+        .table > tbody > tr > td { padding: .85rem 1rem; border-color: #edf0f4; }
+        .table-hover > tbody > tr:hover > * { background-color: #f4faf7; }
+        .table-responsive { border: 1px solid var(--line); border-radius: var(--r-md); background: #fff; }
+        .table-responsive:has(> .table.tabela-cartoes) { border: 0; background: transparent; }
+        .glass-card .table-responsive { box-shadow: none; }
+
+        /* --- Alertas, paginação, abas --- */
+        .alert { border: 1px solid transparent; border-left-width: 4px; border-radius: 12px; padding: .8rem 1rem; font-size: .9rem; }
+        .alert-success { background: #ecfdf5; border-color: #a7f3d0; border-left-color: #10b981; color: #065f46; }
+        .alert-danger { background: #fef2f2; border-color: #fecaca; border-left-color: #ef4444; color: #7f1d1d; }
+        .alert-warning { background: #fffbeb; border-color: #fde68a; border-left-color: #f59e0b; color: #78350f; }
+        .alert-info { background: #eff6ff; border-color: #bfdbfe; border-left-color: #3b82f6; color: #1e3a8a; }
+        .alert-secondary, .alert-light { background: #f6f8fa; border-color: var(--line); border-left-color: #94a3b8; color: var(--ink-2); }
+        .pagination { gap: .15rem; }
+        .pagination .page-link { border-radius: 9px !important; color: var(--ink-2); border: 1px solid var(--line); min-width: 36px; text-align: center; }
+        .pagination .page-item.active .page-link { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+        .nav-tabs .nav-link, .nav-pills .nav-link { border-radius: 10px; }
+
+        /* Linha de filtros: colunas que se ajustam ao espaço (nada de campos cortados) */
+        .row.filtros-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: .6rem; margin: 0; }
+        .row.filtros-grid > * { width: auto; max-width: none; flex: none; padding: 0; margin: 0; }
+        .row.filtros-grid > :first-child { grid-column: span 2; }
+        @media (max-width: 575.98px) { .row.filtros-grid > :first-child { grid-column: auto; } }
+        .glass-card .d-flex.gap-2.mt-auto { flex-wrap: nowrap !important; }
+        .glass-card .d-flex.gap-2.mt-auto > .btn:not(.flex-fill) { flex: 0 0 auto; }
+        .main-content h2 { font-weight: 800; letter-spacing: -.025em; font-size: 1.75rem; }
+        .item-agenda { border: 1px solid var(--line) !important; border-left: 4px solid var(--brand-500) !important; border-radius: 13px !important; background: #fbfdfc; transition: background .15s, box-shadow .15s; }
+        .item-agenda:hover { background: #f3faf6; box-shadow: var(--sh-1); }
+        .glass-card.border-primary, .glass-card.border-success { border-color: var(--brand-500) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.12), var(--sh-1); }
+        @media (min-width: 769px) {
+            .main-content { margin-left: var(--sidebar-width); padding: 2rem 2.25rem 3rem; }
+        }
+        @media (max-width: 768px) {
+            .topbar-mobile { position: sticky; top: 0; z-index: 900; display: flex; align-items: center; justify-content: space-between; margin: -.85rem -.85rem 1rem; padding: .7rem 1rem; background: linear-gradient(135deg, #053b2d, #065f46); color: #fff; box-shadow: 0 6px 16px -8px rgba(2,44,34,.6); }
+            .topbar-marca { font-weight: 700; display: flex; align-items: center; gap: .55rem; letter-spacing: -.01em; }
+            .topbar-marca i { color: #34d399; }
+            .btn-menu { border: 0; background: rgba(255,255,255,.14); color: #fff; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; }
+            .glass-card { padding: 1.1rem; border-radius: 16px; }
+            .main-content { overflow-x: clip; } /* clip não cria área de rolagem: a barra superior fixa funciona */
+        }
     </style>
 </head>
 <body>
 
-    <nav class="sidebar" id="sidebar">
-        <div class="d-flex align-items-center gap-3 mb-5 px-2">
-            <div class="bg-success rounded-3 d-flex align-items-center justify-center shadow-lg" style="width: 40px; height: 40px;">
-                <i class="fa-solid fa-graduation-cap text-white fs-5"></i>
-            </div>
-            <div>
-                <h5 class="m-0 fw-bold tracking-tight text-white">MeusEventosIF</h5>
-                <small class="text-secondary" style="font-size: 0.7rem;">Campus Óbidos</small>
-            </div>
-        </div>
+    <nav class="sidebar" id="sidebar" aria-label="Menu principal">
+        <a href="{{ route('dashboard') }}" class="sidebar-marca" title="Ir para o início">
+            <span class="sidebar-marca-icone"><i class="fa-solid fa-graduation-cap"></i></span>
+            <span class="sidebar-marca-texto">
+                <strong>MeusEventosIF</strong>
+                <small>IFPA · Campus Óbidos</small>
+            </span>
+        </a>
 
-        <div class="nav flex-column">
+        <div class="nav flex-column sidebar-nav">
 
             @php
                 $ehAvaliador = \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'avaliador')->exists();
@@ -273,106 +392,103 @@
             @endphp
 
             {{-- ===== Área do participante ===== --}}
-            <small class="text-uppercase text-secondary fw-bold mb-2 px-3" style="font-size: 0.7rem; letter-spacing: 1px;">Área do participante</small>
+            <div class="nav-secao">Área do participante</div>
 
             <a href="{{ route('inscrito.dashboard') }}" class="nav-link {{ request()->routeIs('inscrito.dashboard') ? 'active' : '' }}">
-                <i class="fa-solid fa-calendar-check w-25 text-center"></i> Minha Agenda
+                <i class="fa-solid fa-calendar-check nav-ico"></i> Minha Agenda
             </a>
 
             <a href="{{ route('trabalhos.index') }}" class="nav-link {{ request()->routeIs('trabalhos.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-file-lines w-25 text-center"></i> Meus Trabalhos
+                <i class="fa-solid fa-file-lines nav-ico"></i> Meus Trabalhos
             </a>
 
             {{-- ===== Área do avaliador ===== --}}
             @if($ehAvaliador)
-                <div class="mt-4 pt-4 border-top border-secondary border-opacity-25">
-                    <small class="text-uppercase text-info fw-bold mb-2 px-3 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">
-                        <i class="fa-solid fa-clipboard-check me-1"></i> Área do avaliador
-                    </small>
+                <div class="nav-grupo">
+                    <div class="nav-secao"><i class="fa-solid fa-clipboard-check"></i> Área do avaliador</div>
                     <a href="{{ route('avaliador.avaliacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.avaliacoes.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-file-pen w-25 text-center"></i> Trab. Escrito
+                        <i class="fa-solid fa-file-pen nav-ico"></i> Trab. Escrito
                     </a>
                     <a href="{{ route('avaliador.apresentacoes.index') }}" class="nav-link {{ request()->routeIs('avaliador.apresentacoes.*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-person-chalkboard w-25 text-center"></i> Trab. Oral
+                        <i class="fa-solid fa-person-chalkboard nav-ico"></i> Trab. Oral
                     </a>
                 </div>
             @endif
 
             {{-- ===== Área de gestão ===== --}}
             @if($ehAdmin || $ehRecepcao || $ehGestorTrab)
-                <div class="mt-4 pt-4 border-top border-secondary border-opacity-25">
-                    <small class="text-uppercase text-warning fw-bold mb-2 px-3 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">
-                        <i class="fa-solid fa-lock me-1"></i> Área de gestão
-                    </small>
+                <div class="nav-grupo">
+                    <div class="nav-secao"><i class="fa-solid fa-lock"></i> Área de gestão</div>
 
                     @if($ehAdmin)
                         <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                            <i class="fa-solid fa-gauge-high w-25 text-center"></i> Dashboard
+                            <i class="fa-solid fa-gauge-high nav-ico"></i> Dashboard
                         </a>
                         <a href="{{ route('admin.eventos.index') }}" class="nav-link {{ request()->routeIs('admin.eventos*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-layer-group w-25 text-center"></i> Meus Eventos
+                            <i class="fa-solid fa-layer-group nav-ico"></i> Meus Eventos
                         </a>
                     @endif
 
                     @if($ehRecepcao)
                         <a href="{{ route('recepcao.index') }}" class="nav-link {{ request()->routeIs('recepcao.*') || request()->routeIs('admin.eventos.credenciamento.*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-id-badge w-25 text-center"></i> Recepção
+                            <i class="fa-solid fa-id-badge nav-ico"></i> Recepção
                         </a>
                     @endif
 
                     @if($ehAdmin || $ehGestorTrab)
                         <a href="{{ route('gestao.trabalhos.eventos') }}" class="nav-link {{ request()->routeIs('gestao.trabalhos.*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-inbox w-25 text-center"></i> {{ $ehAdmin ? 'Trabalhos' : 'Gestão de Trabalhos' }}
+                            <i class="fa-solid fa-inbox nav-ico"></i> {{ $ehAdmin ? 'Trabalhos' : 'Gestão de Trabalhos' }}
                         </a>
                     @endif
 
                     @can('superadmin')
                         <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
-                            <i class="fa-solid fa-users w-25 text-center"></i> Usuários
+                            <i class="fa-solid fa-users nav-ico"></i> Usuários
                         </a>
                     @endcan
                 </div>
             @endif
 
-            <div class="mt-4 pt-4 border-top border-secondary border-opacity-25">
-                <small class="text-uppercase text-secondary fw-bold mb-2 px-3" style="font-size: 0.7rem; letter-spacing: 1px;">Configurações</small>
+            <div class="nav-grupo">
+                <div class="nav-secao">Conta</div>
 
                 <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.edit') ? 'active' : '' }}">
-                    <i class="fa-solid fa-user-gear w-25 text-center"></i> Minha Conta
+                    <i class="fa-solid fa-user-gear nav-ico"></i> Minha Conta
                 </a>
 
                 <a href="{{ route('privacidade') }}" class="nav-link" target="_blank">
-                    <i class="fa-solid fa-shield-halved w-25 text-center"></i> Privacidade
+                    <i class="fa-solid fa-shield-halved nav-ico"></i> Privacidade
                 </a>
 
-                <form method="POST" action="{{ route('logout') }}" class="mt-2">
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent text-danger hover:bg-danger hover:bg-opacity-10 hover:text-danger">
-                        <i class="fa-solid fa-power-off w-25 text-center"></i> Sair
+                    <button type="submit" class="nav-link nav-sair w-100 text-start border-0 bg-transparent">
+                        <i class="fa-solid fa-power-off nav-ico"></i> Sair
                     </button>
                 </form>
             </div>
         </div>
 
-        <div class="mt-auto pt-4 pb-2 px-2 text-center text-secondary" style="font-size: 0.7rem;">
-            <p class="m-0">Logado como <strong>{{ Auth::user()->name }}</strong></p>
-            <p class="opacity-50 m-0">{{ ucfirst(Auth::user()->role) }}</p>
+        <div class="sidebar-usuario">
+            <span class="sidebar-avatar">{{ mb_strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}</span>
+            <span class="sidebar-usuario-texto">
+                <strong title="{{ Auth::user()->name }}">{{ Auth::user()->name }}</strong>
+                <small>{{ Auth::user()->role === 'admin' ? 'Administrador' : 'Participante' }}</small>
+            </span>
         </div>
     </nav>
 
     <div class="sidebar-backdrop" onclick="document.getElementById('sidebar').classList.remove('active')" aria-hidden="true"></div>
 
     <main class="main-content">
-        <nav class="navbar navbar-light bg-white rounded-3 shadow-sm mb-4 d-md-none p-3 border">
-            <div class="container-fluid px-0">
-                <span class="navbar-brand fw-bold text-success mb-0 h1"><i class="fa-solid fa-leaf me-2"></i> MeusEventosIf</span>
-                <button class="btn btn-light border" onclick="document.getElementById('sidebar').classList.toggle('active')" aria-label="Abrir menu">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-            </div>
-        </nav>
+        <header class="topbar-mobile d-md-none">
+            <span class="topbar-marca"><i class="fa-solid fa-graduation-cap"></i> MeusEventosIF</span>
+            <button class="btn-menu" onclick="document.getElementById('sidebar').classList.toggle('active')" aria-label="Abrir menu"><i class="fa-solid fa-bars"></i></button>
+        </header>
 
-        {{ $slot }}
+        <div class="pagina">
+            {{ $slot }}
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

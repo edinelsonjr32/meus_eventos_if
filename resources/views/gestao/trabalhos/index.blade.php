@@ -53,7 +53,7 @@
             </div>
 
             <form method="GET" class="glass-card bg-white mb-3">
-                <div class="row g-2">
+                <div class="row g-2 filtros-grid">
                     <div class="col-md-4"><input type="text" name="q" value="{{ request('q') }}" class="form-control form-control-sm" placeholder="Título, protocolo, autor ou CPF"></div>
                     <div class="col-md-2">
                         <select name="status" class="form-select form-select-sm">

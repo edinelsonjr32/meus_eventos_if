@@ -181,7 +181,7 @@
             <div class="row">
                 <div class="col-lg-8">
                     <div class="mb-4">
-                        <span class="badge bg-white text-dark bg-opacity-25 backdrop-blur border border-white border-opacity-25 px-3 py-2 rounded-pill">
+                        <span class="badge bg-white bg-opacity-25 text-white backdrop-blur border border-white border-opacity-25 px-3 py-2 rounded-pill">
                             <i class="fa-solid fa-circle text-success small me-2"></i> Inscrições Abertas
                         </span>
                     </div>

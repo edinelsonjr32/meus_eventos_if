@@ -72,7 +72,7 @@
                 @else
                     <div class="list-group list-group-flush">
                         @foreach($proximasAtividades as $ativ)
-                        <div class="list-group-item p-3 border-start border-4 border-primary m-3 mb-0 rounded bg-light">
+                        <div class="list-group-item item-agenda p-3 m-3 mb-0">
                             <div class="d-flex align-items-center gap-3 flex-wrap">
                                 <div class="text-center px-2">
                                     <span class="d-block fw-bold text-dark h5 m-0">{{ $ativ->data_inicio->format('H:i') }}</span>
