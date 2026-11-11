@@ -107,3 +107,37 @@ it('um endereço de outro site gravado como destino é ignorado no login', funct
     $this->withSession(['url.intended' => 'https://site-malicioso.example/frequencia/abc'])
         ->post('/login', ['email' => 'fora@x.com', 'password' => 'password'])->assertRedirect(route('inscrito.dashboard'));
 });
+
+// ---------- Coleta de localização (GPS) ----------
+it('evento com coordenadas: a página pede a localização a cada carregamento e explica como liberar se for bloqueada', function () {
+    $this->evento->update(['latitude' => -1.9183, 'longitude' => -55.5186, 'raio_permitido' => 300]);
+
+    $this->actingAs(mkUser('user', 'gps@x.com'))->get(route('frequencia.form', 'QR-TESTE'))->assertOk()
+        ->assertSee('exigeGps: true', false)
+        // fluxo: pedir permissão, mostrar localização obtida e só então confirmar
+        ->assertSee('Permita o acesso à localização')->assertSee('Localização obtida')->assertSee('Confirmar presença')->assertSee('Permitir localização e confirmar')
+        // bloqueio: o navegador não pergunta de novo, então mostra o passo a passo e um botão de nova tentativa
+        ->assertSee('A localização está bloqueada')->assertSee('Já liberei, tentar de novo')->assertSee('Ajustes do Site')->assertSee('Permissões')
+        ->assertSee('Recarregar a página')
+        // outros problemas conhecidos
+        ->assertSee('Demorou para achar sua localização')->assertSee('Conexão não segura')->assertSee('Abrir no Chrome/Safari')
+        // a lógica de nova tentativa e de acompanhar a permissão
+        ->assertSee('permissions.query', false)->assertSee('visibilitychange', false)->assertSee('solicitar()', false)->assertSee('enableHighAccuracy: false', false);
+});
+
+it('evento sem coordenadas não exige nem pede localização', function () {
+    $r = $this->actingAs(mkUser('user', 'semgps@x.com'))->get(route('frequencia.form', 'QR-TESTE'))->assertOk();
+
+    $r->assertSee('exigeGps: false', false)->assertSee('Confirmar presença')
+        ->assertDontSee('A localização está bloqueada')->assertDontSee('Permita o acesso à localização')->assertDontSee('Permitir localização e confirmar');
+});
+
+it('o servidor continua exigindo coordenadas válidas dentro do raio quando o evento tem localização', function () {
+    $this->evento->update(['latitude' => -1.9183, 'longitude' => -55.5186, 'raio_permitido' => 300]);
+    $this->actingAs(mkUser('user', 'raio@x.com'));
+    $dados = ['tipo_vinculo' => 'externo', 'cpf' => '111.444.777-35', 'nome_completo' => 'Fulano'];
+
+    $this->post($this->url, $dados, ['Accept' => 'application/json'])->assertStatus(422)->assertJsonFragment(['message' => 'Não foi possível obter sua localização. Permita o acesso ao GPS e tente novamente.']);
+    $this->post($this->url, $dados + ['user_lat' => '10', 'user_lng' => '10'], ['Accept' => 'application/json'])->assertStatus(403);
+    $this->post($this->url, $dados + ['user_lat' => '-1.9183', 'user_lng' => '-55.5186'], ['Accept' => 'application/json'])->assertOk();
+});

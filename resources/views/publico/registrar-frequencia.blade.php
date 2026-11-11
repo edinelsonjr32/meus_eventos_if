@@ -36,7 +36,8 @@
             <small class="opacity-75"><i class="fa-solid fa-location-dot me-1"></i> {{ $atividade->evento->local }}</small>
         </div>
 
-        <div class="p-4" x-data="attendanceForm()">
+        @php $exigeGps = filled($atividade->evento->latitude) && filled($atividade->evento->longitude); @endphp
+        <div class="p-4" x-data="attendanceForm({ exigeGps: {{ $exigeGps ? 'true' : 'false' }} })">
 
             @if ($errors->any())
                 <div class="alert alert-danger border-0 bg-danger bg-opacity-10 text-danger rounded-3 small mb-4 shadow-sm">
@@ -46,15 +47,14 @@
                 </div>
             @endif
 
-            <div x-show="errorMessage" x-transition class="alert alert-warning border-0 bg-warning bg-opacity-10 text-dark rounded-3 small mb-4 shadow-sm" style="display: none;">
+            <div x-show="errorMessage" x-cloak class="alert alert-warning border-0 bg-warning bg-opacity-10 text-dark rounded-3 small mb-4" role="alert">
                 <div class="d-flex gap-2">
                     <i class="fa-solid fa-triangle-exclamation mt-1"></i>
-                    <div style="line-height: 1.2;">
+                    <div style="line-height: 1.3;">
                         <strong x-text="errorTitle" class="d-block mb-1"></strong>
                         <span x-text="errorMessage"></span>
                     </div>
                 </div>
-                <button type="button" @click="getLocation()" class="btn btn-sm btn-dark w-100 mt-2 fw-bold">Tentar Novamente</button>
             </div>
 
             <div class="text-center mb-4">
@@ -129,7 +129,7 @@
                     </div>
                 </div>
 
-                <x-gps-button />
+                <x-gps-button :exige-gps="$exigeGps" />
 
             </form>
             @endguest
@@ -139,37 +139,81 @@
     <script>
         $(document).ready(function(){ $('.cpf-mask').mask('000.000.000-00'); });
 
-        function attendanceForm() {
+        function attendanceForm(cfg) {
+            const ua = navigator.userAgent || '';
             return {
+                exigeGps: !!(cfg && cfg.exigeGps),
                 tipoVinculo: '{{ old('tipo_vinculo', $participanteLogado?->tipo_vinculo ?? 'aluno') }}',
-                lat: '', lng: '', isLoading: false, errorMessage: '', errorTitle: '',
+                lat: '', lng: '', precisao: 0,
+                gpsEstado: 'idle',          // idle | pedindo | ok | negado | indisponivel | tempo | inseguro | sem_suporte
+                isLoading: false, errorMessage: '', errorTitle: '',
+                plataforma: /iPhone|iPad|iPod/i.test(ua) ? 'ios' : (/Android/i.test(ua) ? 'android' : 'desktop'),
+                webview: /FBAN|FBAV|Instagram|WhatsApp|Line\/|MicroMessenger|; wv\)|GSA\//i.test(ua),
 
-                submitForm() {
-                    if (this.lat && this.lng) { this.sendForm(); return; }
-                    this.getLocation();
+                init() {
+                    if (!this.exigeGps) return;
+
+                    if (!window.isSecureContext) { this.gpsEstado = 'inseguro'; return; }
+                    if (!navigator.geolocation) { this.gpsEstado = 'sem_suporte'; return; }
+
+                    // Acompanha a permissão: se a pessoa liberar nas configurações, seguimos sozinhos
+                    if (navigator.permissions && navigator.permissions.query) {
+                        navigator.permissions.query({ name: 'geolocation' }).then((st) => {
+                            st.onchange = () => {
+                                if (st.state === 'granted' && this.gpsEstado !== 'ok') this.solicitar();
+                                if (st.state === 'denied') this.gpsEstado = 'negado';
+                            };
+                            if (st.state === 'denied') this.gpsEstado = 'negado';
+                        }).catch(() => {});
+                    }
+
+                    // Voltando das configurações do aparelho/navegador: tenta de novo
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible' && ['negado', 'indisponivel', 'tempo'].includes(this.gpsEstado)) this.solicitar();
+                    });
+
+                    // A cada carregamento da página, pede (ou confirma) a localização
+                    this.solicitar();
                 },
 
-                getLocation() {
-                    this.isLoading = true; this.errorMessage = '';
-                    if (!navigator.geolocation) { this.showError('Erro', 'Navegador incompatível.'); return; }
+                // Pede a posição. Se o navegador já bloqueou, ele responde "negado" na hora: mostramos o passo a passo.
+                solicitar(manterErro = false) {
+                    if (!this.exigeGps) return;
+                    if (!window.isSecureContext) { this.gpsEstado = 'inseguro'; return; }
+                    if (!navigator.geolocation) { this.gpsEstado = 'sem_suporte'; return; }
 
-                    navigator.geolocation.getCurrentPosition(
-                        (p) => {
-                            this.lat = p.coords.latitude; this.lng = p.coords.longitude; this.isLoading = false;
-                            this.sendForm();
-                        },
-                        (e) => {
-                            this.isLoading = false;
-                            let msg = "Erro desconhecido.";
-                            if(e.code===1) msg = "Permissão de localização negada.";
-                            else if(e.code===2) msg = "Sinal de GPS indisponível.";
-                            else if(e.code===3) msg = "Tempo esgotado (Sinal fraco).";
-                            this.showError("Não foi possível localizar", msg);
-                        },
-                        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-                    );
+                    if (!manterErro) this.errorMessage = '';
+                    this.lat = ''; this.lng = ''; this.precisao = 0;
+                    this.gpsEstado = 'pedindo';
+
+                    const ok = (p) => {
+                        this.lat = p.coords.latitude; this.lng = p.coords.longitude;
+                        this.precisao = Math.round(p.coords.accuracy || 0);
+                        this.gpsEstado = 'ok';
+                    };
+                    const falha = (e) => {
+                        if (e.code === 1) this.gpsEstado = 'negado';
+                        else if (e.code === 3) this.gpsEstado = 'tempo';
+                        else this.gpsEstado = 'indisponivel';
+                    };
+
+                    // 1ª tentativa: alta precisão. Se demorar, 2ª com precisão normal (funciona melhor em ambiente fechado).
+                    navigator.geolocation.getCurrentPosition(ok, (e) => {
+                        if (e.code === 3 || e.code === 2) {
+                            navigator.geolocation.getCurrentPosition(ok, falha, { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 });
+                        } else { falha(e); }
+                    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
                 },
-                async sendForm(retry = true) {
+
+                // Botão principal: sem localização, pede; com localização, confirma e envia
+                confirmar() {
+                    this.errorMessage = '';
+                    if (!this.exigeGps) { this.enviar(); return; }
+                    if (this.gpsEstado === 'ok' && this.lat && this.lng) { this.enviar(); return; }
+                    this.solicitar();
+                },
+
+                async enviar(retry = true) {
                     const form = document.getElementById('formPresenca');
                     this.isLoading = true; this.errorMessage = '';
                     try {
@@ -179,20 +223,16 @@
                         body.set('user_lng', this.lng);
 
                         const res = await fetch(form.action, {
-                            method: 'POST',
-                            body: body,
-                            credentials: 'same-origin',
+                            method: 'POST', body: body, credentials: 'same-origin',
                             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                         });
 
                         // 419: sessão/token vencido -> renova o token e tenta de novo (1 vez)
                         if (res.status === 419 && retry) {
-                            const r = await fetch('{{ route('frequencia.csrf', $atividade->token_frequencia) }}', {
-                                credentials: 'same-origin', headers: { 'Accept': 'application/json' }
-                            });
+                            const r = await fetch('{{ route('frequencia.csrf', $atividade->token_frequencia) }}', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
                             if (r.ok) {
                                 form.querySelector('input[name=_token]').value = (await r.json()).token;
-                                return this.sendForm(false);
+                                return this.enviar(false);
                             }
                         }
 
@@ -203,13 +243,18 @@
                         let msg = data.message || 'Erro ao registrar presença.';
                         if (res.status === 419) msg = 'Sua sessão expirou ou o navegador bloqueou cookies. Abra o link no Chrome/Safari e tente novamente.';
                         if (data.errors) msg = Object.values(data.errors).flat().join(' ');
-                        this.lat = ''; this.lng = '';
-                        this.showError('Não foi possível registrar', msg);
+                        this.isLoading = false;
+                        this.errorTitle = 'Não foi possível registrar';
+                        this.errorMessage = msg;
+
+                        // Fora do raio ou sem localização aceita: a posição pode estar velha/imprecisa; pede de novo
+                        if (res.status === 403 || (res.status === 422 && /localiza/i.test(msg))) { this.solicitar(true); }
                     } catch (e) {
-                        this.showError('Falha de conexão', 'Verifique sua internet e tente novamente.');
+                        this.isLoading = false;
+                        this.errorTitle = 'Falha de conexão';
+                        this.errorMessage = 'Verifique sua internet e tente novamente.';
                     }
                 },
-                showError(t, m) { this.isLoading = false; this.errorTitle = t; this.errorMessage = m; }
             }
         }
     </script>
