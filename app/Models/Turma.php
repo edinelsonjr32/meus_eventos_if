@@ -12,6 +12,11 @@ class Turma extends Model
 
     protected $with = ['curso'];
 
+    public function participantes()
+    {
+        return $this->hasMany(Participante::class);
+    }
+
     public function curso()
     {
         return $this->belongsTo(Curso::class);

@@ -448,6 +448,12 @@
                         </a>
                     @endif
 
+                    @if($ehAdmin)
+                        <a href="{{ route('admin.cursos.index') }}" class="nav-link {{ request()->routeIs('admin.cursos*', 'admin.turmas*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-school nav-ico"></i> Cursos e Turmas
+                        </a>
+                    @endif
+
                     @can('superadmin')
                         <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
                             <i class="fa-solid fa-users nav-ico"></i> Usuários
@@ -458,6 +464,10 @@
 
             <div class="nav-grupo">
                 <div class="nav-secao">Conta</div>
+
+                <a href="{{ route('home') }}" class="nav-link" title="Abrir o site público (portal de eventos)">
+                    <i class="fa-solid fa-globe nav-ico"></i> Ir para o Site
+                </a>
 
                 <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.edit') ? 'active' : '' }}">
                     <i class="fa-solid fa-user-gear nav-ico"></i> Minha Conta

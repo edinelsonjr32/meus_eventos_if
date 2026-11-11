@@ -241,6 +241,15 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->names('users')
         ->except(['show']);
 
+    // Cursos e turmas (cadastro de alunos)
+    Route::get('cursos', [\App\Http\Controllers\Admin\CursoController::class, 'index'])->name('cursos.index');
+    Route::post('cursos', [\App\Http\Controllers\Admin\CursoController::class, 'store'])->name('cursos.store');
+    Route::put('cursos/{curso}', [\App\Http\Controllers\Admin\CursoController::class, 'update'])->name('cursos.update');
+    Route::delete('cursos/{curso}', [\App\Http\Controllers\Admin\CursoController::class, 'destroy'])->name('cursos.destroy');
+    Route::post('cursos/{curso}/turmas', [\App\Http\Controllers\Admin\CursoController::class, 'storeTurma'])->name('turmas.store');
+    Route::put('turmas/{turma}', [\App\Http\Controllers\Admin\CursoController::class, 'updateTurma'])->name('turmas.update');
+    Route::delete('turmas/{turma}', [\App\Http\Controllers\Admin\CursoController::class, 'destroyTurma'])->name('turmas.destroy');
+
     Route::get('relatorios/frequencia', [\App\Http\Controllers\Admin\RelatorioController::class, 'index'])
         ->name('relatorios.frequencia.index');
 
