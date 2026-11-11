@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-/** Montagem e publicação dos Anais (gestor de trabalhos, dono e co-administradores). */
+/** Montagem e publicação dos Trabalhos Publicados (gestor de trabalhos, dono e co-administradores). */
 class AnaisGestaoController extends Controller
 {
     public function __construct(private AnaisPdfService $pdf, private TrabalhoWorkflow $workflow)
@@ -25,7 +25,7 @@ class AnaisGestaoController extends Controller
         $this->authorize('gerirTrabalhos', $evento);
 
         $anais = $evento->anais ?? new Anais([
-            'evento_id' => $evento->id, 'titulo' => "Anais do {$evento->titulo}", 'ano' => (int) $evento->data_inicio->format('Y'),
+            'evento_id' => $evento->id, 'titulo' => "Trabalhos Publicados do {$evento->titulo}", 'ano' => (int) $evento->data_inicio->format('Y'),
             'local_publicacao' => 'Óbidos', 'editora' => 'Instituto Federal do Pará - Campus Óbidos', 'status' => 'rascunho',
         ]);
         $anais->setRelation('evento', $evento);
@@ -33,7 +33,7 @@ class AnaisGestaoController extends Controller
         $elegiveis = Anais::elegiveis($evento)->with(['autores', 'area', 'arquivoAnais', 'arquivoAtual', 'evento.trabalhoConfig'])->orderBy('codigo')->get();
         $elegiveis->each(fn ($t) => $t->pdfPublico = $this->pdf->arquivoPublico($t));
 
-        // Aprovados (nas duas partes) e apresentados que ficam de fora dos Anais, com o motivo
+        // Aprovados (nas duas partes) e apresentados que ficam de fora dos Trabalhos Publicados, com o motivo
         $foraDosAnais = $this->foraDosAnais($evento);
         $semAutorizacao = $foraDosAnais->filter(fn ($t) => $t->motivoAnais === 'autorizacao');
         $aguardando = $evento->trabalhos()->where('status', 'aprovado')->where('apresentado', false)->count();
@@ -42,7 +42,7 @@ class AnaisGestaoController extends Controller
     }
 
     /**
-     * Trabalhos concluídos (aprovados nas duas partes e apresentados) que NÃO entram nos Anais, cada um com o motivo:
+     * Trabalhos concluídos (aprovados nas duas partes e apresentados) que NÃO entram nos Trabalhos Publicados, cada um com o motivo:
      * 'autorizacao' (autores não autorizaram a publicação) ou 'pdf' (sem PDF publicável).
      */
     private function foraDosAnais(Evento $evento)
@@ -58,7 +58,7 @@ class AnaisGestaoController extends Controller
         })->filter(fn ($t) => $t->motivoAnais !== null)->values();
     }
 
-    /** Pede (por e-mail) aos autores dos trabalhos concluídos sem autorização que autorizem a publicação nos Anais. */
+    /** Pede (por e-mail) aos autores dos trabalhos concluídos sem autorização que autorizem a publicação nos Trabalhos Publicados. */
     public function solicitarAutorizacao(Evento $evento)
     {
         $this->authorize('gerirTrabalhos', $evento);
@@ -113,7 +113,7 @@ class AnaisGestaoController extends Controller
 
         Anais::updateOrCreate(['evento_id' => $evento->id], $dados);
 
-        return back()->with('success', 'Dados dos Anais salvos.');
+        return back()->with('success', 'Dados dos Trabalhos Publicados salvos.');
     }
 
     public function gerar(Evento $evento)
@@ -122,7 +122,7 @@ class AnaisGestaoController extends Controller
 
         $anais = $evento->anais;
         if (!$anais) {
-            return back()->with('error', 'Salve os dados dos Anais antes de gerar o PDF.');
+            return back()->with('error', 'Salve os dados dos Trabalhos Publicados antes de gerar o PDF.');
         }
         if ($anais->pdfGerando() && !$anais->pdfPreso()) {
             return back()->with('error', 'O PDF já está sendo gerado.');
@@ -166,7 +166,7 @@ class AnaisGestaoController extends Controller
 
         $anais = $evento->anais;
         if (!$anais) {
-            return back()->with('error', 'Salve os dados dos Anais antes de gerar o PDF.');
+            return back()->with('error', 'Salve os dados dos Trabalhos Publicados antes de gerar o PDF.');
         }
         if (Anais::elegiveis($evento)->doesntExist()) {
             return back()->with('error', 'Não há trabalhos elegíveis (aprovados, apresentados e autorizados) para compilar.');
@@ -184,7 +184,7 @@ class AnaisGestaoController extends Controller
             return back()->with('error', 'Não foi possível gerar o PDF: ' . \Illuminate\Support\Str::limit($e->getMessage(), 200));
         }
 
-        return back()->with('success', 'PDF dos Anais gerado.');
+        return back()->with('success', 'PDF dos Trabalhos Publicados gerado.');
     }
 
     /** Cancela uma geração presa para poder tentar de novo. */
@@ -207,7 +207,7 @@ class AnaisGestaoController extends Controller
         $anais = $evento->anais;
         abort_unless($anais && $anais->pdfPronto() && Storage::disk('trabalhos')->exists($anais->pdf_path), 404);
 
-        return Storage::disk('trabalhos')->response($anais->pdf_path, 'anais-' . Str::slug($evento->titulo) . '.pdf', [
+        return Storage::disk('trabalhos')->response($anais->pdf_path, 'trabalhos-publicados-' . Str::slug($evento->titulo) . '.pdf', [
             'Content-Type' => 'application/pdf', 'X-Content-Type-Options' => 'nosniff',
         ]);
     }
@@ -218,7 +218,7 @@ class AnaisGestaoController extends Controller
 
         $anais = $evento->anais;
         if (!$anais) {
-            return back()->with('error', 'Salve os dados dos Anais antes de publicar.');
+            return back()->with('error', 'Salve os dados dos Trabalhos Publicados antes de publicar.');
         }
 
         $anais->update(['status' => 'publicado', 'publicado_em' => $anais->publicado_em ?? now(), 'publicado_por' => $request->user()->id]);
@@ -226,7 +226,7 @@ class AnaisGestaoController extends Controller
         $total = Anais::elegiveis($evento)->count();
         $aviso = $total === 0 ? ' Ainda não há trabalhos elegíveis: eles aparecem na página conforme forem apresentados.' : " {$total} trabalho(s) listado(s).";
 
-        return back()->with('success', 'Anais visíveis ao público.' . $aviso . ($anais->dadosVisiveis() ? '' : ' Os dados de publicação continuam ocultos.'));
+        return back()->with('success', 'Trabalhos Publicados visíveis ao público.' . $aviso . ($anais->dadosVisiveis() ? '' : ' Os dados de publicação continuam ocultos.'));
     }
 
     /** Libera ou oculta os dados de publicação (ISBN/ISSN/DOI, editora, local, ano, citação ABNT e PDF compilado). */
@@ -252,7 +252,7 @@ class AnaisGestaoController extends Controller
         abort_unless($evento->anais, 404);
         $evento->anais->update(['status' => 'rascunho']);
 
-        return back()->with('success', 'Anais despublicados.');
+        return back()->with('success', 'Trabalhos Publicados despublicados.');
     }
 
     public function arquivoFinal(Request $request, Trabalho $trabalho)
@@ -271,7 +271,7 @@ class AnaisGestaoController extends Controller
 
         $this->workflow->anexarArquivoFinal($trabalho, $request->user(), $arquivo);
 
-        return back()->with('success', 'PDF final dos Anais enviado.');
+        return back()->with('success', 'PDF final dos Trabalhos Publicados enviado.');
     }
 
     public function baixarFinal(Trabalho $trabalho)
@@ -281,7 +281,7 @@ class AnaisGestaoController extends Controller
         $arquivo = $trabalho->arquivoAnais;
         abort_unless($arquivo && Storage::disk('trabalhos')->exists($arquivo->path), 404);
 
-        return Storage::disk('trabalhos')->response($arquivo->path, "anais-{$trabalho->codigo}.pdf", [
+        return Storage::disk('trabalhos')->response($arquivo->path, "trabalho-final-{$trabalho->codigo}.pdf", [
             'Content-Type' => 'application/pdf', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store',
         ]);
     }

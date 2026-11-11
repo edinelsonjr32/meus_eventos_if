@@ -7,7 +7,7 @@
                 <div class="d-flex align-items-center gap-3">
                     <a href="{{ route('gestao.trabalhos.index', $evento) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
                     <div>
-                        <h3 class="fw-bold m-0">Anais de Trabalhos</h3>
+                        <h3 class="fw-bold m-0">Trabalhos Publicados</h3>
                         <small class="text-secondary">{{ $evento->titulo }}</small>
                     </div>
                 </div>
@@ -105,7 +105,7 @@
                             <form action="{{ route('gestao.trabalhos.anais.gerar', $evento) }}" method="POST">
                                 @csrf
                                 <button class="btn btn-sm btn-primary-custom w-100 fw-bold" @disabled($anais->pdfGerando() || $elegiveis->isEmpty())>
-                                    {{ $anais->pdfPronto() ? 'Gerar novamente' : 'Gerar PDF dos Anais' }}
+                                    {{ $anais->pdfPronto() ? 'Gerar novamente' : 'Gerar PDF dos Trabalhos Publicados' }}
                                 </button>
                             </form>
                         @endif
@@ -114,18 +114,18 @@
                     <div class="glass-card bg-white mb-4">
                         <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-bullhorn me-1"></i> Publicação e visibilidade</h6>
 
-                        {{-- 1) página dos Anais --}}
+                        {{-- 1) página dos Trabalhos Publicados --}}
                         <div class="border rounded-3 p-3 mb-3 {{ $anais->exists && $anais->publicado() ? 'border-success bg-success bg-opacity-10' : '' }}">
-                            <div class="fw-bold small mb-1"><i class="fa-solid fa-eye me-1"></i> 1. Página dos Anais</div>
+                            <div class="fw-bold small mb-1"><i class="fa-solid fa-eye me-1"></i> 1. Página pública dos Trabalhos Publicados</div>
                             @if($anais->exists && $anais->publicado())
                                 <p class="small mb-2">Visível desde {{ $anais->publicado_em?->format('d/m/Y H:i') }}. Lista os trabalhos aprovados, apresentados e autorizados.</p>
                                 <form action="{{ route('gestao.trabalhos.anais.despublicar', $evento) }}" method="POST">
-                                    @csrf <button class="btn btn-sm btn-outline-danger w-100" data-confirmar="Ocultar os Anais? A página pública sairá do ar."><i class="fa-solid fa-eye-slash"></i> Ocultar Anais</button>
+                                    @csrf <button class="btn btn-sm btn-outline-danger w-100" data-confirmar="Ocultar os Trabalhos Publicados? A página pública sairá do ar."><i class="fa-solid fa-eye-slash"></i> Ocultar Trabalhos Publicados</button>
                                 </form>
                             @else
                                 <p class="small text-muted mb-2">Oculta ao público. Pode ser tornada visível a qualquer momento, mesmo antes do fim do evento e sem os dados de publicação.</p>
                                 <form action="{{ route('gestao.trabalhos.anais.publicar', $evento) }}" method="POST">
-                                    @csrf <button class="btn btn-sm btn-success w-100" @disabled(!$anais->exists) data-confirmar="Tornar os Anais visíveis ao público agora?"><i class="fa-solid fa-eye"></i> Tornar visível</button>
+                                    @csrf <button class="btn btn-sm btn-success w-100" @disabled(!$anais->exists) data-confirmar="Tornar os Trabalhos Publicados visíveis ao público agora?"><i class="fa-solid fa-eye"></i> Tornar visível</button>
                                 </form>
                                 @unless($anais->exists) <div class="form-text">Salve os dados da edição primeiro.</div> @endunless
                             @endif
@@ -134,7 +134,7 @@
                         {{-- 2) dados de publicação --}}
                         <div class="border rounded-3 p-3 {{ $anais->dadosVisiveis() ? 'border-success bg-success bg-opacity-10' : '' }}">
                             <div class="fw-bold small mb-1"><i class="fa-solid fa-book me-1"></i> 2. Dados de publicação</div>
-                            <p class="small text-muted mb-2">ISSN, ISBN, DOI, editora, local, ano, citação ABNT e o PDF compilado dos Anais. Libere somente depois que o evento terminar e esses dados existirem.</p>
+                            <p class="small text-muted mb-2">ISSN, ISBN, DOI, editora, local, ano, citação ABNT e o PDF compilado dos Trabalhos Publicados. Libere somente depois que o evento terminar e esses dados existirem.</p>
                             @if(!$anais->exists || !$anais->publicado())
                                 <div class="small text-muted"><i class="fa-solid fa-lock me-1"></i> Disponível depois de tornar a página visível.</div>
                             @elseif($anais->dadosVisiveis())
@@ -157,10 +157,10 @@
             </div>
 
             <div class="glass-card bg-white p-0 overflow-hidden mt-2">
-                <div class="p-3 border-bottom bg-light fw-bold">Trabalhos que entram nos Anais ({{ $elegiveis->count() }})</div>
+                <div class="p-3 border-bottom bg-light fw-bold">Trabalhos que entram nos Trabalhos Publicados ({{ $elegiveis->count() }})</div>
                 <div class="table-responsive">
                     <table class="table align-middle mb-0 small">
-                        <thead><tr><th class="ps-3">Protocolo</th><th>Título</th><th>Área</th><th>PDF dos Anais</th><th></th></tr></thead>
+                        <thead><tr><th class="ps-3">Protocolo</th><th>Título</th><th>Área</th><th>PDF dos Trabalhos Publicados</th><th></th></tr></thead>
                         <tbody>
                         @forelse($elegiveis as $t)
                             <tr>
@@ -191,7 +191,7 @@
 
             @if($foraDosAnais->isNotEmpty() || $aguardando > 0)
                 <div class="glass-card bg-white mt-3">
-                    <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-circle-info me-1"></i> Concluídos que não entram nos Anais</h6>
+                    <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-circle-info me-1"></i> Concluídos que não entram nos Trabalhos Publicados</h6>
                     <p class="small text-muted">Só entram trabalhos aprovados, apresentados <strong>e com a publicação autorizada pelos autores</strong> (e com PDF). A autorização é dada pelo autor, na página do trabalho.</p>
                     @if($aguardando > 0) <div class="small mb-2"><i class="fa-solid fa-hourglass-half me-1"></i> {{ $aguardando }} trabalho(s) aprovado(s) ainda sem apresentação confirmada ficam de fora.</div> @endif
 
@@ -223,7 +223,7 @@
                         @if($semAutorizacao->isNotEmpty())
                             <form action="{{ route('gestao.trabalhos.anais.solicitar-autorizacao', $evento) }}" method="POST" class="text-end">
                                 @csrf
-                                <button class="btn btn-sm btn-warning fw-bold" data-confirmar="Enviar e-mail aos autores de {{ $semAutorizacao->count() }} trabalho(s) pedindo a autorização de publicação nos Anais?"><i class="fa-solid fa-envelope"></i> Solicitar autorização aos autores ({{ $semAutorizacao->count() }})</button>
+                                <button class="btn btn-sm btn-warning fw-bold" data-confirmar="Enviar e-mail aos autores de {{ $semAutorizacao->count() }} trabalho(s) pedindo a autorização de publicação nos Trabalhos Publicados?"><i class="fa-solid fa-envelope"></i> Solicitar autorização aos autores ({{ $semAutorizacao->count() }})</button>
                             </form>
                         @endif
                     @endif

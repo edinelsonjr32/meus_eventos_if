@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 
-/** Compila o PDF dos Anais em segundo plano (pode levar minutos com muitos trabalhos). */
+/** Compila o PDF dos Trabalhos Publicados em segundo plano (pode levar minutos com muitos trabalhos). */
 class GerarAnaisPdf implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

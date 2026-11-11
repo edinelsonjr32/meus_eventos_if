@@ -56,7 +56,7 @@ it('a política de privacidade é pública e usa os dados do responsável', func
         ->assertSee('Não é armazenada', false)->assertSee('CPF e e-mail nunca são publicados')->assertSee('Seus direitos');
 });
 
-it('os links para a política aparecem no login, no sistema, no formulário e nos Anais', function () {
+it('os links para a política aparecem no login, no sistema, no formulário e nos Trabalhos Publicados', function () {
     $url = route('privacidade');
     Anais::create(['evento_id' => $this->evento->id, 'titulo' => 'Anais', 'ano' => 2026, 'local_publicacao' => 'Óbidos', 'editora' => 'IFPA', 'status' => 'publicado', 'publicado_em' => now()]);
 
@@ -190,7 +190,7 @@ it('o comando de anonimização pede confirmação e respeita --confirmar', func
     $this->artisan('lgpd:anonimizar', ['identificador' => 'ninguem@nada.com', '--confirmar' => true])->expectsOutputToContain('Nenhum dado encontrado')->assertExitCode(1);
 });
 
-it('a página dos Anais continua funcionando depois de anonimizar um autor', function () {
+it('a página dos Trabalhos Publicados continua funcionando depois de anonimizar um autor', function () {
     [$user, $p, $t] = lgpdCenario($this);
     Anais::create(['evento_id' => $this->evento->id, 'titulo' => 'Anais', 'ano' => 2026, 'local_publicacao' => 'Óbidos', 'editora' => 'IFPA', 'status' => 'publicado', 'publicado_em' => now()]);
 

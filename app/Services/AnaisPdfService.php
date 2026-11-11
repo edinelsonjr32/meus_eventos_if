@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Compila o PDF dos Anais: capa, expediente, sumário (com páginas) e os PDFs dos trabalhos,
+ * Compila o PDF dos Trabalhos Publicados: capa, expediente, sumário (com páginas) e os PDFs dos trabalhos,
  * agrupados por área. A união dos PDFs usa o Ghostscript com -dSAFER (arquivos enviados por
  * autores são tratados como não confiáveis).
  */
@@ -19,7 +19,7 @@ class AnaisPdfService
 {
     private const DISCO = 'trabalhos';
 
-    /** PDF que representa o trabalho nos Anais, ou null se não houver arquivo publicável. */
+    /** PDF que representa o trabalho nos Trabalhos Publicados, ou null se não houver arquivo publicável. */
     public function arquivoPublico(Trabalho $trabalho)
     {
         if ($trabalho->arquivoAnais) {

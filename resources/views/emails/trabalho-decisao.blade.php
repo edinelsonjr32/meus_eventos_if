@@ -9,7 +9,7 @@
     @elseif($decisao === 'aprovado_com_ressalvas')
         <x-email.aviso tipo="alerta">
             Seu trabalho foi <strong>aprovado com ressalvas</strong> e segue normalmente para a apresentação.
-            Ao final, envie a <strong>versão final corrigida</strong> (PDF){!! $trabalho->prazo_correcao ? ' até <strong>' . e($trabalho->prazo_correcao->format('d/m/Y')) . '</strong>' : '' !!} para constar nos Anais.
+            Ao final, envie a <strong>versão final corrigida</strong> (PDF){!! $trabalho->prazo_correcao ? ' até <strong>' . e($trabalho->prazo_correcao->format('d/m/Y')) . '</strong>' : '' !!} para constar nos Trabalhos Publicados.
         </x-email.aviso>
     @else
         <x-email.aviso tipo="erro">Infelizmente seu trabalho <strong>não foi aprovado</strong> nesta avaliação.</x-email.aviso>

@@ -257,7 +257,7 @@ it('REGRA: só trabalhos aprovados no texto vão à apresentação; reprovado/em
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.apresentacoes.index', $this->evento))->assertOk()->assertDontSee('T reprovado')->assertDontSee('T em_avaliacao');
 });
 
-it('REGRA: nos Anais só entra quem foi aprovado nas duas partes', function () {
+it('REGRA: nos Trabalhos Publicados só entra quem foi aprovado nas duas partes', function () {
     $this->trabalho->update(['apresentado' => true, 'autoriza_publicacao' => true]);
     expect(\App\Models\Anais::elegiveis($this->evento)->count())->toBe(0);      // só texto: fora
 

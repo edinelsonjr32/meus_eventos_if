@@ -20,7 +20,7 @@ class AutorizacaoPublicacaoMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "Autorização para publicar seu trabalho nos Anais — {$this->trabalho->evento->titulo}");
+        return new Envelope(subject: "Autorização para publicar seu trabalho nos Trabalhos Publicados — {$this->trabalho->evento->titulo}");
     }
 
     public function content(): Content

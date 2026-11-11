@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** Edição dos Anais de Trabalhos de um evento. */
+/** Edição dos Trabalhos Publicados de um evento. */
 class Anais extends Model
 {
     protected $table = 'anais';
@@ -55,7 +55,7 @@ class Anais extends Model
     }
 
     /**
-     * Trabalhos que entram nos Anais: aprovados, apresentados e com autorização de publicação dos autores.
+     * Trabalhos que entram nos Trabalhos Publicados: aprovados, apresentados e com autorização de publicação dos autores.
      */
     public static function elegiveis(Evento $evento): Builder
     {

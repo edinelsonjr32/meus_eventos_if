@@ -332,7 +332,7 @@ it('aprovado com ressalvas segue o fluxo (sem nova aprovação) e o autor envia 
     $this->actingAs($this->autor)->post(route('trabalhos.versao-final', $t), ['arquivo' => UploadedFile::fake()->createWithContent('v3.pdf', "%PDF-1.4\n%%EOF")])->assertSessionHas('error');
 });
 
-it('trabalho com versão final pendente fica fora dos Anais até o autor enviar', function () {
+it('trabalho com versão final pendente fica fora dos Trabalhos Publicados até o autor enviar', function () {
     $t = trabalhoAvaliado();
     $this->actingAs($this->gestor)->post(route('gestao.trabalhos.decisao', $t), [
         'decisao' => 'aprovado_com_ressalvas', 'justificativa' => 'Ajustar.', 'prazo_correcao' => now()->addDays(3)->format('Y-m-d'),

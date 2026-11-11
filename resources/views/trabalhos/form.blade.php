@@ -417,7 +417,7 @@
                     <div class="form-check">
                         <input type="hidden" name="autoriza_publicacao" value="0">
                         <input class="form-check-input" type="checkbox" name="autoriza_publicacao" value="1" id="d3" @checked(old('autoriza_publicacao', $trabalho->exists ? $trabalho->autoriza_publicacao : !$modoGestao))>
-                        <label class="form-check-label small" for="d3">Autorizo a publicação do trabalho nos Anais do evento, <strong>caso seja aprovado</strong> (e apresentado). Já vem marcado: desmarque se não quiser publicar. Você pode mudar depois na página do trabalho.</label>
+                        <label class="form-check-label small" for="d3">Autorizo a publicação do trabalho nos Trabalhos Publicados, <strong>caso seja aprovado</strong> (e apresentado). Já vem marcado: desmarque se não quiser publicar. Você pode mudar depois na página do trabalho.</label>
                     </div>
                     <div class="text-danger small mt-2" x-show="erros.declaracoes" x-text="erros.declaracoes"></div>
                     <div class="small text-muted mt-2"><i class="fa-solid fa-shield-halved me-1"></i> Seus dados pessoais são tratados conforme a <a href="{{ route('privacidade') }}" target="_blank">Política de Privacidade</a>. CPF e e-mail dos autores nunca são publicados.</div>

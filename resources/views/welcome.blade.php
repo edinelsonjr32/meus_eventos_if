@@ -2,7 +2,7 @@
     $destaque = $proximosEventos->first();
     $fmt = fn ($n) => number_format($n, 0, ',', '.');
 @endphp
-<x-publico-layout titulo="Portal de Eventos Acadêmicos" descricao="Eventos acadêmicos do IFPA Campus Óbidos: programação, inscrição, presença por QR Code, submissão de trabalhos, Anais e certificados verificáveis." ativo="">
+<x-publico-layout titulo="Portal de Eventos Acadêmicos" descricao="Eventos acadêmicos do IFPA Campus Óbidos: programação, inscrição, presença por QR Code, submissão de trabalhos, trabalhos publicados e certificados verificáveis." ativo="">
     <x-slot:estilos>
         <style>
             .hero { position: relative; color: #fff; background: radial-gradient(900px 420px at 85% 10%, rgba(52,211,153,.28), transparent 60%), linear-gradient(135deg, #053b2d 0%, #065f46 55%, #047857 100%); padding: 4.5rem 0 5rem; border-radius: 0 0 44px 44px; overflow: hidden; }
@@ -79,7 +79,7 @@
                     <div class="hero-selos">
                         <span><i class="fa-solid fa-qrcode"></i>Presença por QR Code</span>
                         <span><i class="fa-solid fa-file-lines"></i>Submissão de trabalhos</span>
-                        <span><i class="fa-solid fa-book"></i>Anais públicos</span>
+                        <span><i class="fa-solid fa-book"></i>Trabalhos publicados</span>
                         <span><i class="fa-solid fa-shield-halved"></i>Certificados verificáveis</span>
                     </div>
                 </div>
@@ -153,9 +153,9 @@
                         <div class="col-md-7">
                             <span class="selo selo-cinza mb-3"><i class="fa-regular fa-calendar-xmark"></i> Nenhum evento agendado</span>
                             <h4 class="fw-bold">Ainda não há inscrições abertas</h4>
-                            <p class="text-muted mb-4">Novos eventos do campus aparecem aqui assim que forem publicados. Enquanto isso, você pode consultar os Anais de edições anteriores, validar um certificado ou criar sua conta para já deixar tudo pronto.</p>
+                            <p class="text-muted mb-4">Novos eventos do campus aparecem aqui assim que forem publicados. Enquanto isso, você pode consultar os Trabalhos Publicados de edições anteriores, validar um certificado ou criar sua conta para já deixar tudo pronto.</p>
                             <div class="d-flex flex-wrap gap-2">
-                                <a href="#anais" class="btn btn-outline-brand">Ver Anais publicados</a>
+                                <a href="#anais" class="btn btn-outline-brand">Ver trabalhos publicados</a>
                                 @guest <a href="{{ route('register') }}" class="btn btn-brand px-4">Criar minha conta</a> @endguest
                             </div>
                         </div>
@@ -203,12 +203,12 @@
         </div>
     </section>
 
-    {{-- ===== Anais ===== --}}
+    {{-- ===== Trabalhos Publicados ===== --}}
     <section class="secao pt-0" id="anais">
         <div class="container">
             <div class="mb-4">
                 <div class="rotulo-secao mb-1">Produção acadêmica</div>
-                <h2 class="secao-titulo">Anais dos eventos</h2>
+                <h2 class="secao-titulo">Trabalhos Publicados</h2>
                 <p class="secao-sub mb-0">Trabalhos aprovados e apresentados, publicados com autorização dos autores, com busca e citação ABNT.</p>
             </div>
 
@@ -216,7 +216,7 @@
                 <div class="cartao p-4 d-flex flex-wrap align-items-center gap-3">
                     <span class="anais-ico mb-0"><i class="fa-solid fa-book-open"></i></span>
                     <div class="flex-grow-1">
-                        <strong class="d-block">Os Anais serão publicados após cada evento</strong>
+                        <strong class="d-block">Os Trabalhos Publicados serão divulgados após cada evento</strong>
                         <span class="text-muted small">Aqui você encontrará os trabalhos apresentados, com resumo, autores, PDF e referência para citação.</span>
                     </div>
                 </div>
@@ -285,9 +285,9 @@
                             ['fa-calendar-days', 'Programação e agenda', 'Atividades por dia, vagas e conflito de horário avisado na hora da inscrição.'],
                             ['fa-qrcode', 'Presença por QR Code', 'Registro pelo celular, com conferência de local quando o evento exige.'],
                             ['fa-file-pen', 'Submissão de trabalhos', 'Envio do PDF, acompanhamento do protocolo e avaliação por pares.'],
-                            ['fa-book-open', 'Anais publicados', 'Trabalhos aprovados e apresentados, com citação ABNT e PDF compilado.'],
+                            ['fa-book-open', 'Trabalhos publicados', 'Trabalhos aprovados e apresentados, com citação ABNT e PDF compilado.'],
                             ['fa-award', 'Certificados verificáveis', 'Cada documento tem um código público de autenticidade.'],
-                            ['fa-shield-halved', 'Privacidade (LGPD)', 'CPF e e-mail dos autores nunca são publicados nos Anais.'],
+                            ['fa-shield-halved', 'Privacidade (LGPD)', 'CPF e e-mail dos autores nunca são publicados nos Trabalhos Publicados.'],
                         ] as [$ico, $titulo, $texto])
                             <div class="col-md-6"><div class="recurso"><i class="fa-solid {{ $ico }}"></i><div><h6>{{ $titulo }}</h6><p>{{ $texto }}</p></div></div></div>
                         @endforeach
@@ -338,7 +338,7 @@
                             ['Como registro presença nas atividades?', 'Abra a câmera do celular e leia o QR Code exibido na atividade. Você precisa estar logado e inscrito no evento. Alguns eventos conferem também a sua localização.'],
                             ['Onde baixo meu certificado?', 'Em "Minha Agenda", dentro da sua área. O certificado de cada atividade fica disponível depois que a presença é confirmada.'],
                             ['Como envio um trabalho acadêmico?', 'Quando o evento abre chamada de trabalhos, aparece o botão "Submeter trabalho" na página do evento. Você envia o PDF, cadastra os autores e acompanha o resultado em "Meus Trabalhos".'],
-                            ['O que é publicado nos Anais?', 'Apenas trabalhos aprovados, apresentados e autorizados pelos autores: título, resumo, autores com instituição e o PDF. CPF e e-mail nunca são divulgados.'],
+                            ['O que aparece em Trabalhos Publicados?', 'Apenas trabalhos aprovados, apresentados e autorizados pelos autores: título, resumo, autores com instituição e o PDF. CPF e e-mail nunca são divulgados.'],
                             ['Como sei se um certificado é verdadeiro?', 'Use a área "Validar certificado" desta página com o código impresso no documento. Se for autêntico, aparecem os dados de quem o recebeu e do evento.'],
                         ] as $i => [$pergunta, $resposta])
                             <div class="accordion-item">

@@ -47,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
                 ->view('emails.verificar-email', ['nome' => $usuario->name, 'link' => $url]);
         });
 
-        // Limites independentes (um contador por finalidade) para as rotas públicas dos Anais
+        // Limites independentes (um contador por finalidade) para as rotas públicas dos Trabalhos Publicados
         \Illuminate\Support\Facades\RateLimiter::for('anais', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->ip()));
         \Illuminate\Support\Facades\RateLimiter::for('anais-certificado', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(10)->by($request->ip()));
 

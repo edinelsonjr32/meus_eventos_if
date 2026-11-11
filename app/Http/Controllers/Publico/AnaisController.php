@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Anais públicos: somente trabalhos aprovados, apresentados e autorizados pelos autores,
+ * Trabalhos publicados: somente trabalhos aprovados, apresentados e autorizados pelos autores,
  * e somente depois que a gestão publica a edição.
  */
 class AnaisController extends Controller
@@ -80,7 +80,7 @@ class AnaisController extends Controller
         ]);
     }
 
-    /** Números do cabeçalho dos Anais: trabalhos publicados e áreas representadas. */
+    /** Números do cabeçalho dos Trabalhos Publicados: trabalhos publicados e áreas representadas. */
     private function totais(Evento $evento): array
     {
         return [
@@ -123,7 +123,7 @@ class AnaisController extends Controller
         [, $anais] = $this->publicados($slug);
         abort_unless($anais->dadosVisiveis() && $anais->pdfPronto() && Storage::disk('trabalhos')->exists($anais->pdf_path), 404);
 
-        return Storage::disk('trabalhos')->response($anais->pdf_path, 'anais-' . Str::slug($anais->evento->titulo) . '.pdf', [
+        return Storage::disk('trabalhos')->response($anais->pdf_path, 'trabalhos-publicados-' . Str::slug($anais->evento->titulo) . '.pdf', [
             'Content-Type' => 'application/pdf',
             'X-Content-Type-Options' => 'nosniff',
         ]);

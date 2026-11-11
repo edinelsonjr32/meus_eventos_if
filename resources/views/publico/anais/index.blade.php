@@ -1,6 +1,6 @@
 @extends('publico.anais._layout')
 
-@section('titulo', 'Anais')
+@section('titulo', 'Trabalhos Publicados')
 
 @section('conteudo')
     <form method="GET" class="cartao an-filtros">
@@ -41,7 +41,7 @@
 
     @unless($anais->dadosVisiveis())
         <div class="an-aviso mt-4"><i class="fa-solid fa-circle-info me-1"></i>
-            Os dados de publicação (ISBN, ISSN, DOI, editora) e o PDF completo dos Anais serão divulgados após o encerramento do evento.
+            Os dados de publicação (ISBN, ISSN, DOI, editora) e o PDF completo dos Trabalhos Publicados serão divulgados após o encerramento do evento.
             @if($trabalhos->total() === 0) Os trabalhos aparecem aqui conforme forem apresentados. @endif
         </div>
     @endunless

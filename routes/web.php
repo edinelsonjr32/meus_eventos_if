@@ -35,7 +35,12 @@ Route::view('/privacidade', 'privacidade')->name('privacidade');
 Route::get('/', [\App\Http\Controllers\Publico\PortalController::class, 'home'])->name('home');
 
 // Anais de Trabalhos (públicos somente após a publicação pela gestão)
-Route::prefix('e/{slug}/anais')->name('anais.')->middleware('throttle:anais')->group(function () {
+// Endereço antigo (/anais) continua funcionando: redireciona para o novo
+Route::get('e/{slug}/anais/{resto?}', function (string $slug, ?string $resto = null) {
+    return redirect('/e/' . $slug . '/trabalhos-publicados' . ($resto ? '/' . $resto : ''), 301);
+})->where('resto', '.*');
+
+Route::prefix('e/{slug}/trabalhos-publicados')->name('anais.')->middleware('throttle:anais')->group(function () {
     $c = \App\Http\Controllers\Publico\AnaisController::class;
     Route::get('/', [$c, 'index'])->name('index');
     Route::get('/pdf', [$c, 'pdfAnais'])->name('pdf');

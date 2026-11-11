@@ -244,7 +244,7 @@ class TrabalhoWorkflow
     }
 
     /**
-     * PDF final dos Anais (preparado pela gestão). Não substitui o arquivo em avaliação: fica inativo
+     * PDF final dos Trabalhos Publicados (preparado pela gestão). Não substitui o arquivo em avaliação: fica inativo
      * e é usado apenas na publicação.
      */
     public function anexarArquivoFinal(Trabalho $trabalho, User $gestor, UploadedFile $arquivo): TrabalhoArquivo
@@ -263,7 +263,7 @@ class TrabalhoWorkflow
                 'tamanho' => $arquivo->getSize(), 'sha256' => hash_file('sha256', $arquivo->getRealPath()),
                 'enviado_por' => $gestor->id, 'ativo' => false,
             ]);
-            $this->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, 'PDF final dos Anais enviado');
+            $this->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, 'PDF final dos Trabalhos Publicados enviado');
 
             return $registro;
         });

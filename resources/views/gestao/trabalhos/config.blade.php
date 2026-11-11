@@ -22,7 +22,7 @@
                 <ol class="small text-secondary mb-0 ps-3">
                     <li><strong>Configure</strong> o período, as categorias, as regras e os textos abaixo.</li>
                     <li><strong>Publique</strong> a chamada: o botão <em>Submeter Trabalho</em> aparece na página do evento e em "Meus Trabalhos" dos participantes, dentro do período definido.</li>
-                    <li>Acompanhe as submissões em <em>Trabalhos</em>, faça a triagem, distribua aos avaliadores e publique os Anais.</li>
+                    <li>Acompanhe as submissões em <em>Trabalhos</em>, faça a triagem, distribua aos avaliadores e publique os Trabalhos Publicados.</li>
                 </ol>
                 @if($config->exists && $config->ativo)
                     <div class="small mt-2">Página pública do evento: <a href="{{ route('evento.publico.show', $evento->slug) }}" target="_blank">{{ route('evento.publico.show', $evento->slug) }}</a><br>

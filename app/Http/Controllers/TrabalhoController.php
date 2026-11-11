@@ -113,8 +113,8 @@ class TrabalhoController extends Controller
     }
 
     /**
-     * O autor autoriza (ou revoga) a publicação do trabalho nos Anais mesmo depois da aprovação: sem essa
-     * autorização o trabalho concluído não aparece nos Anais. Só autores consentem; a gestão apenas solicita.
+     * O autor autoriza (ou revoga) a publicação do trabalho nos Trabalhos Publicados mesmo depois da aprovação: sem essa
+     * autorização o trabalho concluído não aparece nos Trabalhos Publicados. Só autores consentem; a gestão apenas solicita.
      */
     public function autorizarPublicacao(Request $request, Trabalho $trabalho)
     {
@@ -123,9 +123,9 @@ class TrabalhoController extends Controller
 
         $autoriza = $request->boolean('autoriza');
         $trabalho->update(['autoriza_publicacao' => $autoriza, 'autorizou_em' => $autoriza ? now() : null]);
-        $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, $autoriza ? 'Publicação nos Anais autorizada pelo autor' : 'Autorização de publicação nos Anais revogada pelo autor');
+        $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, $autoriza ? 'Publicação autorizada pelo autor' : 'Autorização de publicação nos Trabalhos Publicados revogada pelo autor');
 
-        return back()->with('success', $autoriza ? 'Publicação autorizada. O trabalho aparece nos Anais quando estiverem publicados.' : 'Autorização revogada: o trabalho não será publicado nos Anais.');
+        return back()->with('success', $autoriza ? 'Publicação autorizada. O trabalho aparece nos Trabalhos Publicados quando estiverem publicados.' : 'Autorização revogada: o trabalho não será publicado nos Trabalhos Publicados.');
     }
 
     /** Envio da versão final corrigida (trabalho aprovado com ressalvas): feito no fim do fluxo, sem nova aprovação. */

@@ -10,7 +10,7 @@ use App\Models\Frequencia;
 use App\Models\Inscricao;
 use App\Models\User;
 
-/** Página inicial pública: eventos, números da plataforma, Anais publicados e orientações. */
+/** Página inicial pública: eventos, números da plataforma, Trabalhos publicados e orientações. */
 class PortalController extends Controller
 {
     public function home()
@@ -24,7 +24,7 @@ class PortalController extends Controller
             ->with(['trabalhoConfig', 'anais'])
             ->orderBy('data_inicio')->take(9)->get();
 
-        // Edições passadas com Anais publicados (e quantos trabalhos entram em cada uma)
+        // Edições passadas com Trabalhos publicados (e quantos trabalhos entram em cada uma)
         $edicoesComAnais = $publicos()->whereHas('anais', fn ($q) => $q->where('status', 'publicado'))
             ->with(['anais', 'trabalhoConfig'])->orderByDesc('data_fim')->take(6)->get()
             ->each(fn (Evento $e) => $e->total_trabalhos = Anais::elegiveis($e)->count());

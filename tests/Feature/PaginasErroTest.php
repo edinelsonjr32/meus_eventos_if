@@ -68,7 +68,7 @@ it('o layout prepara as tabelas para o modo cartão no celular e avisa quando a 
         ->assertSee('tabela-cartoes', false)->assertSee('aviso-rolagem', false)->assertSee('data-label', false);
 });
 
-it('a página inicial pública mostra números, eventos, Anais publicados, como funciona, validação e perguntas frequentes', function () {
+it('a página inicial pública mostra números, eventos, Trabalhos publicados, como funciona, validação e perguntas frequentes', function () {
     $dono = mkUser('admin', 'dono@ifpa.edu.br');
     $evento = mkEvento($dono);
     $evento->update(['titulo' => 'Semana Real', 'slug' => 'semana-real', 'data_inicio' => now()->addDays(3), 'data_fim' => now()->addDays(4)]);

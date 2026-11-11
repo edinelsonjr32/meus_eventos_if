@@ -42,7 +42,7 @@ it('lista de certificados pagina em Bootstrap', function () {
     paginacaoOk($this->actingAs($this->gestor)->get(route('gestao.trabalhos.certificados.index', $this->evento))->assertOk()->getContent());
 });
 
-it('Anais públicos paginam em Bootstrap', function () {
+it('Trabalhos publicados paginam em Bootstrap', function () {
     Anais::create(['evento_id' => $this->evento->id, 'titulo' => 'Anais', 'ano' => 2026, 'status' => 'publicado', 'publicado_em' => now(), 'dados_publicacao_visiveis' => false]);
     foreach (range(1, 17) as $i) {
         mkTrabalho($this->evento, $this->autor, ['titulo' => "Publicado {$i}"], 'aprovado')->update(['apresentado' => true, 'autoriza_publicacao' => true, 'resultado_apresentacao' => 'aprovado']);

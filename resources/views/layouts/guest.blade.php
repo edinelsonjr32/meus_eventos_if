@@ -35,7 +35,7 @@
                         <ul class="auth-itens">
                             <li><i class="fa-solid fa-calendar-check"></i><span><strong>Inscrições e agenda</strong>Monte sua programação e acompanhe cada atividade.</span></li>
                             <li><i class="fa-solid fa-qrcode"></i><span><strong>Presença pelo celular</strong>Registre presença lendo o QR Code da atividade.</span></li>
-                            <li><i class="fa-solid fa-file-lines"></i><span><strong>Trabalhos acadêmicos</strong>Envie, acompanhe a avaliação e veja nos Anais.</span></li>
+                            <li><i class="fa-solid fa-file-lines"></i><span><strong>Trabalhos acadêmicos</strong>Envie, acompanhe a avaliação e veja nos Trabalhos Publicados.</span></li>
                             <li><i class="fa-solid fa-award"></i><span><strong>Certificados verificáveis</strong>Baixe em PDF, com código público de autenticidade.</span></li>
                         </ul>
                     </div>

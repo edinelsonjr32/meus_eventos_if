@@ -23,7 +23,7 @@ function pdfComPaginas(int $n): string
     return Pdf::loadHTML($html)->output();
 }
 
-/** Trabalho publicável nos Anais, com PDF no disco privado. */
+/** Trabalho publicável nos Trabalhos Publicados, com PDF no disco privado. */
 function trabalhoPublicavel($ctx, array $extra = [], int $paginas = 2, bool $comPdf = true): Trabalho
 {
     $t = mkTrabalho($ctx->evento, $ctx->autorUser, $extra, 'aprovado');
@@ -110,7 +110,7 @@ it('usa et al. com mais de três autores', function () {
 });
 
 // ---------- Acesso público ----------
-it('não expõe os Anais antes da publicação nem de evento inexistente', function () {
+it('não expõe os Trabalhos Publicados antes da publicação nem de evento inexistente', function () {
     $t = trabalhoPublicavel($this);
     criarAnais($this, ['status' => 'rascunho']);
 
@@ -193,7 +193,7 @@ it('trabalho de outro evento não é servido pelo slug errado', function () {
     $this->get(route('anais.trabalho.pdf', ['semana-teste', $estranho->codigo]))->assertNotFound();
 });
 
-it('em avaliação cega só publica PDF se houver a versão final dos Anais', function () {
+it('em avaliação cega só publica PDF se houver a versão final dos Trabalhos Publicados', function () {
     criarAnais($this);
     TrabalhoConfig::where('evento_id', $this->evento->id)->update(['avaliacao_cega' => true]);
     $t = trabalhoPublicavel($this);
@@ -206,7 +206,7 @@ it('em avaliação cega só publica PDF se houver a versão final dos Anais', fu
     $this->get(route('anais.trabalho.pdf', ['semana-teste', $t->codigo]))->assertOk();
 });
 
-it('a versão final dos Anais tem prioridade sobre o PDF da submissão', function () {
+it('a versão final dos Trabalhos Publicados tem prioridade sobre o PDF da submissão', function () {
     $t = trabalhoPublicavel($this);
     arquivoFinalFake($this, $t);
     $final = $t->arquivos()->where('tipo', 'final_anais')->first();
@@ -276,12 +276,12 @@ it('limita tentativas de obter certificado (anti força bruta)', function () {
 });
 
 // ---------- Gestão ----------
-it('gestor edita os dados dos Anais com validação', function () {
+it('gestor edita os dados dos Trabalhos Publicados com validação', function () {
     $url = route('gestao.trabalhos.anais.update', $this->evento);
     $base = ['titulo' => 'Anais X', 'ano' => 2026, 'local_publicacao' => 'Óbidos', 'editora' => 'IFPA'];
     $this->actingAs($this->gestor);
 
-    $this->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()->assertSee('Anais do Semana de Tecnologia');
+    $this->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()->assertSee('Trabalhos Publicados do Semana de Tecnologia');
     $this->put($url, array_merge($base, ['issn' => '1234-567X', 'isbn' => '978-85-1234-567-8', 'doi_prefixo' => '10.12345', 'comissao' => "Ana\nCaio"]))->assertSessionHasNoErrors();
 
     $a = Anais::where('evento_id', $this->evento->id)->first();
@@ -294,7 +294,7 @@ it('gestor edita os dados dos Anais com validação', function () {
     $this->put($url, ['titulo' => ''])->assertSessionHasErrors(['titulo', 'ano']);
 });
 
-it('publica e despublica os Anais, mesmo antes de haver trabalhos apresentados', function () {
+it('publica e despublica os Trabalhos Publicados, mesmo antes de haver trabalhos apresentados', function () {
     $anais = criarAnais($this, ['status' => 'rascunho', 'publicado_em' => null, 'dados_publicacao_visiveis' => false]);
     $this->actingAs($this->gestor);
 
@@ -318,7 +318,7 @@ it('dados de publicação ficam ocultos até a gestão liberar: ISBN, ISSN, edit
 
     // oculto: trabalhos aparecem, dados de publicação não
     $this->get(route('anais.index', 'semana-teste'))->assertOk()->assertSee('Trabalho visível')
-        ->assertDontSee('978-85-1234-567-8')->assertDontSee('1234-5678')->assertDontSee('Editora Secreta')->assertDontSee('Baixar os Anais completos');
+        ->assertDontSee('978-85-1234-567-8')->assertDontSee('1234-5678')->assertDontSee('Editora Secreta')->assertDontSee('Baixar o PDF completo dos Trabalhos Publicados');
     $this->get(route('anais.pdf', 'semana-teste'))->assertNotFound();
     $this->get(route('anais.show', ['semana-teste', $t->codigo]))->assertOk()->assertDontSee('Como citar (ABNT)')->assertDontSee('citation_isbn', false)
         ->assertDontSee('citation_publication_date', false)->assertSee('será disponibilizada junto com os dados de publicação');
@@ -327,7 +327,7 @@ it('dados de publicação ficam ocultos até a gestão liberar: ISBN, ISSN, edit
     $this->actingAs($this->gestor)->post(route('gestao.trabalhos.anais.dados-publicacao', $this->evento), ['acao' => 'exibir'])->assertSessionHas('success');
     expect($anais->fresh()->dadosVisiveis())->toBeTrue();
     auth()->logout();
-    $this->get(route('anais.index', 'semana-teste'))->assertSee('978-85-1234-567-8')->assertSee('Baixar os Anais completos');
+    $this->get(route('anais.index', 'semana-teste'))->assertSee('978-85-1234-567-8')->assertSee('Baixar o PDF completo dos Trabalhos Publicados');
     $this->get(route('anais.pdf', 'semana-teste'))->assertOk();
     $this->get(route('anais.show', ['semana-teste', $t->codigo]))->assertSee('Como citar (ABNT)')->assertSee('citation_isbn', false);
 
@@ -363,7 +363,7 @@ it('página do evento mostra o botão Anais somente quando publicados', function
     $this->get(route('evento.publico.show', 'semana-teste'))->assertOk()->assertSee(route('anais.index', 'semana-teste'), false);
 });
 
-it('somente quem gere trabalhos usa a gestão dos Anais', function (string $quem) {
+it('somente quem gere trabalhos usa a gestão dos Trabalhos Publicados', function (string $quem) {
     $t = trabalhoPublicavel($this);
     $anais = criarAnais($this, ['status' => 'rascunho']);
     $usuario = match ($quem) {
@@ -392,7 +392,7 @@ it('gerar enfileira o job e marca como gerando; exige dados salvos e trabalhos e
     Queue::fake();
     $this->actingAs($this->gestor);
 
-    $this->post(route('gestao.trabalhos.anais.gerar', $this->evento))->assertSessionHas('error');   // sem registro de Anais
+    $this->post(route('gestao.trabalhos.anais.gerar', $this->evento))->assertSessionHas('error');   // sem registro de Trabalhos Publicados
 
     $anais = criarAnais($this, ['status' => 'rascunho']);
     $this->post(route('gestao.trabalhos.anais.gerar', $this->evento))->assertSessionHas('error');   // sem elegíveis
@@ -538,11 +538,11 @@ it('o PDF compilado só é baixado publicamente depois de publicado e pronto', f
     $this->get(route('anais.pdf', 'semana-teste'))->assertNotFound();                  // rascunho
     $anais->update(['status' => 'publicado']);
     $this->get(route('anais.pdf', 'semana-teste'))->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
-    $this->get(route('anais.index', 'semana-teste'))->assertSee('Baixar os Anais completos');
+    $this->get(route('anais.index', 'semana-teste'))->assertSee('Baixar o PDF completo dos Trabalhos Publicados');
 
     $anais->update(['pdf_status' => 'gerando']);
     $this->get(route('anais.pdf', 'semana-teste'))->assertNotFound();                  // sem PDF pronto
-    $this->get(route('anais.index', 'semana-teste'))->assertDontSee('Baixar os Anais completos');
+    $this->get(route('anais.index', 'semana-teste'))->assertDontSee('Baixar o PDF completo dos Trabalhos Publicados');
 });
 
 // ---------- Geração do PDF que não pode ficar "carregando" para sempre ----------
@@ -627,4 +627,47 @@ it('o job que falha ou estoura o tempo marca erro em vez de deixar "gerando"; se
     $servico2 = Mockery::mock(AnaisPdfService::class);
     $servico2->shouldNotReceive('gerar');
     (new GerarAnaisPdf($anais->fresh()))->handle($servico2);
+});
+
+// ---------- Nome "Trabalhos Publicados" (antes "Anais") ----------
+it('as telas públicas e da gestão usam o termo "Trabalhos Publicados" em vez de "Anais"', function () {
+    criarAnais($this, ['status' => 'publicado', 'dados_publicacao_visiveis' => true]);
+    trabalhoPublicavel($this);
+
+    $publica = $this->get(route('anais.index', 'semana-teste'))->assertOk()->assertSee('Trabalhos Publicados')->assertSee('trabalho(s) publicado(s)');
+    expect($publica->getContent())->not->toContain('>Anais<')->not->toContain('Anais do evento')->not->toContain('os Anais');
+
+    $home = $this->get('/')->assertOk()->assertSee('Trabalhos Publicados');
+    expect($home->getContent())->not->toContain('Anais publicados')->not->toContain('Anais dos eventos');
+
+    $this->get(route('evento.publico.show', 'semana-teste'))->assertOk()->assertSee('Trabalhos Publicados')->assertDontSee('>Anais<', false);
+
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()->assertSee('Trabalhos Publicados')->assertSee('Gerar PDF dos Trabalhos Publicados')->assertDontSee('Gerar PDF dos Anais');
+});
+
+it('o endereço público é /trabalhos-publicados e o endereço antigo /anais redireciona sem quebrar links já divulgados', function () {
+    criarAnais($this, ['status' => 'publicado']);
+
+    expect(route('anais.index', 'semana-teste'))->toEndWith('/e/semana-teste/trabalhos-publicados');
+    $this->get('/e/semana-teste/anais')->assertRedirect('/e/semana-teste/trabalhos-publicados')->assertStatus(301);
+    $this->get('/e/semana-teste/anais/TRB-1-0001')->assertRedirect('/e/semana-teste/trabalhos-publicados/TRB-1-0001');
+    $this->get('/e/semana-teste/anais/TRB-1-0001/pdf')->assertRedirect('/e/semana-teste/trabalhos-publicados/TRB-1-0001/pdf');
+    $this->get('/e/semana-teste/trabalhos-publicados')->assertOk();
+});
+
+it('a referência ABNT mantém a palavra "Anais" exigida pela norma', function () {
+    $anais = criarAnais($this, ['status' => 'publicado', 'dados_publicacao_visiveis' => true]);
+    $t = trabalhoPublicavel($this);
+
+    expect(app(\App\Services\CitacaoAbnt::class)->gerar($t->fresh(['autores', 'evento']), $anais->fresh()))->toContain('Anais [...]');
+});
+
+it('a migração renomeia só os títulos no padrão antigo "Anais do/da/de ..."', function () {
+    $a = criarAnais($this, ['status' => 'rascunho', 'titulo' => 'Anais da Semana de Teste']);
+    $outroEvento = mkEvento($this->dono);
+    $b = Anais::create(['evento_id' => $outroEvento->id, 'titulo' => 'Livro de Resumos 2026', 'ano' => 2026, 'status' => 'rascunho']);
+
+    (require database_path('migrations/2026_11_19_000500_renomeia_titulo_padrao_dos_anais.php'))->up();
+
+    expect($a->fresh()->titulo)->toBe('Trabalhos Publicados da Semana de Teste')->and($b->fresh()->titulo)->toBe('Livro de Resumos 2026');
 });

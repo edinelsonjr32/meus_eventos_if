@@ -18,15 +18,15 @@ use Illuminate\Support\Facades\Storage;
  * Jornada de ponta a ponta, SOMENTE por rotas HTTP reais e na ordem de uma chamada de verdade:
  * dono cria e publica a chamada → designa gestor e avaliadores → autor submete → triagem → avaliação
  * → decisão com ressalvas → correção → nova rodada → aprovação → apresentação pela frequência →
- * certificados → Anais públicos → certificado pelo autor. Nada é criado por atalho no banco.
+ * certificados → Trabalhos publicados → certificado pelo autor. Nada é criado por atalho no banco.
  */
 function jornadaPdf(string $nome): UploadedFile
 {
-    // PDF de verdade (1 página): o compilador dos Anais descarta PDFs ilegíveis
+    // PDF de verdade (1 página): o compilador dos Trabalhos Publicados descarta PDFs ilegíveis
     return UploadedFile::fake()->createWithContent($nome, \Barryvdh\DomPDF\Facade\Pdf::loadHTML("<h1>{$nome}</h1><p>Conteúdo do trabalho.</p>")->output());
 }
 
-it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Anais', function () {
+it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Trabalhos Publicados', function () {
     Mail::fake();
     Storage::fake('trabalhos');
 
@@ -169,7 +169,7 @@ it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Anai
     $this->get(route('anais.show', [$evento->slug, $trabalho->codigo]))->assertOk()->assertSee('Como citar (ABNT)')->assertSee('APRESENTADORA, A.');
     $this->get(route('anais.trabalho.pdf', [$evento->slug, $trabalho->codigo]))->assertOk();
 
-    // O autor obtém o certificado pelos Anais (CPF + e-mail da submissão)
+    // O autor obtém o certificado pelos Trabalhos Publicados (CPF + e-mail da submissão)
     $this->post(route('anais.certificado', [$evento->slug, $trabalho->codigo]), ['cpf' => '111.444.777-35', 'email' => 'ana@ifpa.edu.br'])
         ->assertRedirect(route('certificado.trabalho.download', $hash));
 

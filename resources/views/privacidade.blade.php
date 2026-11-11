@@ -70,7 +70,7 @@
             <div class="pv-resumo row g-3 mt-4">
                 @foreach([
                     ['fa-database', 'Só o necessário', 'Pedimos apenas os dados que cada função exige: conta, inscrição, presença, trabalhos e certificados.'],
-                    ['fa-eye-slash', 'CPF e e-mail ficam privados', 'Nunca aparecem nos Anais nem em páginas públicas. A validação de certificado oculta parte do CPF.'],
+                    ['fa-eye-slash', 'CPF e e-mail ficam privados', 'Nunca aparecem nos Trabalhos Publicados nem em páginas públicas. A validação de certificado oculta parte do CPF.'],
                     ['fa-sliders', 'Você tem controle', 'Pode pedir acesso, correção, anonimização e retirar a autorização de publicação.'],
                     ['fa-lock', 'Protegido', 'Senhas criptografadas, conexão segura (HTTPS) e arquivos de trabalhos em área privada.'],
                 ] as [$ico, $titulo, $texto])
@@ -124,13 +124,13 @@
                         <li><strong>Atividades acadêmicas e de extensão da instituição pública:</strong> inscrição, frequência, avaliação de trabalhos e emissão de certificados (execução de políticas e finalidades públicas da instituição de ensino).</li>
                         <li><strong>Execução do serviço que você pediu:</strong> manter sua conta e permitir que você participe de eventos.</li>
                         <li><strong>Cumprimento de obrigação legal e regulatória:</strong> guarda de registros de acesso e documentos acadêmicos pelos prazos exigidos.</li>
-                        <li><strong>Seu consentimento:</strong> a <strong>publicação do trabalho nos Anais</strong> depende da sua autorização expressa, dada no formulário de submissão ou na página do trabalho. Você pode retirá-la quando quiser.</li>
+                        <li><strong>Seu consentimento:</strong> a <strong>publicação do trabalho nos Trabalhos Publicados</strong> depende da sua autorização expressa, dada no formulário de submissão ou na página do trabalho. Você pode retirá-la quando quiser.</li>
                     </ul>
                 </section>
 
                 <section class="cartao pv-secao" id="publico">
                     <h2><span class="n">4</span> O que é público</h2>
-                    <p>Se o trabalho for aprovado, apresentado e você tiver autorizado a publicação, os Anais exibem: título, resumo, palavras-chave, nome e instituição dos autores e o PDF.</p>
+                    <p>Se o trabalho for aprovado, apresentado e você tiver autorizado a publicação, os Trabalhos Publicados exibem: título, resumo, palavras-chave, nome e instituição dos autores e o PDF.</p>
                     <div class="pv-destaque mb-3"><i class="fa-solid fa-circle-check me-1"></i> <strong>CPF e e-mail nunca são publicados.</strong></div>
                     <p class="mb-0">A página de <em>Validar certificado</em> mostra apenas o nome, o CPF parcialmente oculto, o evento e o trabalho a que o certificado se refere, para que qualquer pessoa confirme a autenticidade do documento.</p>
                 </section>
@@ -163,7 +163,7 @@
 
                 <section class="cartao pv-secao" id="direitos">
                     <h2><span class="n">7</span> Seus direitos</h2>
-                    <p>Pela LGPD você pode solicitar, a qualquer momento: confirmação de que tratamos seus dados; acesso e cópia (em formato estruturado); correção de dados incorretos ou desatualizados; anonimização, bloqueio ou eliminação de dados desnecessários; informação sobre com quem os dados são compartilhados; revisão de decisões; e a retirada da autorização de publicação nos Anais.</p>
+                    <p>Pela LGPD você pode solicitar, a qualquer momento: confirmação de que tratamos seus dados; acesso e cópia (em formato estruturado); correção de dados incorretos ou desatualizados; anonimização, bloqueio ou eliminação de dados desnecessários; informação sobre com quem os dados são compartilhados; revisão de decisões; e a retirada da autorização de publicação nos Trabalhos Publicados.</p>
                     <h3 class="h6 fw-bold mt-4 mb-3">Como exercer, passo a passo</h3>
                     <ol class="pv-passos">
                         <li><span>Escreva para <a href="mailto:{{ $contato }}">{{ $contato }}</a> a partir do e-mail cadastrado na sua conta e diga o que deseja (acesso, correção, eliminação...).</span></li>
@@ -176,14 +176,14 @@
                 <section class="cartao pv-secao" id="exclusao">
                     <h2><span class="n">8</span> Excluir a conta</h2>
                     <p>Em <em>Minha Conta</em> você pode excluir a sua conta. Seus dados pessoais são <strong>anonimizados</strong>. Trabalhos, notas e presenças permanecem apenas como registro acadêmico, sem identificar você, e certificados em seu nome deixam de ser válidos.</p>
-                    <p class="mb-0">Alguns registros são mantidos por exigência legal ou por interesse acadêmico público (como os Anais já publicados); nesses casos eliminamos ou anonimizamos o que for possível.</p>
+                    <p class="mb-0">Alguns registros são mantidos por exigência legal ou por interesse acadêmico público (como os trabalhos já publicados); nesses casos eliminamos ou anonimizamos o que for possível.</p>
                 </section>
 
                 <section class="cartao pv-secao" id="retencao">
                     <h2><span class="n">9</span> Por quanto tempo guardamos</h2>
                     <ul class="mb-0">
                         <li><strong>Conta e cadastro de participante:</strong> enquanto houver vínculo com eventos ou até o pedido de eliminação.</li>
-                        <li><strong>Certificados e Anais:</strong> permanecem como documento acadêmico de interesse público, salvo anonimização a pedido.</li>
+                        <li><strong>Certificados e Trabalhos Publicados:</strong> permanecem como documento acadêmico de interesse público, salvo anonimização a pedido.</li>
                         <li><strong>Rascunhos de trabalho não enviados:</strong> apagados após {{ config('privacidade.dias_rascunho') }} dias sem alteração.</li>
                         <li><strong>Backups:</strong> mantidos por cerca de {{ config('privacidade.dias_backup') }} dias; depois de uma anonimização, os dados antigos somem dos backups nesse prazo.</li>
                         <li><strong>Registros técnicos (logs):</strong> mantidos por prazo curto, apenas para segurança e correção de falhas.</li>

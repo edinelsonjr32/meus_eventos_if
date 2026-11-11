@@ -10,7 +10,7 @@
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ route('gestao.trabalhos.exportar', array_merge(['evento' => $evento->id, 'formato' => 'xlsx'], request()->only(['status', 'tipo', 'area', 'q']))) }}" class="btn btn-outline-success"><i class="fa-solid fa-file-excel"></i> Excel</a>
                     <a href="{{ route('gestao.trabalhos.exportar', array_merge(['evento' => $evento->id, 'formato' => 'csv'], request()->only(['status', 'tipo', 'area', 'q']))) }}" class="btn btn-tone-teal"><i class="fa-solid fa-file-csv"></i> CSV</a>
-                    <a href="{{ route('gestao.trabalhos.anais.edit', $evento) }}" class="btn btn-tone-indigo"><i class="fa-solid fa-book"></i> Anais</a>
+                    <a href="{{ route('gestao.trabalhos.anais.edit', $evento) }}" class="btn btn-tone-indigo"><i class="fa-solid fa-book"></i> Trabalhos Publicados</a>
                     <a href="{{ route('gestao.trabalhos.apresentacoes.index', $evento) }}" class="btn btn-outline-primary"><i class="fa-solid fa-person-chalkboard"></i> Apresentações</a>
                     <a href="{{ route('gestao.trabalhos.ranking', $evento) }}" class="btn btn-tone-amber"><i class="fa-solid fa-ranking-star"></i> Notas e ranking</a>
                     <a href="{{ route('gestao.trabalhos.premiacao.index', $evento) }}" class="btn btn-warning fw-bold"><i class="fa-solid fa-trophy"></i> Premiação</a>

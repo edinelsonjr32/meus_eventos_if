@@ -49,7 +49,7 @@ class VerificarSistema extends Command
         $this->secao('Fila e agendador (cron)');
         $this->filaECron();
 
-        $this->secao('PDF dos Anais (Ghostscript)');
+        $this->secao('PDF dos Trabalhos Publicados (Ghostscript)');
         $this->ghostscript();
 
         if ($destino = $this->option('email')) {
@@ -257,7 +257,7 @@ class VerificarSistema extends Command
 
         $r && $r->successful()
             ? $this->ok("Ghostscript {$gs} " . trim($r->output()))
-            : $this->aviso("Ghostscript ('{$gs}') indisponível: o PDF compilado dos Anais não será gerado (o resto do sistema funciona). Defina GS_BINARY com o caminho do binário, se existir");
+            : $this->aviso("Ghostscript ('{$gs}') indisponível: o PDF compilado dos Trabalhos Publicados não será gerado (o resto do sistema funciona). Defina GS_BINARY com o caminho do binário, se existir");
     }
 
     private function email(string $destino): void

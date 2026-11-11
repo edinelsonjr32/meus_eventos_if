@@ -127,7 +127,7 @@ class Trabalho extends Model
 
     public function arquivoAtual(): HasOne
     {
-        // O filtro vai DENTRO da subconsulta: senão um arquivo inativo de versão maior (ex.: PDF final dos Anais) esconderia o ativo
+        // O filtro vai DENTRO da subconsulta: senão um arquivo inativo de versão maior (ex.: PDF final dos Trabalhos Publicados) esconderia o ativo
         return $this->hasOne(TrabalhoArquivo::class)->ofMany(['versao' => 'max'], fn ($q) => $q->where('ativo', true));
     }
 
@@ -229,7 +229,7 @@ class Trabalho extends Model
         return round($this->nota_final * (1 - $p) + $this->nota_apresentacao * $p, 2);
     }
 
-    /** PDF final preparado pela gestão para os Anais (por exemplo, versão com identificação dos autores). */
+    /** PDF final preparado pela gestão para os Trabalhos Publicados (por exemplo, versão com identificação dos autores). */
     public function arquivoAnais(): HasOne
     {
         return $this->hasOne(TrabalhoArquivo::class)->ofMany(['versao' => 'max'], fn ($q) => $q->where('tipo', 'final_anais'));

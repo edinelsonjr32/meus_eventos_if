@@ -241,7 +241,7 @@ it('categoria Ensino: é aceita na chamada, entra no ranking, na premiação e n
     $this->get(route('gestao.trabalhos.ranking', $this->evento))->assertOk()->assertSee('Ensino');
 });
 
-it('o formulário de submissão e o filtro dos Anais oferecem a categoria Ensino', function () {
+it('o formulário de submissão e o filtro dos Trabalhos Publicados oferecem a categoria Ensino', function () {
     $this->evento->trabalhoConfig->update(['ativo' => true, 'tipos_permitidos' => ['pesquisa', 'ensino'], 'submissao_inicio' => now()->subDay(), 'submissao_fim' => now()->addDay()]);
     $this->actingAs($this->autor)->get(route('trabalhos.create', $this->evento->slug))->assertOk()->assertSee('value="ensino"', false);
     expect(\App\Models\TrabalhoConfig::TIPOS)->toHaveKey('ensino');

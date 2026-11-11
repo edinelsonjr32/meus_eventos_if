@@ -89,7 +89,7 @@
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <span class="ev-selo {{ $encerrado ? 'fim' : '' }}"><i class="fa-solid fa-circle"></i> {{ $encerrado ? 'Evento encerrado' : ($emAndamento ? 'Acontecendo agora' : 'Inscrições abertas') }}</span>
                         @if($chamadaAberta)<span class="ev-selo"><i class="fa-solid fa-file-arrow-up" style="font-size:.7rem"></i> Chamada de trabalhos aberta</span>@endif
-                        @if($anaisPublicados)<span class="ev-selo"><i class="fa-solid fa-book" style="font-size:.7rem"></i> Anais publicados</span>@endif
+                        @if($anaisPublicados)<span class="ev-selo"><i class="fa-solid fa-book" style="font-size:.7rem"></i> Trabalhos publicados</span>@endif
                     </div>
 
                     @if($logoUrl)<img src="{{ $logoUrl }}" alt="Logo do evento {{ $evento->titulo }}" class="ev-logo mb-3 d-block">@endif
@@ -108,7 +108,7 @@
                             <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-file-arrow-up me-1"></i> Submeter Trabalho</a>
                         @endif
                         @if($anaisPublicados)
-                            <a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-book me-1"></i> Anais</a>
+                            <a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-book me-1"></i> Trabalhos Publicados</a>
                         @endif
                     </div>
                 </div>
@@ -205,7 +205,7 @@
                     <section class="cartao ev-bloco" id="trabalhos">
                         <h2><i class="fa-solid fa-file-lines"></i> Chamada de trabalhos</h2>
                         @if($cfg->chamada_tema)<p class="fw-semibold mb-2" style="color: var(--brand-dark);">Tema: “{{ $cfg->chamada_tema }}”</p>@endif
-                        <p class="text-muted">{{ $cfg->chamada_intro ? \Illuminate\Support\Str::limit(strip_tags($cfg->chamada_intro), 320) : 'Envie o seu trabalho acadêmico para avaliação da comissão. Os aprovados e apresentados são publicados nos Anais do evento.' }}</p>
+                        <p class="text-muted">{{ $cfg->chamada_intro ? \Illuminate\Support\Str::limit(strip_tags($cfg->chamada_intro), 320) : 'Envie o seu trabalho acadêmico para avaliação da comissão. Os aprovados e apresentados são publicados nos Trabalhos Publicados.' }}</p>
 
                         <div class="row g-3 mb-3">
                             <div class="col-sm-6"><div class="info-linha"><i class="fa-regular fa-calendar-check"></i><div><small>Período de submissão</small>{{ $cfg->submissao_inicio ? $cfg->submissao_inicio->format('d/m/Y') : 'já aberto' }} @if($cfg->submissao_fim) a {{ $cfg->submissao_fim->format('d/m/Y') }} @endif</div></div></div>
@@ -226,7 +226,7 @@
                                 <span class="selo selo-cinza"><i class="fa-regular fa-circle-xmark"></i> Chamada encerrada</span>
                             @endif
                             @if($cfg->template_url)<a href="{{ $cfg->template_url }}" target="_blank" rel="noopener" class="btn btn-outline-brand"><i class="fa-solid fa-download me-1"></i> Modelo (template)</a>@endif
-                            @if($anaisPublicados)<a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-outline-brand"><i class="fa-solid fa-book me-1"></i> Ver os Anais</a>@endif
+                            @if($anaisPublicados)<a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-outline-brand"><i class="fa-solid fa-book me-1"></i> Ver os Trabalhos Publicados</a>@endif
                         </div>
                     </section>
                 @endif

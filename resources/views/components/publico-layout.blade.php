@@ -1,6 +1,6 @@
 @props(['titulo' => null, 'descricao' => null, 'marca' => '#059669', 'mascara' => false, 'ativo' => null, 'semMoldura' => false])
 {{--
-  Moldura das páginas públicas (home, página do evento, Anais): menu fixo, tokens de cor e rodapé completo.
+  Moldura das páginas públicas (home, página do evento, Trabalhos Publicados): menu fixo, tokens de cor e rodapé completo.
   Uso: <x-publico-layout titulo="..." :marca="$cor"> ...conteúdo... </x-publico-layout>
   Slots opcionais: <x-slot:meta> (tags no <head>), <x-slot:scripts> (scripts no fim).
 --}}
@@ -95,7 +95,7 @@
                 <div class="collapse navbar-collapse" id="pubMenu">
                     <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1 pt-3 pt-lg-0">
                         <li class="nav-item"><a class="nav-link {{ $ativo === 'eventos' ? 'ativo' : '' }}" href="{{ route('home') }}#eventos">Eventos</a></li>
-                        <li class="nav-item"><a class="nav-link {{ $ativo === 'anais' ? 'ativo' : '' }}" href="{{ route('home') }}#anais">Anais</a></li>
+                        <li class="nav-item"><a class="nav-link {{ $ativo === 'anais' ? 'ativo' : '' }}" href="{{ route('home') }}#anais">Trabalhos Publicados</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#como-funciona">Como funciona</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#validar">Validar certificado</a></li>
                         <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
@@ -129,7 +129,7 @@
                 <div class="col-6 col-lg-3 offset-lg-1">
                     <h6>Navegue</h6>
                     <a href="{{ route('home') }}#eventos">Próximos eventos</a>
-                    <a href="{{ route('home') }}#anais">Anais publicados</a>
+                    <a href="{{ route('home') }}#anais">Trabalhos publicados</a>
                     <a href="{{ route('home') }}#como-funciona">Como funciona</a>
                     <a href="{{ route('home') }}#validar">Validar certificado</a>
                 </div>

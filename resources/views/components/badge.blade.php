@@ -61,9 +61,9 @@
             'resultado_apresentacao' => ['dourado', 'fa-hourglass-half', 'Aguardando resultado da apresentação'],
         ],
         'anais' => [
-            'pendente' => ['laranja', 'fa-book-open', 'Pendente de aprovação · Anais do evento'],
-            'autorizado' => ['verde', 'fa-book-bookmark', 'Publicação nos Anais autorizada'],
-            'nao_autorizado' => ['cinza', 'fa-book', 'Publicação nos Anais não autorizada'],
+            'pendente' => ['laranja', 'fa-book-open', 'Pendente de aprovação · Trabalhos Publicados'],
+            'autorizado' => ['verde', 'fa-book-bookmark', 'Publicação autorizada'],
+            'nao_autorizado' => ['cinza', 'fa-book', 'Publicação não autorizada'],
         ],
         'certificado' => [
             'valido' => ['verde', 'fa-award', 'Válido'], 'revogado' => ['vermelho-forte', 'fa-ban', 'Revogado'],

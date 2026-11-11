@@ -7,7 +7,7 @@ use App\Models\Trabalho;
 use Illuminate\Support\Collection;
 
 /**
- * Referência bibliográfica (ABNT NBR 6023) de um trabalho publicado nos Anais.
+ * Referência bibliográfica (ABNT NBR 6023) de um trabalho publicado nos Trabalhos Publicados.
  * Ex.: SILVA, A. B.; SOUZA, C. Título. In: EVENTO, 2026, Óbidos. Anais [...]. Óbidos: Editora, 2026.
  */
 class CitacaoAbnt

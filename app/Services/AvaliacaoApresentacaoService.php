@@ -182,7 +182,7 @@ class AvaliacaoApresentacaoService
             $avaliacao->update(['nota_final' => $this->calcularNota($notas, $criterios), 'status' => 'concluida', 'concluida_em' => now()]);
             $trabalho = $avaliacao->trabalho;
 
-            // Se avaliaram a apresentação, ela aconteceu: marca como apresentado para não travar o fluxo (certificado, Anais)
+            // Se avaliaram a apresentação, ela aconteceu: marca como apresentado para não travar o fluxo (certificado, Trabalhos Publicados)
             if (!$trabalho->apresentado) {
                 app(ApresentacaoService::class)->marcar($trabalho, true, $avaliacao->avaliador, 'avaliacao');
             }

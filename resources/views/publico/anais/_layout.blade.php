@@ -1,4 +1,4 @@
-{{-- Moldura dos Anais públicos: mesmo menu e rodapé do portal, com cabeçalho da edição --}}
+{{-- Moldura dos Trabalhos publicados: mesmo menu e rodapé do portal, com cabeçalho da edição --}}
 <x-publico-layout :titulo="trim($__env->yieldContent('titulo')) . ' — ' . $anais->titulo" :marca="$evento->configuracoes['cor_fundo'] ?? '#059669'" ativo="anais">
     <x-slot:meta>
         @yield('meta')
@@ -37,11 +37,11 @@
             <div class="an-trilha mb-3">
                 <a href="{{ route('home') }}">Início</a> <i class="fa-solid fa-chevron-right mx-1" style="font-size:.6rem"></i>
                 <a href="{{ route('evento.publico.show', $evento->slug) }}">{{ \Illuminate\Support\Str::limit($evento->titulo, 36) }}</a> <i class="fa-solid fa-chevron-right mx-1" style="font-size:.6rem"></i>
-                <span>Anais</span>
+                <span>Trabalhos Publicados</span>
             </div>
             <div class="row align-items-end g-4">
                 <div class="col-lg-8">
-                    <div class="mb-2"><span class="an-chip"><i class="fa-solid fa-book-open"></i> Anais do evento</span></div>
+                    <div class="mb-2"><span class="an-chip"><i class="fa-solid fa-book-open"></i> Trabalhos Publicados</span></div>
                     <h1 class="mb-2">{{ $anais->titulo }}</h1>
                     <div style="color:#d1fae5;">
                         @if($anais->dadosVisiveis())
@@ -65,7 +65,7 @@
                 </div>
             </div>
             @if($anais->dadosVisiveis() && $anais->pdfPronto())
-                <a href="{{ route('anais.pdf', $evento->slug) }}" class="btn btn-an mt-4"><i class="fa-solid fa-file-pdf me-1"></i> Baixar os Anais completos (PDF)</a>
+                <a href="{{ route('anais.pdf', $evento->slug) }}" class="btn btn-an mt-4"><i class="fa-solid fa-file-pdf me-1"></i> Baixar o PDF completo dos Trabalhos Publicados</a>
             @endif
         </div>
     </header>

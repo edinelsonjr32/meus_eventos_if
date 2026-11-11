@@ -30,16 +30,16 @@ function concluidoSemAutorizacao($ctx, string $titulo = 'Concluído sem autoriza
     return $t->fresh();
 }
 
-it('trabalho concluído sem autorização dos autores NÃO aparece nos Anais e a gestão vê o motivo', function () {
+it('trabalho concluído sem autorização dos autores NÃO aparece nos Trabalhos Publicados e a gestão vê o motivo', function () {
     $t = concluidoSemAutorizacao($this);
     expect($t->statusFinal())->toBe('concluido')->and(Anais::elegiveis($this->evento)->count())->toBe(0);
 
     $this->get(route('anais.index', 'conclusao'))->assertOk()->assertDontSee($t->titulo);
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()
-        ->assertSee('Concluídos que não entram nos Anais')->assertSee($t->codigo)->assertSee('Autores não autorizaram a publicação')->assertSee('Solicitar autorização aos autores (1)');
+        ->assertSee('Concluídos que não entram nos Trabalhos Publicados')->assertSee($t->codigo)->assertSee('Autores não autorizaram a publicação')->assertSee('Solicitar autorização aos autores (1)');
 });
 
-it('o autor autoriza depois de aprovado e o trabalho concluído passa a constar nos Anais; revogar o tira', function () {
+it('o autor autoriza depois de aprovado e o trabalho concluído passa a constar nos Trabalhos Publicados; revogar o tira', function () {
     $t = concluidoSemAutorizacao($this);
 
     $this->actingAs($this->autor)->get(route('trabalhos.show', $t))->assertOk()->assertSee('Autorizar publicação');
@@ -111,22 +111,22 @@ it('concluído sem PDF publicável é apontado como "Sem PDF publicável"', func
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()->assertSee($t->codigo)->assertSee('Sem PDF publicável');
 });
 
-it('o autor vê o selo "Pendente de aprovação · Anais do evento" (diferente dos demais) enquanto não autoriza', function () {
+it('o autor vê o selo "Pendente de aprovação · Trabalhos Publicados" (diferente dos demais) enquanto não autoriza', function () {
     $t = concluidoSemAutorizacao($this);
 
-    $this->actingAs($this->autor)->get(route('trabalhos.index'))->assertOk()->assertSee('Pendente de aprovação · Anais do evento');
-    $this->get(route('trabalhos.show', $t))->assertOk()->assertSee('Pendente de aprovação · Anais do evento')->assertDontSee('Publicação nos Anais não autorizada');
+    $this->actingAs($this->autor)->get(route('trabalhos.index'))->assertOk()->assertSee('Pendente de aprovação · Trabalhos Publicados');
+    $this->get(route('trabalhos.show', $t))->assertOk()->assertSee('Pendente de aprovação · Trabalhos Publicados')->assertDontSee('Publicação não autorizada');
 
     $this->post(route('trabalhos.autorizacao-publicacao', $t), ['autoriza' => 1]);
-    $this->get(route('trabalhos.index'))->assertDontSee('Pendente de aprovação · Anais do evento');
-    $this->get(route('trabalhos.show', $t))->assertSee('Publicação nos Anais autorizada')->assertDontSee('Pendente de aprovação · Anais do evento');
+    $this->get(route('trabalhos.index'))->assertDontSee('Pendente de aprovação · Trabalhos Publicados');
+    $this->get(route('trabalhos.show', $t))->assertSee('Publicação autorizada')->assertDontSee('Pendente de aprovação · Trabalhos Publicados');
 
     // fora das fases em que dá para autorizar, não aparece como pendência
     $triagem = mkTrabalho($this->evento, $this->autor, ['titulo' => 'Em triagem', 'autoriza_publicacao' => false], 'em_triagem');
-    $this->get(route('trabalhos.show', $triagem))->assertSee('Publicação nos Anais não autorizada')->assertDontSee('Pendente de aprovação · Anais do evento');
+    $this->get(route('trabalhos.show', $triagem))->assertSee('Publicação não autorizada')->assertDontSee('Pendente de aprovação · Trabalhos Publicados');
 });
 
-it('o selo dos Anais tem cor e ícone próprios, distintos dos de status do trabalho', function () {
+it('o selo dos Trabalhos Publicados tem cor e ícone próprios, distintos dos de status do trabalho', function () {
     $html = fn ($v) => \Illuminate\Support\Facades\Blade::render('<x-badge tipo="anais" :valor="$v" />', ['v' => $v]);
     preg_match('/background: (#\w+);.*?fa-solid (fa-[\w-]+)/s', $html('pendente'), $p);
     foreach (array_keys(\App\Models\Trabalho::STATUS) as $s) {
@@ -136,7 +136,7 @@ it('o selo dos Anais tem cor e ícone próprios, distintos dos de status do trab
 });
 
 // ---------- Autorização pré-marcada no cadastro do trabalho ----------
-it('no cadastro do trabalho a autorização de publicação nos Anais já vem marcada (caso aprovado)', function () {
+it('no cadastro do trabalho a autorização de publicação nos Trabalhos Publicados já vem marcada (caso aprovado)', function () {
     $html = $this->actingAs($this->autor)->get(route('trabalhos.create', 'conclusao'))->assertOk()->getContent();
 
     expect($html)->toMatch('/<input class="form-check-input" type="checkbox" name="autoriza_publicacao" value="1" id="d3"\s+checked/')
