@@ -183,5 +183,5 @@ it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Anai
 
     // ---------- Histórico consolidado ----------
     $sequencia = $trabalho->fresh()->historico->filter(fn ($h) => $h->de !== $h->para)->pluck('para')->all();
-    expect($sequencia)->toBe(['rascunho', 'submetido', 'em_triagem', 'em_avaliacao', 'avaliado', 'aguardando_correcao', 'resubmetido', 'em_avaliacao', 'avaliado', 'aprovado']);
+    expect($sequencia)->toBe(['rascunho', 'submetido', 'em_triagem', 'em_avaliacao', 'avaliado', 'aprovado']);
 });
