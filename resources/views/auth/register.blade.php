@@ -1,6 +1,9 @@
 <x-guest-layout>
 
     <div class="text-center mb-4">
+        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+            <i class="fa-solid fa-user-plus fs-3"></i>
+        </div>
         <h4 class="fw-bold text-dark mb-1">Crie sua Conta</h4>
         <p class="text-secondary small mb-0">Informe seu CPF para recuperar seu histórico de certificados.</p>
     </div>
@@ -13,36 +16,39 @@
 
         <div class="mb-3">
             <label class="form-label small fw-bold text-uppercase text-secondary">Nome Completo</label>
-            <input type="text" name="name" class="form-control" placeholder="Seu nome oficial" value="{{ old('name') }}" required autofocus autocomplete="name">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-secondary"><i class="fa-regular fa-user"></i></span>
+                <input type="text" name="name" class="form-control border-start-0 ps-0" placeholder="Seu nome oficial" value="{{ old('name') }}" required autofocus autocomplete="name">
+            </div>
             @error('name') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
         </div>
 
         <div class="mb-3">
             <label class="form-label small fw-bold text-uppercase text-secondary">CPF</label>
-            <input type="text" name="cpf" class="form-control cpf-mask" placeholder="000.000.000-00" value="{{ old('cpf') }}" required>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-secondary"><i class="fa-regular fa-id-card"></i></span>
+                <input type="text" name="cpf" class="form-control border-start-0 ps-0 cpf-mask" placeholder="000.000.000-00" value="{{ old('cpf') }}" required inputmode="numeric">
+            </div>
             <div class="form-text small text-muted">Usaremos seu CPF para vincular certificados anteriores.</div>
             @error('cpf') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
         </div>
 
         <div class="mb-3">
             <label class="form-label small fw-bold text-uppercase text-secondary">Email</label>
-            <input type="email" name="email" class="form-control" placeholder="seu@email.com" value="{{ old('email') }}" required autocomplete="username">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-secondary"><i class="fa-regular fa-envelope"></i></span>
+                <input type="email" name="email" class="form-control border-start-0 ps-0" placeholder="seu@email.com" value="{{ old('email') }}" required autocomplete="username">
+            </div>
             @error('email') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
         </div>
 
-        <div class="mb-3">
-            <label class="form-label small fw-bold text-uppercase text-secondary">Senha</label>
-            <input type="password" name="password" class="form-control" placeholder="Mínimo 8 caracteres" required autocomplete="new-password">
-            @error('password') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
-        </div>
+        <x-campo-senha name="password" label="Senha" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
 
         <div class="mb-4">
-            <label class="form-label small fw-bold text-uppercase text-secondary">Confirmar Senha</label>
-            <input type="password" name="password_confirmation" class="form-control" placeholder="Repita a senha" required autocomplete="new-password">
-            @error('password_confirmation') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
+            <x-campo-senha name="password_confirmation" label="Confirmar Senha" placeholder="Repita a senha" autocomplete="new-password" />
         </div>
 
-        <button type="submit" class="btn-primary-custom shadow-lg text-uppercase tracking-wide">
+        <button type="submit" class="btn-primary-custom shadow-lg text-uppercase tracking-wide w-100">
             Cadastrar-se
         </button>
 

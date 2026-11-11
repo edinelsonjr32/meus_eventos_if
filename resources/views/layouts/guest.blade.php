@@ -64,7 +64,7 @@
                 <i class="fa-solid fa-graduation-cap text-success fs-2"></i>
             </div>
             <h4 class="fw-bold text-dark m-0">MeusEventosIf</h4>
-            <small class="text-secondary">Acesso Administrativo</small>
+            <small class="text-secondary">Plataforma de eventos · IFPA Campus Óbidos</small>
         </div>
 
         {{ $slot }}

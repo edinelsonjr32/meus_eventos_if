@@ -28,16 +28,7 @@
             @enderror
         </div>
 
-        <div class="mb-3">
-            <label class="form-label small fw-bold text-uppercase text-secondary">Senha</label>
-            <div class="input-group">
-                <span class="input-group-text bg-light border-end-0 text-secondary"><i class="fa-solid fa-lock"></i></span>
-                <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="Sua senha" required autocomplete="current-password">
-            </div>
-            @error('password')
-                <small class="text-danger d-block mt-1">{{ $message }}</small>
-            @enderror
-        </div>
+        <x-campo-senha name="password" label="Senha" placeholder="Sua senha" autocomplete="current-password" />
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div class="form-check">
