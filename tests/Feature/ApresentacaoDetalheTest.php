@@ -77,14 +77,14 @@ it('atribui e remove avaliadores da apresentação pelo detalhe, com impedimento
     mkPapel($this->autor, $this->evento, 'avaliador');   // o responsável também é avaliador do evento: conflito
 
     $html = $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $t))->getContent();
-    expect($html)->toContain('Disponíveis')->toContain('Conflito de interesse (não pode avaliar)')
-        ->toMatch('/<option value="' . $this->autor->id . '" disabled data-tipo="conflito">[^<]*é o responsável pela submissão/u');
+    expect($html)->toContain('seletor-avaliadores')
+        ->toMatch('/value="' . $this->autor->id . '"\s+disabled\s+data-tipo="conflito".*?é o responsável pela submissão/su');
 
     $this->post(route('gestao.trabalhos.apresentacoes.atribuir', $t), ['avaliadores' => [$this->av1->id, $this->autor->id]])->assertSessionHas('success')->assertSessionHas('erros_lote');
     expect($t->avaliacoesApresentacao()->pluck('avaliador_id')->all())->toBe([$this->av1->id]);
 
     // depois de atribuído, o avaliador vai para o grupo "já atribuídos" e pode ser removido
-    $this->get(route('gestao.trabalhos.show', $t))->assertSee('Já atribuídos à apresentação')->assertSee('Remover');
+    $this->get(route('gestao.trabalhos.show', $t))->assertSee('já atribuído')->assertSee('Remover');
     $a = $t->avaliacoesApresentacao()->first();
     $this->delete(route('gestao.trabalhos.apresentacoes.remover', $a))->assertSessionHas('success');
     expect($t->avaliacoesApresentacao()->count())->toBe(0);

@@ -125,11 +125,11 @@ it('detalhe do trabalho: avaliadores aparecem agrupados e o impedido (atribuído
 
     $html = $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $t))->assertOk()->getContent();
 
-    expect($html)->toContain('Disponíveis')->toContain('Já atribuídos a este trabalho')->toContain('Conflito de interesse (não pode avaliar)');
-    expect($html)->toMatch('/<option value="' . $this->av1->id . '" disabled data-tipo="atribuido">[^<]*já atribuído/u')
-        ->toMatch('/<option value="' . $recusou->id . '" disabled data-tipo="recusou">[^<]*recusou a avaliação/u')
-        ->toMatch('/<option value="' . $this->autor->id . '" disabled data-tipo="conflito">[^<]*é o responsável pela submissão/u')
-        ->toMatch('/<option value="' . $this->av2->id . '">/');   // o disponível segue selecionável
+    expect($html)->toContain('seletor-avaliadores');
+    expect($html)->toMatch('/value="' . $this->av1->id . '"\s+disabled\s+data-tipo="atribuido".*?já atribuído/su')
+        ->toMatch('/value="' . $recusou->id . '"\s+disabled\s+data-tipo="recusou".*?recusou a avaliação/su')
+        ->toMatch('/value="' . $this->autor->id . '"\s+disabled\s+data-tipo="conflito".*?é o responsável pela submissão/su')
+        ->toMatch('/value="' . $this->av2->id . '"\s*>/');   // o disponível segue selecionável
     expect($html)->toContain('já atribuído(s)')->toContain('com conflito');
 });
 

@@ -137,23 +137,7 @@
                     $atribuidosJa = $avaliadores->filter(fn ($u) => in_array($u->impedimento['tipo'] ?? null, ['atribuido', 'recusou'], true));
                     $comConflito = $avaliadores->filter(fn ($u) => ($u->impedimento['tipo'] ?? null) === 'conflito');
                 @endphp
-                <select name="avaliadores[]" id="selAvaliadores" class="form-select js-select-avaliadores" multiple data-placeholder="Busque e selecione os avaliadores…" style="width:100%">
-                    @if($livres->isNotEmpty())
-                        <optgroup label="Disponíveis">
-                            @foreach($livres as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
-                        </optgroup>
-                    @endif
-                    @if($atribuidosJa->isNotEmpty())
-                        <optgroup label="Já atribuídos a este trabalho">
-                            @foreach($atribuidosJa as $u) <option value="{{ $u->id }}" disabled data-tipo="{{ $u->impedimento['tipo'] }}">{{ $u->name }} — {{ $u->impedimento['tipo'] === 'recusou' ? 'recusou a avaliação' : 'já atribuído' }}</option> @endforeach
-                        </optgroup>
-                    @endif
-                    @if($comConflito->isNotEmpty())
-                        <optgroup label="Conflito de interesse (não pode avaliar)">
-                            @foreach($comConflito as $u) <option value="{{ $u->id }}" disabled data-tipo="conflito">{{ $u->name }} — {{ $u->impedimento['motivo'] }}</option> @endforeach
-                        </optgroup>
-                    @endif
-                </select>
+                <x-seletor-avaliadores name="avaliadores[]" :items="$avaliadores" id="selAvaliadores" />
                 @if($livres->isEmpty())
                     <div class="alert alert-warning small py-2 mt-2 mb-0"><i class="fa-solid fa-triangle-exclamation me-1"></i> Nenhum avaliador disponível para este trabalho: {{ $atribuidosJa->count() }} já atribuído(s)/recusou e {{ $comConflito->count() }} com conflito de interesse.</div>
                 @elseif($atribuidosJa->isNotEmpty() || $comConflito->isNotEmpty())
@@ -162,7 +146,7 @@
                         @if($comConflito->isNotEmpty()) <span class="sb" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;"><i class="fa-solid fa-user-slash"></i> {{ $comConflito->count() }} com conflito</span> @endif
                     </div>
                 @endif
-                <div class="form-text">Digite para filtrar. Quem já está atribuído ou tem conflito (ex.: é autor do trabalho e não pode se avaliar) aparece desabilitado, com o motivo.</div>
+                <div class="form-text">Digite para filtrar e marque quem vai avaliar. Quem já está atribuído ou tem conflito (ex.: é autor do trabalho e não pode se avaliar) aparece desabilitado, com o motivo.</div>
             @else
                 <p class="small text-muted">Não há avaliadores disponíveis. Designe avaliadores em "Papéis" do evento.</p>
             @endif
@@ -213,10 +197,7 @@
                 @else
                     <form action="{{ route('gestao.trabalhos.desempate', $trabalho) }}" method="POST" class="mt-2">
                         @csrf
-                        <select name="avaliador_id" class="form-select js-select-avaliadores" data-placeholder="Escolha o avaliador de desempate…" style="width:100%" required>
-                            <option value=""></option>
-                            @foreach($livresDesempate as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
-                        </select>
+                        <x-seletor-avaliadores name="avaliador_id" :items="$livresDesempate" :single="true" id="selDesempate" />
                         <input type="date" name="prazo" class="form-control form-control-sm mt-2" min="{{ now()->addDay()->format('Y-m-d') }}" title="Prazo (opcional)">
                         <button class="btn btn-sm btn-warning w-100 fw-bold mt-2" data-confirmar="Adicionar avaliador de desempate? @if($trabalho->status === 'avaliado') O trabalho voltará para 'Em avaliação' até ele concluir. @endif"><i class="fa-solid fa-scale-balanced"></i> Adicionar avaliador de desempate</button>
                     </form>
@@ -437,21 +418,7 @@
                 <form action="{{ route('gestao.trabalhos.apresentacoes.atribuir', $trabalho) }}" method="POST" class="mt-2">
                     @csrf
                     <label class="small fw-bold text-secondary" for="selAvaliadoresAp">Atribuir avaliadores da apresentação</label>
-                    <select name="avaliadores[]" id="selAvaliadoresAp" class="form-select js-select-avaliadores" multiple data-placeholder="Busque e selecione os avaliadores…" style="width:100%">
-                        @if($livresAp->isNotEmpty())
-                            <optgroup label="Disponíveis">
-                                @foreach($livresAp as $u) <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->carga }} em aberto)</option> @endforeach
-                            </optgroup>
-                        @endif
-                        @foreach(['atribuido' => 'Já atribuídos à apresentação', 'conflito' => 'Conflito de interesse (não pode avaliar)'] as $tipo => $rotuloGrupo)
-                            @php $grupo = $impedidosAp->filter(fn ($u) => $u->impedimento['tipo'] === $tipo); @endphp
-                            @if($grupo->isNotEmpty())
-                                <optgroup label="{{ $rotuloGrupo }}">
-                                    @foreach($grupo as $u) <option value="{{ $u->id }}" disabled data-tipo="{{ $tipo }}">{{ $u->name }} — {{ $tipo === 'atribuido' ? 'já atribuído' : $u->impedimento['motivo'] }}</option> @endforeach
-                                </optgroup>
-                            @endif
-                        @endforeach
-                    </select>
+                    <x-seletor-avaliadores name="avaliadores[]" :items="$avaliadoresAp" id="selAvaliadoresAp" />
                     @if($livresAp->isEmpty())
                         <div class="alert alert-warning small py-2 mt-2 mb-0"><i class="fa-solid fa-triangle-exclamation me-1"></i> Nenhum avaliador disponível: todos já atribuídos ou com conflito de interesse.</div>
                     @else
@@ -508,30 +475,3 @@
     @endif
 </div>
 @endif
-
-@once('assets-select2-avaliadores')
-    @if(($podeAtribuir || $trabalho->status === 'aprovado') && $avaliadores->isNotEmpty())
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap-5-theme/1.3.0/select2-bootstrap-5-theme.min.css" rel="stylesheet">
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/i18n/pt-BR.min.js"></script>
-        <script>
-            window.addEventListener('load', function () {
-                if (!window.jQuery || !jQuery.fn.select2) return;
-                jQuery('.js-select-avaliadores').each(function () {
-                    jQuery(this).select2({
-                        theme: 'bootstrap-5', language: 'pt-BR', width: '100%', closeOnSelect: false, placeholder: this.dataset.placeholder, allowClear: true,
-                        // Impedidos aparecem em cor própria, com ícone e o motivo no próprio item
-                        templateResult: function (o) {
-                            const tipo = o.element && o.element.dataset ? o.element.dataset.tipo : null;
-                            if (!tipo) return o.text;
-                            const estilo = { conflito: ['#b91c1c', 'fa-user-slash'], atribuido: ['#4338ca', 'fa-user-check'], recusou: ['#b45309', 'fa-hand'] }[tipo] || ['#64748b', 'fa-circle'];
-                            return jQuery('<span style="color:' + estilo[0] + ';"><i class="fa-solid ' + estilo[1] + ' me-1"></i></span>').append(document.createTextNode(o.text));
-                        },
-                    });
-                });
-            });
-        </script>
-    @endif
-@endonce
