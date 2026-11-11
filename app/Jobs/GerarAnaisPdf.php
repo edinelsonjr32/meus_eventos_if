@@ -18,7 +18,10 @@ class GerarAnaisPdf implements ShouldQueue
 
     public int $tries = 1;
 
-    public int $timeout = 900;
+    // Menor que o --timeout do worker e que o retry_after da fila: ao estourar, o job FALHA (e o status vira "erro") em vez de ficar preso
+    public int $timeout = 540;
+
+    public bool $failOnTimeout = true;
 
     public function __construct(public Anais $anais)
     {
@@ -26,7 +29,19 @@ class GerarAnaisPdf implements ShouldQueue
 
     public function handle(AnaisPdfService $servico): void
     {
-        $servico->gerar($this->anais);
+        $this->anais->refresh();
+
+        // Já foi concluída/cancelada (ex.: gerada na hora pelo botão "Gerar agora"): nada a fazer
+        if (!$this->anais->pdfGerando()) {
+            return;
+        }
+
+        try {
+            $servico->gerar($this->anais);
+        } catch (\Throwable $e) {
+            $this->failed($e);
+            throw $e;
+        }
     }
 
     public function failed(\Throwable $e): void

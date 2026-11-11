@@ -124,17 +124,80 @@ class AnaisGestaoController extends Controller
         if (!$anais) {
             return back()->with('error', 'Salve os dados dos Anais antes de gerar o PDF.');
         }
-        if ($anais->pdf_status === 'gerando') {
+        if ($anais->pdfGerando() && !$anais->pdfPreso()) {
             return back()->with('error', 'O PDF já está sendo gerado.');
         }
         if (Anais::elegiveis($evento)->doesntExist()) {
             return back()->with('error', 'Não há trabalhos elegíveis (aprovados, apresentados e autorizados) para compilar.');
         }
 
-        $anais->update(['pdf_status' => 'gerando', 'pdf_erro' => null]);
+        $anais->update(['pdf_status' => 'gerando', 'pdf_erro' => null, 'pdf_iniciado_em' => now()]);
         GerarAnaisPdf::dispatch($anais);
 
-        return back()->with('success', 'Geração do PDF iniciada. Atualize a página em instantes.');
+        return back()->with('success', 'Geração do PDF iniciada. A página acompanha o andamento sozinha.');
+    }
+
+    /** Andamento da geração (consultado pela página a cada poucos segundos). */
+    public function statusPdf(Evento $evento)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        $anais = $evento->anais;
+        abort_unless($anais, 404);
+
+        $batimento = \Illuminate\Support\Facades\Cache::get('agendador:ultimo-batimento');
+        $conexao = config('queue.default');
+        $filaParada = $anais->pdfGerando() && $conexao !== 'sync'
+            && (!$batimento || \Illuminate\Support\Carbon::parse($batimento)->lt(now()->subMinutes(3)));
+
+        return response()->json([
+            'status' => $anais->pdf_status,
+            'erro' => $anais->pdf_erro,
+            'segundos' => $anais->pdfGerando() && $anais->pdf_iniciado_em ? (int) $anais->pdf_iniciado_em->diffInSeconds(now()) : null,
+            'preso' => $anais->pdfPreso(),
+            'fila_parada' => $filaParada,
+        ]);
+    }
+
+    /** Gera o PDF agora, dentro da requisição (sem depender da fila). Útil quando a geração em segundo plano não anda. */
+    public function gerarAgora(Evento $evento)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        $anais = $evento->anais;
+        if (!$anais) {
+            return back()->with('error', 'Salve os dados dos Anais antes de gerar o PDF.');
+        }
+        if (Anais::elegiveis($evento)->doesntExist()) {
+            return back()->with('error', 'Não há trabalhos elegíveis (aprovados, apresentados e autorizados) para compilar.');
+        }
+
+        @set_time_limit(0);
+        $anais->update(['pdf_status' => 'gerando', 'pdf_erro' => null, 'pdf_iniciado_em' => now()]);
+
+        try {
+            app(\App\Services\AnaisPdfService::class)->gerar($anais);
+        } catch (\Throwable $e) {
+            report($e);
+            $anais->update(['pdf_status' => 'erro', 'pdf_erro' => \Illuminate\Support\Str::limit($e->getMessage(), 500)]);
+
+            return back()->with('error', 'Não foi possível gerar o PDF: ' . \Illuminate\Support\Str::limit($e->getMessage(), 200));
+        }
+
+        return back()->with('success', 'PDF dos Anais gerado.');
+    }
+
+    /** Cancela uma geração presa para poder tentar de novo. */
+    public function cancelarPdf(Evento $evento)
+    {
+        $this->authorize('gerirTrabalhos', $evento);
+
+        $anais = $evento->anais;
+        if ($anais && $anais->pdfGerando()) {
+            $anais->update(['pdf_status' => 'erro', 'pdf_erro' => 'Geração cancelada manualmente. Gere o PDF novamente.']);
+        }
+
+        return back()->with('success', 'Geração cancelada. Você já pode gerar de novo.');
     }
 
     public function pdf(Evento $evento)

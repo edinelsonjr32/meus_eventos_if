@@ -544,3 +544,87 @@ it('o PDF compilado só é baixado publicamente depois de publicado e pronto', f
     $this->get(route('anais.pdf', 'semana-teste'))->assertNotFound();                  // sem PDF pronto
     $this->get(route('anais.index', 'semana-teste'))->assertDontSee('Baixar os Anais completos');
 });
+
+// ---------- Geração do PDF que não pode ficar "carregando" para sempre ----------
+it('gerar registra quando começou e a página acompanha o andamento sozinha', function () {
+    Queue::fake();
+    $this->actingAs($this->gestor);
+    $anais = criarAnais($this, ['status' => 'rascunho']);
+    trabalhoPublicavel($this);
+
+    $this->post(route('gestao.trabalhos.anais.gerar', $this->evento));
+    expect($anais->fresh()->pdf_iniciado_em)->not->toBeNull();
+
+    $this->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()
+        ->assertSee('Gerando o PDF', false)->assertSee('acompanharPdf', false)->assertSee(route('gestao.trabalhos.anais.pdf-status', $this->evento), false);
+
+    $this->getJson(route('gestao.trabalhos.anais.pdf-status', $this->evento))->assertOk()
+        ->assertJson(['status' => 'gerando', 'preso' => false])->assertJsonStructure(['segundos', 'fila_parada', 'erro']);
+});
+
+it('geração presa há mais de 12 minutos é detectada, oferece "Gerar agora" e permite gerar de novo', function () {
+    Queue::fake();
+    $this->actingAs($this->gestor);
+    $anais = criarAnais($this, ['status' => 'rascunho']);
+    trabalhoPublicavel($this);
+    $anais->update(['pdf_status' => 'gerando', 'pdf_iniciado_em' => now()->subMinutes(30)]);
+
+    $this->getJson(route('gestao.trabalhos.anais.pdf-status', $this->evento))->assertJson(['status' => 'gerando', 'preso' => true]);
+    $this->get(route('gestao.trabalhos.anais.edit', $this->evento))->assertOk()->assertSee('Gerar agora')->assertSee('Cancelar');
+
+    // presa: pode enfileirar de novo (antes ficava bloqueada para sempre)
+    $this->post(route('gestao.trabalhos.anais.gerar', $this->evento))->assertSessionHas('success');
+    Queue::assertPushed(GerarAnaisPdf::class);
+});
+
+it('"Gerar agora" compila na hora, sem depender da fila', function () {
+    Queue::fake();
+    $this->actingAs($this->gestor);
+    $anais = criarAnais($this, ['status' => 'rascunho']);
+    trabalhoPublicavel($this);
+    $anais->update(['pdf_status' => 'gerando', 'pdf_iniciado_em' => now()->subMinutes(20)]);
+
+    $this->post(route('gestao.trabalhos.anais.gerar-agora', $this->evento))->assertSessionHas('success');
+    Queue::assertNothingPushed();
+    expect($anais->fresh())->pdf_status->toBe('pronto')->pdf_paginas->toBeGreaterThan(0);
+});
+
+it('"Gerar agora" com falha mostra o erro e libera para tentar de novo (nunca fica em gerando)', function () {
+    $this->actingAs($this->gestor);
+    $anais = criarAnais($this, ['status' => 'rascunho']);
+    trabalhoPublicavel($this);
+    $this->mock(AnaisPdfService::class, fn ($m) => $m->shouldReceive('gerar')->andThrow(new RuntimeException('Ghostscript indisponível')));
+
+    $this->post(route('gestao.trabalhos.anais.gerar-agora', $this->evento))->assertSessionHas('error');
+    expect($anais->fresh())->pdf_status->toBe('erro')->pdf_erro->toContain('Ghostscript indisponível');
+});
+
+it('cancelar uma geração em andamento libera o botão; só a gestão do evento pode', function () {
+    $anais = criarAnais($this, ['status' => 'rascunho']);
+    $anais->update(['pdf_status' => 'gerando', 'pdf_iniciado_em' => now()]);
+
+    $this->actingAs($this->autorUser)->post(route('gestao.trabalhos.anais.cancelar-pdf', $this->evento))->assertForbidden();
+    expect($anais->fresh()->pdf_status)->toBe('gerando');
+
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.anais.cancelar-pdf', $this->evento))->assertSessionHas('success');
+    expect($anais->fresh()->pdf_status)->toBe('erro');
+});
+
+it('o job que falha ou estoura o tempo marca erro em vez de deixar "gerando"; se já foi cancelado, não faz nada', function () {
+    $anais = criarAnais($this, ['status' => 'rascunho']);
+    trabalhoPublicavel($this);
+
+    expect((new GerarAnaisPdf($anais))->failOnTimeout)->toBeTrue()->and((new GerarAnaisPdf($anais))->timeout)->toBeLessThan(600);
+
+    // falha dentro do serviço
+    $anais->update(['pdf_status' => 'gerando', 'pdf_iniciado_em' => now()]);
+    $servico = Mockery::mock(AnaisPdfService::class);
+    $servico->shouldReceive('gerar')->once()->andThrow(new RuntimeException('Disco cheio'));
+    expect(fn () => (new GerarAnaisPdf($anais))->handle($servico))->toThrow(RuntimeException::class);
+    expect($anais->fresh())->pdf_status->toBe('erro')->pdf_erro->toContain('Disco cheio');
+
+    // cancelado antes de rodar: o job não compila
+    $servico2 = Mockery::mock(AnaisPdfService::class);
+    $servico2->shouldNotReceive('gerar');
+    (new GerarAnaisPdf($anais->fresh()))->handle($servico2);
+});

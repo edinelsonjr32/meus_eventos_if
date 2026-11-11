@@ -156,6 +156,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/evento/{evento}/anais', [$n, 'update'])->name('anais.update');
         Route::post('/evento/{evento}/anais/gerar', [$n, 'gerar'])->name('anais.gerar');
         Route::get('/evento/{evento}/anais/pdf', [$n, 'pdf'])->name('anais.pdf');
+        Route::get('/evento/{evento}/anais/pdf/status', [$n, 'statusPdf'])->name('anais.pdf-status');
+        Route::post('/evento/{evento}/anais/pdf/agora', [$n, 'gerarAgora'])->name('anais.gerar-agora');
+        Route::post('/evento/{evento}/anais/pdf/cancelar', [$n, 'cancelarPdf'])->name('anais.cancelar-pdf');
         Route::post('/evento/{evento}/anais/publicar', [$n, 'publicar'])->name('anais.publicar');
         Route::post('/evento/{evento}/anais/despublicar', [$n, 'despublicar'])->name('anais.despublicar');
         Route::post('/evento/{evento}/anais/dados-publicacao', [$n, 'dadosPublicacao'])->name('anais.dados-publicacao');

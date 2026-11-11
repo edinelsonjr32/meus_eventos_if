@@ -68,8 +68,31 @@
                         @if(!$anais->exists)
                             <p class="small text-muted mb-0">Salve os dados da edição para habilitar a geração.</p>
                         @else
-                            @if($anais->pdf_status === 'gerando')
-                                <div class="alert alert-info small py-2"><i class="fa-solid fa-spinner fa-spin me-1"></i> Gerando... atualize a página em instantes.</div>
+                            @if($anais->pdfGerando())
+                                {{-- Acompanha sozinho: consulta o andamento a cada 3 s e recarrega quando termina (ou falha) --}}
+                                <div x-data="acompanharPdf('{{ route('gestao.trabalhos.anais.pdf-status', $evento) }}', {{ (int) ($anais->pdf_iniciado_em ? $anais->pdf_iniciado_em->diffInSeconds(now()) : 0) }}, {{ $anais->pdfPreso() ? 'true' : 'false' }})" x-init="iniciar()">
+                                    <div class="alert alert-info small py-2 mb-2" role="status">
+                                        <i class="fa-solid fa-spinner fa-spin me-1"></i> <strong>Gerando o PDF…</strong>
+                                        <span x-text="tempo()"></span>
+                                        <div class="mt-1">Você não precisa ficar nesta página: ao terminar, o PDF aparece aqui.</div>
+                                    </div>
+                                    <div class="alert alert-warning small py-2 mb-2" x-show="filaParada" x-cloak>
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> O processador de tarefas do servidor (cron) não registrou atividade nos últimos minutos, por isso a geração em segundo plano pode não andar. Use <strong>Gerar agora</strong>.
+                                    </div>
+                                    <div class="alert alert-warning small py-2 mb-2" x-show="!filaParada && demorando" x-cloak>
+                                        <i class="fa-solid fa-hourglass-half me-1"></i> Está demorando mais que o normal. Se continuar assim, use <strong>Gerar agora</strong> ou cancele e tente de novo.
+                                    </div>
+                                    <div class="d-flex flex-column flex-sm-row gap-2" x-show="demorando || filaParada" x-cloak>
+                                        <form action="{{ route('gestao.trabalhos.anais.gerar-agora', $evento) }}" method="POST" class="flex-fill" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').innerHTML = '<i class=&quot;fa-solid fa-spinner fa-spin&quot;></i> Gerando, aguarde…';">
+                                            @csrf
+                                            <button class="btn btn-sm btn-primary-custom w-100 fw-bold"><i class="fa-solid fa-bolt me-1"></i> Gerar agora</button>
+                                        </form>
+                                        <form action="{{ route('gestao.trabalhos.anais.cancelar-pdf', $evento) }}" method="POST" class="flex-fill">
+                                            @csrf
+                                            <button class="btn btn-sm btn-outline-secondary w-100 fw-bold"><i class="fa-solid fa-ban me-1"></i> Cancelar</button>
+                                        </form>
+                                    </div>
+                                </div>
                             @elseif($anais->pdf_status === 'erro')
                                 <div class="alert alert-danger small py-2">Falha na geração: {{ $anais->pdf_erro }}</div>
                             @elseif($anais->pdfPronto())
@@ -81,7 +104,7 @@
                             @endif
                             <form action="{{ route('gestao.trabalhos.anais.gerar', $evento) }}" method="POST">
                                 @csrf
-                                <button class="btn btn-sm btn-primary-custom w-100 fw-bold" @disabled($anais->pdf_status === 'gerando' || $elegiveis->isEmpty())>
+                                <button class="btn btn-sm btn-primary-custom w-100 fw-bold" @disabled($anais->pdfGerando() || $elegiveis->isEmpty())>
                                     {{ $anais->pdfPronto() ? 'Gerar novamente' : 'Gerar PDF dos Anais' }}
                                 </button>
                             </form>
@@ -208,4 +231,29 @@
             @endif
         </div>
     </div>
+    <script>
+        function acompanharPdf(url, segundosIniciais, preso) {
+            return {
+                segundos: segundosIniciais, filaParada: false, demorando: preso || segundosIniciais > 120, timer: null,
+                tempo() { const m = Math.floor(this.segundos / 60), s = this.segundos % 60; return 'Há ' + (m ? m + ' min ' : '') + s + ' s.'; },
+                iniciar() {
+                    setInterval(() => { this.segundos++; if (this.segundos > 120) this.demorando = true; }, 1000);
+                    const consultar = async () => {
+                        try {
+                            const r = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+                            if (r.ok) {
+                                const d = await r.json();
+                                if (d.status !== 'gerando') { location.reload(); return; }
+                                if (d.segundos !== null) this.segundos = d.segundos;
+                                this.filaParada = !!d.fila_parada;
+                                this.demorando = this.demorando || !!d.preso;
+                            }
+                        } catch (e) { /* sem conexão: tenta de novo */ }
+                        this.timer = setTimeout(consultar, 3000);
+                    };
+                    this.timer = setTimeout(consultar, 3000);
+                },
+            };
+        }
+    </script>
 </x-app-layout>

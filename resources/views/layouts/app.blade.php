@@ -195,27 +195,34 @@
         /* Utilitários Alpine */
         [x-cloak] { display: none !important; }
 
-        /* ===== Tabelas no celular: cada linha vira um cartão (rótulo + valor), sem rolagem lateral escondida ===== */
-        .aviso-rolagem { display: none; }
-        @media (max-width: 767.98px) {
-            .table-responsive > .table.tabela-cartoes { min-width: 0 !important; }
-            .table-responsive:has(> .table.tabela-cartoes) { overflow-x: visible; box-shadow: none; margin-left: 0; margin-right: 0; }
-            .tabela-cartoes, .tabela-cartoes tbody, .tabela-cartoes tfoot { display: block; width: 100%; }
-            .tabela-cartoes thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-            .tabela-cartoes tr { display: block; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: .35rem .85rem; margin-bottom: .75rem; box-shadow: 0 2px 8px -4px rgba(0,0,0,.08); }
-            .tabela-cartoes tr.table-active, .tabela-cartoes tr[class*="detalhe"] { background: #f8fafc; }
-            .tabela-cartoes td { display: block; position: relative; padding: .5rem 0 .5rem 40% !important; border: 0 !important; border-bottom: 1px dashed #e5e7eb !important; text-align: right !important; white-space: normal !important; min-width: 0 !important; background: transparent !important; overflow-wrap: anywhere; min-height: 2.2rem; }
-            .tabela-cartoes td:last-child { border-bottom: 0 !important; }
-            .tabela-cartoes td::before { content: attr(data-label); position: absolute; left: 0; top: .6rem; width: 36%; text-align: left; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
-            .tabela-cartoes td:not([data-label]), .tabela-cartoes td[data-label=""] { padding-left: 0 !important; }
-            .tabela-cartoes td:not([data-label])::before, .tabela-cartoes td[data-label=""]::before { content: none; }
-            .tabela-cartoes td .btn { white-space: normal; margin: .15rem 0 .15rem .25rem; }
-            .tabela-cartoes td[colspan] { padding-left: 0 !important; text-align: left !important; }
-            .tabela-cartoes td .btn { white-space: normal; }
-            /* Tabelas que precisam continuar largas (ex.: ranking): rolagem com aviso visível */
-            .table-responsive { position: relative; }
-            .aviso-rolagem { display: flex; align-items: center; gap: .4rem; font-size: .75rem; font-weight: 600; color: #0f766e; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: .25rem .75rem; margin: 0 0 .5rem; width: fit-content; }
-            .aviso-rolagem.oculto { display: none; }
+        /* ===== Tabelas em cartão: cada linha vira um cartão (rótulo + valor). Entra no celular OU quando a tabela não cabe no espaço (script abaixo) ===== */
+        .table-responsive > .table.tabela-cartoes { min-width: 0 !important; }
+        .table-responsive:has(> .table.tabela-cartoes) { overflow-x: visible; box-shadow: none; margin-left: 0; margin-right: 0; }
+        .tabela-cartoes, .tabela-cartoes tbody, .tabela-cartoes tfoot { display: block; width: 100%; }
+        .tabela-cartoes thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .tabela-cartoes tr { display: block; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: .35rem .85rem; margin-bottom: .75rem; box-shadow: 0 2px 8px -4px rgba(0,0,0,.08); }
+        .tabela-cartoes tr.table-active, .tabela-cartoes tr[class*="detalhe"] { background: #f8fafc; }
+        .tabela-cartoes td { display: block; position: relative; padding: .5rem 0 .5rem 40% !important; border: 0 !important; border-bottom: 1px dashed #e5e7eb !important; text-align: right !important; white-space: normal !important; min-width: 0 !important; background: transparent !important; overflow-wrap: anywhere; min-height: 2.2rem; }
+        .tabela-cartoes td:last-child { border-bottom: 0 !important; }
+        .tabela-cartoes td::before { content: attr(data-label); position: absolute; left: 0; top: .6rem; width: 36%; text-align: left; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+        .tabela-cartoes td:not([data-label]), .tabela-cartoes td[data-label=""] { padding-left: 0 !important; }
+        .tabela-cartoes td:not([data-label])::before, .tabela-cartoes td[data-label=""]::before { content: none; }
+        .tabela-cartoes td .btn { white-space: normal; margin: .15rem 0 .15rem .25rem; }
+        .tabela-cartoes td[colspan] { padding-left: 0 !important; text-align: left !important; }
+        .tabela-cartoes td .sb { display: inline-block; white-space: normal; max-width: 100%; text-align: left; line-height: 1.3; border-radius: 12px; margin: 0 0 .25rem .25rem; }
+        .tabela-cartoes td .sb i { margin-right: .35rem; }
+        .tabela-cartoes td .sb .sb-extra { display: inline; }
+        /* Tabelas que precisam continuar largas (ex.: ranking): rolagem com aviso visível */
+        .table-responsive { position: relative; }
+        .aviso-rolagem { display: flex; align-items: center; gap: .4rem; font-size: .75rem; font-weight: 600; color: #0f766e; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: .25rem .75rem; margin: 0 0 .5rem; width: fit-content; }
+        .aviso-rolagem.oculto { display: none; }
+
+        /* Larguras intermediárias (tablet / janela estreita): colunas laterais ficam apertadas, então botões e formulários quebram de linha */
+        .pagination { flex-wrap: wrap; row-gap: .25rem; }
+        @media (max-width: 1199.98px) {
+            .glass-card .btn.text-nowrap { white-space: normal !important; }
+            .glass-card form.d-flex { flex-wrap: wrap; }
+            .glass-card .d-flex.justify-content-between:not(.flex-nowrap) { flex-wrap: wrap; gap: .5rem; }
         }
 
         /* Mobile Responsive */
@@ -240,7 +247,6 @@
             .main-content .sb { display: inline-block; white-space: normal; max-width: 100%; text-align: left; line-height: 1.3; border-radius: 12px; padding: .3rem .65rem; overflow-wrap: anywhere; }
             .main-content .sb i { margin-right: .35rem; }
             .main-content .sb .sb-extra { display: inline; }
-            .tabela-cartoes td .sb { margin: 0 0 .25rem .25rem; }
         }
     </style>
 </head>
@@ -374,43 +380,73 @@
         // Tabelas: guarda o rótulo da coluna em cada célula (usado pelo modo "cartão" no celular).
         // Quem precisar manter a tabela larga usa a classe "table-no-stack": aparece um aviso de rolagem lateral.
         (function () {
-            function preparar(raiz) {
-                raiz.querySelectorAll('.main-content table.table').forEach(function (t) {
-                    if (t.dataset.preparada === (t.rows.length + '')) return;
-                    t.dataset.preparada = t.rows.length + '';
-                    if (t.classList.contains('table-no-stack')) return;
-                    var cab = t.tHead && t.tHead.rows[0] ? Array.prototype.map.call(t.tHead.rows[0].cells, function (c) { return { txt: (c.innerText || '').trim(), n: c.colSpan || 1 }; }) : [];
-                    var rotulos = [];
-                    cab.forEach(function (c) { for (var i = 0; i < c.n; i++) rotulos.push(c.txt); });
-                    if (!rotulos.length) return;
-                    t.classList.add('tabela-cartoes');
-                    Array.prototype.forEach.call(t.tBodies, function (tb) {
-                        Array.prototype.forEach.call(tb.rows, function (tr) {
-                            var i = 0;
-                            Array.prototype.forEach.call(tr.cells, function (td) {
-                                if (td.colSpan > 1) { i += td.colSpan; return; }
-                                if (!td.hasAttribute('data-label')) td.setAttribute('data-label', rotulos[i] || '');
-                                i++;
-                            });
+            var tabelas = function () { return document.querySelectorAll('.main-content table.table:not(.table-no-stack)'); };
+
+            // 1) rótulo de cada célula = título da coluna
+            function rotular(t) {
+                var chave = t.rows.length + '';
+                if (t.dataset.rotulada === chave) return;
+                t.dataset.rotulada = chave;
+                var cab = t.tHead && t.tHead.rows[0] ? Array.prototype.map.call(t.tHead.rows[0].cells, function (c) { return { txt: (c.innerText || '').trim(), n: c.colSpan || 1 }; }) : [];
+                var rotulos = [];
+                cab.forEach(function (c) { for (var i = 0; i < c.n; i++) rotulos.push(c.txt); });
+                if (!rotulos.length) { t.dataset.semCabecalho = '1'; return; }
+                Array.prototype.forEach.call(t.tBodies, function (tb) {
+                    Array.prototype.forEach.call(tb.rows, function (tr) {
+                        var i = 0;
+                        Array.prototype.forEach.call(tr.cells, function (td) {
+                            if (td.colSpan > 1) { i += td.colSpan; return; }
+                            if (!td.hasAttribute('data-label')) td.setAttribute('data-label', rotulos[i] || '');
+                            i++;
                         });
                     });
                 });
             }
+
+            // 2) cartão no celular, ou em qualquer largura em que a tabela não caiba no espaço disponível
+            function ajustar() {
+                var celular = window.innerWidth < 768;
+                tabelas().forEach(function (t) {
+                    rotular(t);
+                    if (t.dataset.semCabecalho) return;
+                    var caixa = t.closest('.table-responsive') || t.parentElement;
+                    var antes = t.classList.contains('tabela-cartoes');
+                    t.classList.remove('tabela-cartoes');
+                    var precisa = celular || t.scrollWidth > caixa.clientWidth + 2;
+                    if (precisa) t.classList.add('tabela-cartoes');
+                    else if (antes) { /* voltou ao normal */ }
+                });
+                avisos();
+            }
+
+            // 3) tabelas que ficam largas (sem cartão): avisa que dá para deslizar
             function avisos() {
-                if (window.innerWidth >= 768) return;
                 document.querySelectorAll('.main-content .table-responsive').forEach(function (w) {
-                    if (w.querySelector('.table.tabela-cartoes') || w.previousElementSibling && w.previousElementSibling.classList.contains('aviso-rolagem')) return;
-                    if (w.scrollWidth <= w.clientWidth + 4) return;
-                    var a = document.createElement('div');
-                    a.className = 'aviso-rolagem';
-                    a.innerHTML = '<i class="fa-solid fa-arrows-left-right"></i> Deslize a tabela para o lado para ver mais colunas';
-                    w.parentNode.insertBefore(a, w);
-                    w.addEventListener('scroll', function () { a.classList.add('oculto'); }, { once: true, passive: true });
+                    var ja = w.previousElementSibling && w.previousElementSibling.classList.contains('aviso-rolagem');
+                    var rola = !w.querySelector('.table.tabela-cartoes') && w.scrollWidth > w.clientWidth + 4;
+                    if (rola && !ja) {
+                        var a = document.createElement('div');
+                        a.className = 'aviso-rolagem';
+                        a.innerHTML = '<i class="fa-solid fa-arrows-left-right"></i> Deslize a tabela para o lado para ver mais colunas';
+                        w.parentNode.insertBefore(a, w);
+                        w.addEventListener('scroll', function () { a.classList.add('oculto'); }, { once: true, passive: true });
+                    } else if (!rola && ja) {
+                        w.previousElementSibling.remove();
+                    }
                 });
             }
-            function tudo() { preparar(document); avisos(); }
-            document.addEventListener('DOMContentLoaded', function () { tudo(); setTimeout(tudo, 600); });
-            var t; new MutationObserver(function () { clearTimeout(t); t = setTimeout(tudo, 150); }).observe(document.body, { childList: true, subtree: true });
+
+            var tm;
+            function agendar() { clearTimeout(tm); tm = setTimeout(ajustar, 120); }
+            document.addEventListener('DOMContentLoaded', function () { ajustar(); setTimeout(ajustar, 600); });
+            window.addEventListener('load', ajustar);
+            window.addEventListener('resize', agendar);
+            // conteúdo que chega depois (Alpine/AJAX): só reavalia se o número de linhas mudou
+            new MutationObserver(function () {
+                var mudou = false;
+                tabelas().forEach(function (t) { if (t.dataset.rotulada !== t.rows.length + '') mudou = true; });
+                if (mudou) agendar();
+            }).observe(document.body, { childList: true, subtree: true });
         })();
 
         // No celular o menu fecha ao tocar em um item
