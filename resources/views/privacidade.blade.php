@@ -22,17 +22,18 @@
 <x-publico-layout titulo="Política de Privacidade" descricao="Como o Meus Eventos IF coleta, usa, protege e elimina dados pessoais, conforme a LGPD, e como exercer os seus direitos.">
     <x-slot:estilos>
         <style>
-            .pv-hero { position: relative; color: #fff; padding: 3rem 0 3.2rem; background: radial-gradient(800px 360px at 90% 0%, rgba(52,211,153,.25), transparent 60%), linear-gradient(135deg, #053b2d, #065f46 60%, #047857); overflow: hidden; }
+            .pv-hero { position: relative; color: #fff; padding: 3rem 0 3.4rem; background: radial-gradient(800px 360px at 90% 0%, rgba(52,211,153,.25), transparent 60%), linear-gradient(135deg, #053b2d, #065f46 60%, #047857); overflow: hidden; }
             .pv-hero::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.1) 1px, transparent 1px); background-size: 28px 28px; opacity: .5; }
             .pv-hero > .container { position: relative; }
             .pv-hero h1 { color: #fff; font-weight: 800; font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.12; }
             .pv-trilha { font-size: .83rem; color: rgba(255,255,255,.75); } .pv-trilha a { color: rgba(255,255,255,.88); text-decoration: none; } .pv-trilha a:hover { color: #fff; }
             .pv-chip { display: inline-flex; align-items: center; gap: .45rem; font-size: .8rem; font-weight: 600; padding: .38rem .85rem; border-radius: 999px; background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.24); color: #e8fff5; }
 
-            .pv-resumo { margin-top: -1.6rem; position: relative; z-index: 5; }
-            .pv-card { padding: 1.25rem 1.3rem; height: 100%; }
-            .pv-card i.ic { width: 42px; height: 42px; border-radius: 12px; background: #ecfdf5; color: #059669; display: grid; place-items: center; font-size: 1.05rem; margin-bottom: .8rem; }
-            .pv-card h2 { font-size: 1rem; font-weight: 800; margin-bottom: .3rem; } .pv-card p { font-size: .86rem; color: var(--muted); margin: 0; }
+            .pv-card { height: 100%; padding: 1.2rem 1.25rem; border-radius: 18px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(4px); }
+            .pv-card i.ic { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,.16); color: #6ee7b7; display: grid; place-items: center; font-size: 1rem; margin-bottom: .85rem; }
+            .pv-card h2 { font-size: 1rem; font-weight: 800; margin-bottom: .35rem; color: #fff; letter-spacing: -.01em; }
+            .pv-card p { font-size: .85rem; line-height: 1.5; color: #d1fae5; margin: 0; }
+            @media (max-width: 575.98px) { .pv-card { display: flex; gap: .85rem; align-items: flex-start; padding: .95rem 1rem; } .pv-card i.ic { flex: 0 0 38px; width: 38px; height: 38px; margin: 0; } .pv-card h2 { font-size: .95rem; } .pv-card p { font-size: .82rem; } .pv-resumo { --bs-gutter-y: .6rem; } }
 
             .pv-indice { position: sticky; top: 84px; padding: 1.1rem; }
             .pv-indice .titulo { font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #059669; margin-bottom: .6rem; }
@@ -64,24 +65,20 @@
             <h1 class="mb-3">Política de Privacidade</h1>
             <p class="mb-3" style="color:#d1fae5; max-width: 700px; font-size: 1.05rem;">Explicamos, em linguagem simples, quais dados pessoais o {{ config('app.name') }} usa, para quê, com quem passam, por quanto tempo ficam guardados e como você pode controlá-los.</p>
             <div class="small" style="color:#a7f3d0;"><i class="fa-regular fa-calendar me-1"></i> Versão vigente desde {{ $atualizada->format('d/m/Y') }}</div>
-        </div>
-    </header>
 
-    {{-- Resumo em 4 cartões --}}
-    <section class="pv-resumo">
-        <div class="container">
-            <div class="row g-3">
+            {{-- Resumo em 4 cartões, dentro do próprio cabeçalho --}}
+            <div class="pv-resumo row g-3 mt-4">
                 @foreach([
                     ['fa-database', 'Só o necessário', 'Pedimos apenas os dados que cada função exige: conta, inscrição, presença, trabalhos e certificados.'],
                     ['fa-eye-slash', 'CPF e e-mail ficam privados', 'Nunca aparecem nos Anais nem em páginas públicas. A validação de certificado oculta parte do CPF.'],
                     ['fa-sliders', 'Você tem controle', 'Pode pedir acesso, correção, anonimização e retirar a autorização de publicação.'],
                     ['fa-lock', 'Protegido', 'Senhas criptografadas, conexão segura (HTTPS) e arquivos de trabalhos em área privada.'],
                 ] as [$ico, $titulo, $texto])
-                    <div class="col-sm-6 col-lg-3"><div class="cartao pv-card"><i class="fa-solid {{ $ico }} ic"></i><h2>{{ $titulo }}</h2><p>{{ $texto }}</p></div></div>
+                    <div class="col-sm-6 col-lg-3"><div class="pv-card"><i class="fa-solid {{ $ico }} ic"></i><div><h2>{{ $titulo }}</h2><p>{{ $texto }}</p></div></div></div>
                 @endforeach
             </div>
         </div>
-    </section>
+    </header>
 
     <div class="container pt-5">
         <div class="row g-4 g-xl-5">

@@ -14,7 +14,7 @@
             .an-stat b { display: block; font-size: 1.7rem; font-weight: 800; line-height: 1; } .an-stat span { font-size: .78rem; color: #a7f3d0; font-weight: 600; }
             .btn-an { background: #fff; color: #047857; padding: .75rem 1.4rem; box-shadow: 0 14px 28px -12px rgba(0,0,0,.5); } .btn-an:hover { background: #ecfdf5; color: #065f46; transform: translateY(-1px); }
 
-            .an-filtros { padding: 1rem; margin-top: -1.6rem; position: relative; z-index: 5; box-shadow: var(--sh-2); }
+            .an-filtros { padding: 1rem; margin-top: 1.75rem; }
             .an-card { padding: 1.4rem 1.6rem; margin-bottom: 1rem; border-left: 4px solid var(--brand); transition: box-shadow .2s, transform .2s; }
             .an-card:hover { box-shadow: var(--sh-2); transform: translateY(-2px); }
             .an-card h2 { font-size: 1.2rem; font-weight: 700; line-height: 1.35; } .an-card h2 a { color: var(--ink); text-decoration: none; } .an-card h2 a:hover { color: #047857; }
