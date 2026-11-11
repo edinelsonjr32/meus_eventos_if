@@ -42,7 +42,7 @@
 
                     <div class="mb-4">
                         <label class="form-label fw-bold text-secondary small">DESCRIÇÃO</label>
-                        <textarea name="descricao" class="form-control" rows="3">{{ old('descricao') }}</textarea>
+                        <x-editor-rico name="descricao" :value="old('descricao')" :upload-url="route('admin.eventos.imagens.store')" :altura="260" />
                     </div>
 
                     <hr class="my-4 text-secondary opacity-25">

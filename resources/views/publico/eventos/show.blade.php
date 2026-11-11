@@ -39,7 +39,19 @@
             .ev-bloco { padding: 1.75rem; margin-bottom: 1.5rem; scroll-margin-top: 130px; }
             .ev-bloco h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 1.1rem; display: flex; align-items: center; gap: .6rem; }
             .ev-bloco h2 i { width: 36px; height: 36px; border-radius: 11px; background: var(--brand-light); color: var(--brand-dark); display: grid; place-items: center; font-size: .95rem; }
-            .ev-desc { line-height: 1.8; font-size: 1.02rem; color: var(--ink-2); } .ev-desc img { max-width: 100%; height: auto; }
+            .ev-desc { line-height: 1.8; font-size: 1.02rem; color: var(--ink-2); overflow-wrap: anywhere; }
+            .ev-desc img { max-width: 100%; height: auto; border-radius: 12px; }
+            .ev-desc h2, .ev-desc h3, .ev-desc h4 { margin: 1.4rem 0 .6rem; font-weight: 800; } .ev-desc h2 { font-size: 1.35rem; } .ev-desc h3 { font-size: 1.15rem; } .ev-desc h4 { font-size: 1rem; }
+            .ev-desc a { color: #047857; text-decoration: underline; }
+            .ev-desc ul, .ev-desc ol { padding-left: 1.4rem; margin-bottom: 1rem; }
+            .ev-desc blockquote { border-left: 4px solid var(--brand); background: var(--brand-light); margin: 1rem 0; padding: .8rem 1.1rem; border-radius: 0 12px 12px 0; color: var(--ink-2); }
+            .ev-desc figure { margin: 1rem 0; } .ev-desc figure.image { display: table; clear: both; text-align: center; margin: 1rem auto; } .ev-desc figure.image img { display: block; margin: 0 auto; width: 100%; }
+            .ev-desc figure.image_resized { max-width: 100%; display: block; box-sizing: border-box; } .ev-desc figure.image-style-side { float: right; margin-left: 1.5rem; max-width: 50%; }
+            .ev-desc figure.image-style-align-left, .ev-desc figure.image-style-block-align-left { float: left; margin-right: 1.5rem; } .ev-desc figure.image-style-align-right, .ev-desc figure.image-style-block-align-right { float: right; margin-left: 1.5rem; }
+            .ev-desc figcaption { font-size: .85rem; color: var(--muted); text-align: center; margin-top: .3rem; }
+            .ev-desc table { width: 100%; border-collapse: collapse; margin: 1rem 0; } .ev-desc th, .ev-desc td { border: 1px solid var(--line); padding: .5rem .75rem; } .ev-desc th { background: #f6f8fa; }
+            .ev-desc hr { border-color: var(--line); margin: 1.5rem 0; }
+            .ev-desc::after { content: ""; display: block; clear: both; }
             .ev-num { text-align: center; padding: 1rem .5rem; background: var(--brand-light); border-radius: 14px; }
             .ev-num b { display: block; font-size: 1.5rem; font-weight: 800; color: var(--brand-deep); line-height: 1.1; } .ev-num span { font-size: .76rem; color: var(--muted); font-weight: 600; }
 
@@ -122,7 +134,7 @@
                 {{-- Sobre --}}
                 <section class="cartao ev-bloco" id="sobre">
                     <h2><i class="fa-solid fa-circle-info"></i> Sobre o evento</h2>
-                    <div class="ev-desc">{!! $evento->descricao ? nl2br($evento->descricao) : 'Participe deste evento acadêmico no IFPA Campus Óbidos: uma oportunidade de aprendizado, troca de experiências e certificação oficial.' !!}</div>
+                    <div class="ev-desc">{!! $evento->descricaoHtml() ?: 'Participe deste evento acadêmico no IFPA Campus Óbidos: uma oportunidade de aprendizado, troca de experiências e certificação oficial.' !!}</div>
 
                     <div class="row g-3 mt-3">
                         <div class="col-6 col-md-3"><div class="ev-num"><b>{{ $atividades->count() }}</b><span>atividades</span></div></div>

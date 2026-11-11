@@ -38,6 +38,12 @@ class Evento extends Model
         'cert_equipe_corpo',
     ];
 
+    /** Descrição pronta para exibir (HTML do editor já limpo; texto simples antigo mantém as quebras de linha). */
+    public function descricaoHtml(): string
+    {
+        return \App\Support\HtmlSeguro::paraExibir($this->descricao);
+    }
+
     /** A organização escolheu mostrar a logo nas páginas públicas? (padrão: sim) */
     public function exibeLogo(): bool
     {

@@ -68,7 +68,7 @@ class EventoController extends Controller
         // 1. Validação Completa
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
-            'descricao' => 'nullable|string',
+            'descricao' => 'nullable|string|max:60000',
             'data_inicio' => 'required|date',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
             'local' => 'required|string',
@@ -93,7 +93,7 @@ class EventoController extends Controller
         $evento = Evento::create([
             'titulo' => $validated['titulo'],
             'slug' => $slug,
-            'descricao' => $validated['descricao'],
+            'descricao' => \App\Support\HtmlSeguro::limpar($validated['descricao'] ?? null),
             'data_inicio' => $validated['data_inicio'],
             'data_fim' => $validated['data_fim'],
             'local' => $validated['local'],
@@ -150,7 +150,7 @@ class EventoController extends Controller
             'data_inicio' => 'required|date',
             'data_fim' => 'required|date|after_or_equal:data_inicio',
             'local' => 'required|string|max:255',
-            'descricao' => 'nullable|string',
+            'descricao' => 'nullable|string|max:60000',
             'cor_fundo' => 'nullable|string|size:7|starts_with:#',
             'logo' => self::REGRA_LOGO,
             'banner' => self::REGRA_BANNER,
@@ -168,6 +168,7 @@ class EventoController extends Controller
         }
 
         $validated = collect($validator->validated())->except(['logo', 'banner'])->all();
+        $validated['descricao'] = \App\Support\HtmlSeguro::limpar($validated['descricao'] ?? null);   // remove scripts e estilos perigosos do editor
 
 
         // 2. GESTÃO DE IMAGENS/ASSINATURAS: REMOVIDA

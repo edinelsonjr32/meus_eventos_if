@@ -1,6 +1,4 @@
 <x-app-layout>
-    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
-
     <div class="row justify-content-center">
         <div class="col-lg-10">
 
@@ -53,8 +51,8 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-secondary small">DESCRIÇÃO (Editor Visual CKEditor)</label>
-                        <textarea name="descricao" id="editor_descricao" class="form-control" rows="8">{{ $evento->descricao }}</textarea>
+                        <label class="form-label fw-bold text-secondary small">DESCRIÇÃO DO EVENTO <span class="fw-normal">(aparece na página pública)</span></label>
+                        <x-editor-rico name="descricao" :value="old('descricao', $evento->descricaoHtml())" :upload-url="route('admin.eventos.imagens.store')" />
                     </div>
 
                     <div class="mb-4">
@@ -143,22 +141,4 @@
         </div>
     </div>
 
-    <script>
-        // Inicialização do CKEDITOR 5
-        document.addEventListener('DOMContentLoaded', function() {
-            ClassicEditor
-                .create( document.querySelector( '#editor_descricao' ), {
-                    toolbar: {
-                        items: [
-                            'heading', '|', 'bold', 'italic', 'link', '|',
-                            'bulletedList', 'numberedList', 'blockquote', '|',
-                            'undo', 'redo'
-                        ]
-                    }
-                })
-                .catch( error => {
-                    console.error( error );
-                });
-        });
-    </script>
 </x-app-layout>

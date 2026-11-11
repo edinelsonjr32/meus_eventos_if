@@ -36,6 +36,8 @@ function svcRodada(): RodadaTeste
 }
 
 beforeEach(function () {
+    // As datas da rodada são fixas (10/11/2026): o teste não pode depender de qual é o dia de hoje
+    $this->travelTo(\Illuminate\Support\Carbon::create(2026, 11, 10, 12, 0, 0, config('app.timezone')));
     Storage::fake('trabalhos');
     @unlink(sys_get_temp_dir() . '/manifesto-rodada-' . getmypid() . '.json');
     $this->svc = svcRodada();

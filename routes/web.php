@@ -245,6 +245,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->names('users')
         ->except(['show']);
 
+    // Imagens inseridas no editor de texto da descrição do evento
+    Route::post('eventos/imagens', [\App\Http\Controllers\Admin\EventoImagemController::class, 'store'])->middleware('throttle:40,1')->name('eventos.imagens.store');
+
     // Cursos e turmas (cadastro de alunos)
     Route::get('cursos', [\App\Http\Controllers\Admin\CursoController::class, 'index'])->name('cursos.index');
     Route::post('cursos', [\App\Http\Controllers\Admin\CursoController::class, 'store'])->name('cursos.store');
