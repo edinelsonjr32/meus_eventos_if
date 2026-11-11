@@ -9,6 +9,7 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0fdf4; height: 100vh; display: flex; align-items: center; justify-content: center; }
         .card-custom { background: white; border-radius: 20px; padding: 3rem; text-align: center; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
     </style>
+    @include('partials.favicon')
 </head>
 <body>
     <div class="card-custom">

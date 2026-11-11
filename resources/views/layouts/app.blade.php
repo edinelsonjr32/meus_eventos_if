@@ -274,6 +274,7 @@
         .sidebar-marca-texto small { color: #a7f3d0; font-size: .7rem; }
         .sidebar-nav { flex: 1 1 auto; overflow-y: auto; flex-wrap: nowrap; margin: 0 -.35rem; padding: 0 .35rem; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.18) transparent; }
         .nav-secao { font-size: .66rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #6ee7b7; opacity: .85; padding: .15rem .8rem; margin: 1rem 0 .35rem; display: flex; align-items: center; gap: .4rem; }
+        .sidebar .nav-site { background: rgba(255,255,255,.07); margin: .15rem 0 .25rem; }
         .nav-grupo { margin-top: .5rem; padding-top: .1rem; border-top: 1px solid rgba(255,255,255,.09); }
         .sidebar .nav-link { color: #c9e9de; padding: .6rem .8rem; border-radius: 11px; margin-bottom: 2px; font-weight: 500; font-size: .9rem; gap: .7rem; position: relative; transform: none; }
         .sidebar .nav-link:hover { background: rgba(255,255,255,.08); color: #fff; transform: none; }
@@ -377,6 +378,7 @@
             .main-content { overflow-x: clip; } /* clip não cria área de rolagem: a barra superior fixa funciona */
         }
     </style>
+    @include('partials.favicon')
 </head>
 <body>
 
@@ -387,6 +389,11 @@
                 <strong>MeusEventosIF</strong>
                 <small>IFPA · Campus Óbidos</small>
             </span>
+        </a>
+
+        <a href="{{ route('home') }}" class="nav-link nav-site" title="Abrir o site público (portal de eventos)">
+            <i class="fa-solid fa-globe nav-ico"></i> Ir para o Site
+            <i class="fa-solid fa-arrow-up-right-from-square ms-auto" style="font-size:.7rem;opacity:.7"></i>
         </a>
 
         <div class="nav flex-column sidebar-nav">
@@ -464,10 +471,6 @@
 
             <div class="nav-grupo">
                 <div class="nav-secao">Conta</div>
-
-                <a href="{{ route('home') }}" class="nav-link" title="Abrir o site público (portal de eventos)">
-                    <i class="fa-solid fa-globe nav-ico"></i> Ir para o Site
-                </a>
 
                 <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.edit') ? 'active' : '' }}">
                     <i class="fa-solid fa-user-gear nav-ico"></i> Minha Conta

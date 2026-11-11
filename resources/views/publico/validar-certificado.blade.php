@@ -21,6 +21,7 @@
         .data-label { color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; display: block; }
         .data-value { color: #1e293b; font-size: 1.1rem; font-weight: 500; }
     </style>
+    @include('partials.favicon')
 </head>
 <body>
     <div class="container px-3">

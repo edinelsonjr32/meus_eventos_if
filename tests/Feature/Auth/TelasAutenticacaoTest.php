@@ -20,7 +20,7 @@ it('login, cadastro, redefinição e confirmação têm o botão de mostrar/ocul
 it('a tela de esqueci a senha segue o estilo das demais e está em português', function () {
     $this->get(route('password.request'))->assertOk()
         ->assertSee('Esqueceu a senha?')->assertSee('Enviar link de redefinição')->assertSee('Voltar ao login')
-        ->assertSee('auth-card', false)->assertSee('bg-success bg-opacity-10', false)
+        ->assertSee('auth-card', false)->assertDontSee('<header class="pub-nav">', false)->assertDontSee('<footer class="pub-rodape">', false)->assertSee('bg-success bg-opacity-10', false)
         ->assertDontSee('Forgot your password')->assertDontSee('Email Password Reset Link');
 });
 
@@ -50,4 +50,28 @@ it('o link de redefinição do e-mail leva à tela de nova senha e a senha é tr
     $this->post(route('password.store'), ['token' => $token, 'email' => $u->email, 'password' => 'NovaSenha#2026', 'password_confirmation' => 'NovaSenha#2026'])
         ->assertRedirect(route('login'))->assertSessionHas('status', 'Sua senha foi redefinida. Entre com a nova senha.');
     expect(\Illuminate\Support\Facades\Hash::check('NovaSenha#2026', $u->fresh()->password))->toBeTrue();
+});
+
+it('as telas de autenticação não têm o menu nem o rodapé do site, mas mantêm o caminho de volta', function () {
+    foreach (['login', 'register', 'password.request'] as $rota) {
+        $this->get(route($rota))->assertOk()->assertDontSee('<header class="pub-nav">', false)->assertDontSee('<footer class="pub-rodape">', false)->assertSee('Voltar ao início')->assertSee('Política de privacidade');
+    }
+});
+
+it('o ícone do site (favicon) é servido e está nas páginas', function () {
+    $this->get(route('icone.svg'))->assertOk()->assertHeader('Content-Type', 'image/svg+xml');
+    expect($this->get(route('icone.png'))->assertOk()->assertHeader('Content-Type', 'image/png')->baseResponse->getFile()->getSize())->toBeGreaterThan(500);
+
+    foreach ([route('home'), route('login'), route('privacidade')] as $url) {
+        $this->get($url)->assertSee(route('icone.svg'), false)->assertSee('rel="apple-touch-icon"', false);
+    }
+    $this->actingAs(mkUser())->get(route('inscrito.dashboard'))->assertSee(route('icone.svg'), false);
+});
+
+it('"Ir para o Site" fica no topo do menu, logo abaixo da marca', function () {
+    $html = $this->actingAs(mkUser())->get(route('inscrito.dashboard'))->getContent();
+    $marca = strpos($html, 'sidebar-marca');
+    $site = strpos($html, 'Ir para o Site');
+    $primeiraSecao = strpos($html, 'Área do participante');
+    expect($marca)->toBeLessThan($site)->and($site)->toBeLessThan($primeiraSecao)->and(substr_count($html, 'Ir para o Site'))->toBe(1);
 });

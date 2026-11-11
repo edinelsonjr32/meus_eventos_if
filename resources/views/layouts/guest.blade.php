@@ -1,8 +1,10 @@
 {{-- Telas de autenticação: mesmo menu, tipografia e rodapé das páginas públicas, com painel de marca ao lado do formulário --}}
-<x-publico-layout titulo="Acesso à plataforma" ativo="">
+<x-publico-layout titulo="Acesso à plataforma" ativo="" :sem-moldura="true">
     <x-slot:estilos>
         <style>
-            .auth { padding: 2.5rem 0 1rem; }
+            body { background: radial-gradient(900px 380px at 90% -5%, rgba(16,185,129,.10), transparent 70%), var(--bg); }
+            .auth { min-height: 100vh; display: flex; align-items: center; padding: 2rem 0; }
+            .auth > .container { width: 100%; }
             .auth-shell { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); background: #fff; border: 1px solid var(--line); border-radius: 28px; overflow: hidden; box-shadow: var(--sh-1); min-height: 620px; }
             .auth-lado { position: relative; color: #d1fae5; padding: 2.75rem 2.5rem; display: flex; flex-direction: column; justify-content: space-between; background: radial-gradient(700px 360px at 90% 0%, rgba(52,211,153,.28), transparent 60%), linear-gradient(160deg, #053b2d 0%, #065f46 60%, #047857 100%); overflow: hidden; }
             .auth-lado::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.1) 1px, transparent 1px); background-size: 28px 28px; opacity: .5; }
@@ -19,7 +21,7 @@
             .auth-voltar { border-top: 1px solid var(--line); margin-top: 1.75rem; padding-top: 1.1rem; text-align: center; }
             .auth-voltar a { color: var(--muted); text-decoration: none; font-size: .85rem; font-weight: 600; } .auth-voltar a:hover { color: #047857; }
             .auth .input-group-text { border-color: #d5dce5; }
-            @media (max-width: 991.98px) { .auth-shell { grid-template-columns: 1fr; min-height: 0; border-radius: 22px; } .auth-lado { display: none; } .auth-form { padding: 2rem 1.25rem; } .auth { padding-top: 1.25rem; } }
+            @media (max-width: 991.98px) { .auth-shell { grid-template-columns: 1fr; min-height: 0; border-radius: 22px; } .auth-lado { display: none; } .auth-form { padding: 2rem 1.25rem; } .auth { padding: 1.25rem 0; } }
         </style>
     </x-slot:estilos>
 
@@ -42,6 +44,7 @@
 
                 <div class="auth-form">
                     <div class="auth-card">
+                        <a href="{{ route('home') }}" class="pub-marca justify-content-center mb-4"><span class="pub-marca-icone"><i class="fa-solid fa-graduation-cap"></i></span><span>MeusEventos<em>IF</em></span></a>
                         {{ $slot }}
 
                         <div class="auth-voltar">

@@ -1,4 +1,4 @@
-@props(['titulo' => null, 'descricao' => null, 'marca' => '#059669', 'mascara' => false, 'ativo' => null])
+@props(['titulo' => null, 'descricao' => null, 'marca' => '#059669', 'mascara' => false, 'ativo' => null, 'semMoldura' => false])
 {{--
   Moldura das páginas públicas (home, página do evento, Anais): menu fixo, tokens de cor e rodapé completo.
   Uso: <x-publico-layout titulo="..." :marca="$cor"> ...conteúdo... </x-publico-layout>
@@ -80,8 +80,10 @@
         @media (max-width: 575.98px) { .secao { padding: 3rem 0; } }
     </style>
     {{ $estilos ?? '' }}
+    @include('partials.favicon')
 </head>
 <body>
+    @unless($semMoldura)
     <header class="pub-nav">
         <nav class="navbar navbar-expand-lg">
             <div class="container">
@@ -108,9 +110,11 @@
             </div>
         </nav>
     </header>
+    @endunless
 
     {{ $slot }}
 
+    @unless($semMoldura)
     <footer class="pub-rodape">
         <div class="container py-5">
             <div class="row g-4">
@@ -144,6 +148,7 @@
             </div>
         </div>
     </footer>
+    @endunless
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {{ $scripts ?? '' }}

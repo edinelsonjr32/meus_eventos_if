@@ -44,6 +44,7 @@
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes scaleIn { from { transform: scale(0); } to { transform: scale(1); } }
     </style>
+    @include('partials.favicon')
 </head>
 <body>
 

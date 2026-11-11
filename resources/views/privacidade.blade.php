@@ -11,6 +11,7 @@
         h1 { color: #064e3b; font-size: 1.8rem; } h2 { color: #047857; font-size: 1.15rem; margin-top: 1.75rem; }
         table { font-size: .9rem; }
     </style>
+    @include('partials.favicon')
 </head>
 <body>
     <main class="folha">

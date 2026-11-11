@@ -14,6 +14,7 @@
         .data-row { padding: .75rem 0; border-bottom: 1px solid #f3f4f6; }
         .icone { font-size: 3.5rem; }
     </style>
+    @include('partials.favicon')
 </head>
 <body>
     <div class="container px-3">

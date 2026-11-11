@@ -26,6 +26,7 @@
         .btn-success-custom:hover { background: #047857; }
         .btn-success-custom:disabled { background: #9ca3af; transform: none; cursor: wait; opacity: 0.8; }
     </style>
+    @include('partials.favicon')
 </head>
 <body class="p-3">
 

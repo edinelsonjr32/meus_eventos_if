@@ -24,6 +24,10 @@ use App\Http\Controllers\ProfileController;
 |--------------------------------------------------------------------------
 */
 
+// Ícone do site (favicon)
+Route::get('/icone.svg', [\App\Http\Controllers\IconeController::class, 'svg'])->name('icone.svg');
+Route::get('/icone.png', [\App\Http\Controllers\IconeController::class, 'png'])->name('icone.png');
+
 // Política de Privacidade (LGPD)
 Route::view('/privacidade', 'privacidade')->name('privacidade');
 

@@ -31,6 +31,7 @@
         .rodape{margin-top:26px;font-size:.8rem;color:#6b7280}
         @media(max-width:480px){.cartao{padding:30px 22px}.codigo{font-size:3.8rem}.btn{width:100%;justify-content:center}}
     </style>
+    @include('partials.favicon')
 </head>
 <body>
     <main class="cartao" role="main">
