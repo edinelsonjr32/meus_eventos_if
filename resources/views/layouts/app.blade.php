@@ -204,13 +204,13 @@
             .tabela-cartoes thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
             .tabela-cartoes tr { display: block; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: .35rem .85rem; margin-bottom: .75rem; box-shadow: 0 2px 8px -4px rgba(0,0,0,.08); }
             .tabela-cartoes tr.table-active, .tabela-cartoes tr[class*="detalhe"] { background: #f8fafc; }
-            .tabela-cartoes td { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: .5rem 0 !important; border: 0 !important; border-bottom: 1px dashed #e5e7eb !important; text-align: right !important; white-space: normal !important; min-width: 0 !important; background: transparent !important; }
+            .tabela-cartoes td { display: block; position: relative; padding: .5rem 0 .5rem 40% !important; border: 0 !important; border-bottom: 1px dashed #e5e7eb !important; text-align: right !important; white-space: normal !important; min-width: 0 !important; background: transparent !important; overflow-wrap: anywhere; min-height: 2.2rem; }
             .tabela-cartoes td:last-child { border-bottom: 0 !important; }
-            .tabela-cartoes td::before { content: attr(data-label); flex: 0 0 38%; max-width: 38%; text-align: left; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #64748b; padding-top: .15rem; }
+            .tabela-cartoes td::before { content: attr(data-label); position: absolute; left: 0; top: .6rem; width: 36%; text-align: left; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+            .tabela-cartoes td:not([data-label]), .tabela-cartoes td[data-label=""] { padding-left: 0 !important; }
             .tabela-cartoes td:not([data-label])::before, .tabela-cartoes td[data-label=""]::before { content: none; }
-            .tabela-cartoes td > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-            .tabela-cartoes td:not([data-label]), .tabela-cartoes td[data-label=""] { justify-content: flex-end; flex-wrap: wrap; }
-            .tabela-cartoes td[colspan] { display: block; text-align: left !important; }
+            .tabela-cartoes td .btn { white-space: normal; margin: .15rem 0 .15rem .25rem; }
+            .tabela-cartoes td[colspan] { padding-left: 0 !important; text-align: left !important; }
             .tabela-cartoes td .btn { white-space: normal; }
             /* Tabelas que precisam continuar largas (ex.: ranking): rolagem com aviso visível */
             .table-responsive { position: relative; }
@@ -236,6 +236,11 @@
             .main-content pre, .main-content code { white-space: pre-wrap; word-break: break-word; }
             .main-content .form-control, .main-content .form-select { font-size: 16px; } /* evita o zoom automático do iOS ao focar */
             .modal-dialog { margin: .5rem; }
+            /* Selos de status: quebram de linha em vez de vazar do cartão */
+            .main-content .sb { display: inline-block; white-space: normal; max-width: 100%; text-align: left; line-height: 1.3; border-radius: 12px; padding: .3rem .65rem; overflow-wrap: anywhere; }
+            .main-content .sb i { margin-right: .35rem; }
+            .main-content .sb .sb-extra { display: inline; }
+            .tabela-cartoes td .sb { margin: 0 0 .25rem .25rem; }
         }
     </style>
 </head>

@@ -87,6 +87,7 @@
         .sb { display: inline-flex; align-items: center; gap: .35rem; padding: .22rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 700; line-height: 1.2; border: 1px solid transparent; white-space: nowrap; vertical-align: middle; }
         .sb i { font-size: .72rem; }
         .sb-extra { font-weight: 600; opacity: .85; }
+        .sb { max-width: 100%; }
     </style>
 @endonce
 <span {{ $attributes->merge(['class' => 'sb']) }} style="background: {{ $fundo }}; color: {{ $texto }}; border-color: {{ $borda }};" title="{{ $texto_badge }}">
