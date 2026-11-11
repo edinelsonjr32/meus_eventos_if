@@ -278,3 +278,9 @@ it('a data da política é a da versão, não a de hoje', function () {
     config(['privacidade.atualizada_em' => '2025-01-02']);
     $this->get(route('privacidade'))->assertSee('02/01/2025');
 });
+
+it('o canal de privacidade padrão é contato@meuseventosif.com.br, independente do remetente dos e-mails', function () {
+    config(['mail.from.address' => 'hello@example.com']);
+    expect(config('privacidade.contato'))->toBe('contato@meuseventosif.com.br');
+    $this->get(route('privacidade'))->assertSee('contato@meuseventosif.com.br')->assertSee('mailto:contato@meuseventosif.com.br', false)->assertDontSee('hello@example.com');
+});

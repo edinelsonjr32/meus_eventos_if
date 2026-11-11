@@ -5,7 +5,7 @@ return [
     'controlador' => env('PRIVACIDADE_CONTROLADOR', 'Instituto Federal do Pará - Campus Óbidos'),
 
     // Canal para o titular exercer seus direitos (acesso, correção, anonimização...)
-    'contato' => env('PRIVACIDADE_CONTATO', env('MAIL_FROM_ADDRESS', 'privacidade@exemplo.com.br')),
+    'contato' => env('PRIVACIDADE_CONTATO', 'contato@meuseventosif.com.br'),
 
     // Encarregado pelo tratamento de dados pessoais (DPO), se houver
     'encarregado' => env('PRIVACIDADE_ENCARREGADO'),
