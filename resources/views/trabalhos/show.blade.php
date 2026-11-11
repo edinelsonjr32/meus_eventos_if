@@ -22,6 +22,9 @@
                         </a>
                     @endif
                     <x-badge tipo="trabalho" :valor="$trabalho->statusFinal()" :extra="$trabalho->extraSituacao()" style="font-size:.85rem; padding:.35rem .8rem;" />
+                    @if($trabalho->versao_final_pendente)
+                        <x-badge tipo="trabalho" valor="versao_final_pendente" />
+                    @endif
                 </div>
             </div>
 
@@ -100,7 +103,21 @@
                     @endif
 
                     @unless($gestao)
-                        @if($trabalho->temDecisao() || $trabalho->status === 'aguardando_correcao')
+                        @if($trabalho->versao_final_pendente && $trabalho->ehAutor(auth()->user()))
+                            <div class="glass-card bg-white mb-4 border border-warning">
+                                <h6 class="fw-bold text-warning-emphasis mb-2"><i class="fa-solid fa-file-pen me-1"></i> Enviar versão final corrigida</h6>
+                                <p class="small text-secondary">Atenda às ressalvas dos avaliadores e envie o PDF final. Não precisa de nova aprovação: ele substitui o arquivo atual e o trabalho vai para os Anais (se autorizado).</p>
+                                <form action="{{ route('trabalhos.versao-final', $trabalho) }}" method="POST" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-start">
+                                    @csrf
+                                    <div class="flex-grow-1" style="min-width: 220px;">
+                                        <input type="file" name="arquivo" accept="application/pdf,.pdf" class="form-control @error('arquivo') is-invalid @enderror" required>
+                                        @error('arquivo') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                    </div>
+                                    <button class="btn btn-primary-custom fw-bold" data-confirmar="Enviar esta versão como a versão final do trabalho?"><i class="fa-solid fa-paper-plane"></i> Enviar versão final</button>
+                                </form>
+                            </div>
+                        @endif
+                        @if($trabalho->temDecisao())
                             @php
                                 $cfg = $trabalho->evento->trabalhoConfig;
                                 $pareceres = $trabalho->avaliacoes->where('status', 'concluida')->values();
@@ -114,8 +131,10 @@
                                 @if(($cfg->autor_ve_notas ?? true) && $trabalho->nota_final !== null)
                                     <div class="small mb-2">Nota final: <strong>{{ number_format($trabalho->nota_final, 2, ',', '.') }}</strong></div>
                                 @endif
-                                @if($trabalho->status === 'aguardando_correcao' && $trabalho->prazo_correcao)
-                                    <div class="alert alert-warning small py-2">Envie a versão corrigida até <strong>{{ $trabalho->prazo_correcao->format('d/m/Y') }}</strong>.</div>
+                                @if($trabalho->versao_final_pendente)
+                                    <div class="alert alert-warning small py-2"><i class="fa-solid fa-file-pen me-1"></i> <strong>Trabalho final pendente.</strong> Seu trabalho segue o fluxo normalmente; envie a versão final corrigida (PDF) abaixo{!! $trabalho->prazo_correcao ? ' até <strong>' . e($trabalho->prazo_correcao->format('d/m/Y')) . '</strong>' : '' !!}.</div>
+                                @elseif($trabalho->versao_final_enviada_em)
+                                    <div class="alert alert-success small py-2"><i class="fa-solid fa-circle-check me-1"></i> Versão final enviada em {{ $trabalho->versao_final_enviada_em->format('d/m/Y H:i') }}.</div>
                                 @endif
                                 @if($trabalho->decisao_justificativa)
                                     <div class="small fw-bold">Mensagem da gestão</div>

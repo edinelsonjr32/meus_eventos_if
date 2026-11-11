@@ -8,8 +8,8 @@
     @if($decisao === 'aprovado')
         <p>Parabéns! Seu trabalho foi <strong>aprovado</strong>.</p>
     @elseif($decisao === 'aprovado_com_ressalvas')
-        <p>Seu trabalho foi <strong>aprovado com ressalvas</strong>. É necessário enviar uma versão corrigida
-           @if($trabalho->prazo_correcao) até <strong>{{ $trabalho->prazo_correcao->format('d/m/Y') }}</strong>@endif.</p>
+        <p>Seu trabalho foi <strong>aprovado com ressalvas</strong>. Ele segue normalmente para a apresentação. Ao final, envie a <strong>versão final corrigida</strong> (PDF)
+           {!! $trabalho->prazo_correcao ? 'até <strong>' . e($trabalho->prazo_correcao->format('d/m/Y')) . '</strong>' : '' !!} para constar nos Anais.</p>
     @else
         <p>Infelizmente seu trabalho <strong>não foi aprovado</strong> nesta avaliação.</p>
     @endif
@@ -20,6 +20,6 @@
     @endif
 
     <p>Veja o parecer e os próximos passos em
-        <a href="{{ $decisao === 'aprovado_com_ressalvas' ? route('trabalhos.edit', $trabalho) : route('trabalhos.show', $trabalho) }}">Meus Trabalhos</a>.</p>
+        <a href="{{ $decisao === 'aprovado_com_ressalvas' ? route('trabalhos.show', $trabalho) : route('trabalhos.show', $trabalho) }}">Meus Trabalhos</a>.</p>
 </body>
 </html>

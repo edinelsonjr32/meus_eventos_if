@@ -48,7 +48,8 @@ class Anais extends Model
         $query = $evento->trabalhos()->getQuery()
             ->where('status', 'aprovado')
             ->where('apresentado', true)
-            ->where('autoriza_publicacao', true);
+            ->where('autoriza_publicacao', true)
+            ->where('versao_final_pendente', false);   // aprovado com ressalvas: só entra depois que o autor envia a versão final
 
         // Com avaliação de apresentação ativa, só entra quem foi aprovado também na apresentação (aprovação 100%)
         if ($evento->trabalhoConfig?->avaliacao_apresentacao_ativa) {

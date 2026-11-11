@@ -186,6 +186,8 @@
                                             @if($t->motivoAnais === 'autorizacao')
                                                 <span class="sb" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;"><i class="fa-solid fa-ban"></i> Autores não autorizaram a publicação</span>
                                                 @if($t->autorizacao_solicitada_em) <span class="text-muted">· pedido enviado em {{ $t->autorizacao_solicitada_em->format('d/m H:i') }}</span> @endif
+                                            @elseif($t->motivoAnais === 'versao_final')
+                                                <span class="sb sb-pend"><i class="fa-solid fa-file-pen"></i> Versão final pendente (autor ainda não enviou o PDF corrigido)</span>
                                             @else
                                                 <span class="sb" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;"><i class="fa-solid fa-file-circle-xmark"></i> Sem PDF publicável</span>
                                             @endif

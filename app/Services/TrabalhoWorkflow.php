@@ -272,10 +272,38 @@ class TrabalhoWorkflow
         });
     }
 
-    private function anexarArquivo(Trabalho $trabalho, User $user, UploadedFile $arquivo): TrabalhoArquivo
+    /**
+     * Versão final corrigida (trabalho aprovado com ressalvas): o autor envia o PDF corrigido no fim do fluxo, sem nova
+     * aprovação da gestão. Vira o arquivo atual do trabalho e encerra a pendência.
+     *
+     * @throws \DomainException
+     */
+    public function enviarVersaoFinal(Trabalho $trabalho, User $autor, UploadedFile $arquivo): Trabalho
+    {
+        if ($trabalho->status !== 'aprovado' || !$trabalho->versao_final_pendente) {
+            throw new \DomainException('Este trabalho não está com a versão final pendente.');
+        }
+        if ($trabalho->prazo_correcao && $trabalho->prazo_correcao->isPast()) {
+            throw new \DomainException('O prazo para enviar a versão final terminou em ' . $trabalho->prazo_correcao->format('d/m/Y') . '. Procure a gestão do evento.');
+        }
+
+        DB::transaction(function () use ($trabalho, $autor, $arquivo) {
+            $this->anexarArquivo($trabalho, $autor, $arquivo, 'corrigido');
+            $trabalho->update(['versao_final_pendente' => false, 'versao_final_enviada_em' => now()]);
+            $this->registrar($trabalho, $autor, $trabalho->status, $trabalho->status, 'Versão final corrigida enviada pelo autor');
+        });
+
+        foreach ($trabalho->evento->usuariosDaGestaoDeTrabalhos() as $gestor) {
+            Mail::to($gestor->email)->queue(new TrabalhoReenviadoMail($trabalho->fresh(['autores', 'evento']), 'aprovado'));
+        }
+
+        return $trabalho->fresh();
+    }
+
+    private function anexarArquivo(Trabalho $trabalho, User $user, UploadedFile $arquivo, ?string $tipoForcado = null): TrabalhoArquivo
     {
         $versao = ((int) $trabalho->arquivos()->max('versao')) + 1;
-        $tipo = $trabalho->status === Trabalho::AGUARDANDO_CORRECAO ? 'corrigido' : 'original';
+        $tipo = $tipoForcado ?? ($trabalho->status === Trabalho::AGUARDANDO_CORRECAO ? 'corrigido' : 'original');
         $path = $arquivo->storeAs(
             "{$trabalho->evento_id}/{$trabalho->id}",
             sprintf('v%d-%s.pdf', $versao, Str::random(24)),

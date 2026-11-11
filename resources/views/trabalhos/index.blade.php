@@ -92,6 +92,9 @@
                                         </td>
                                         <td>{{ $t->evento->titulo }}</td>
                                         <td><x-badge tipo="trabalho" :valor="$t->statusFinal()" :extra="$t->extraSituacao()" />
+                                            @if($t->versao_final_pendente)
+                                                <div class="mt-1"><x-badge tipo="trabalho" valor="versao_final_pendente" /></div>
+                                            @endif
                                             @if($t->premiacao && $t->evento->trabalhoConfig?->premiacao_divulgada_em)
                                                 <div class="mt-1"><x-badge tipo="premio" :valor="(string) $t->premiacao->colocacao" /></div>
                                             @endif

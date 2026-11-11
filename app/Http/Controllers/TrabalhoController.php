@@ -128,6 +128,31 @@ class TrabalhoController extends Controller
         return back()->with('success', $autoriza ? 'Publicação autorizada. O trabalho aparece nos Anais quando estiverem publicados.' : 'Autorização revogada: o trabalho não será publicado nos Anais.');
     }
 
+    /** Envio da versão final corrigida (trabalho aprovado com ressalvas): feito no fim do fluxo, sem nova aprovação. */
+    public function enviarVersaoFinal(Request $request, Trabalho $trabalho)
+    {
+        abort_unless($trabalho->ehAutor($request->user()), 403);
+
+        $limite = (int) ($trabalho->evento->trabalhoConfig?->max_arquivo_mb ?? 20);
+        $request->validate(
+            ['arquivo' => ['required', 'file', 'mimes:pdf', 'max:' . ($limite * 1024)]],
+            ['arquivo.required' => 'Selecione o PDF da versão final.', 'arquivo.mimes' => 'O arquivo deve estar em formato PDF.', 'arquivo.max' => "O arquivo excede {$limite} MB."]
+        );
+
+        $arquivo = $request->file('arquivo');
+        if (@file_get_contents($arquivo->getRealPath(), false, null, 0, 5) !== '%PDF-') {
+            return back()->with('error', 'O arquivo enviado não é um PDF válido.');
+        }
+
+        try {
+            $this->workflow->enviarVersaoFinal($trabalho, $request->user(), $arquivo);
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('trabalhos.show', $trabalho)->with('success', 'Versão final enviada. Obrigado! A gestão foi avisada.');
+    }
+
     public function retirar(Request $request, Trabalho $trabalho)
     {
         $this->authorize('retirar', $trabalho);

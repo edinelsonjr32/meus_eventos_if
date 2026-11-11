@@ -298,11 +298,11 @@
         @csrf
         <select name="decisao" class="form-select form-select-sm mb-2" x-model="decisao">
             <option value="aprovado">Aprovar</option>
-            <option value="aprovado_com_ressalvas">Aprovar com ressalvas (solicita correção)</option>
+            <option value="aprovado_com_ressalvas">Aprovar com ressalvas (segue o fluxo; autor envia a versão final)</option>
             <option value="reprovado">Reprovar</option>
         </select>
         <div class="mb-2">
-            <label class="small fw-bold text-secondary">Prazo para correção <span class="fw-normal">(obrigatório ao aprovar com ressalvas)</span></label>
+            <label class="small fw-bold text-secondary">Prazo para a versão final <span class="fw-normal">(obrigatório ao aprovar com ressalvas)</span></label>
             <input type="date" name="prazo_correcao" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}" value="{{ old('prazo_correcao') }}">
         </div>
         <label class="small fw-bold text-secondary">Mensagem ao autor <span class="fw-normal">(obrigatória ao reprovar ou aprovar com ressalvas)</span></label>
@@ -315,10 +315,14 @@
     <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-gavel me-1"></i> Decisão registrada</h6>
     <p class="small mb-1"><strong>{{ ['aprovado' => 'Aprovado', 'aprovado_com_ressalvas' => 'Aprovado com ressalvas', 'reprovado' => 'Reprovado'][$trabalho->decisao] }}</strong>
         em {{ $trabalho->decisao_em?->format('d/m/Y H:i') }}</p>
-    @if($trabalho->decisao_justificativa) <p class="small text-muted" style="white-space: pre-line;">{{ $trabalho->decisao_justificativa }}</p> @endif
+    @if($trabalho->versao_final_enviada_em)
+        <p class="small text-success mb-1"><i class="fa-solid fa-circle-check me-1"></i> Versão final enviada em {{ $trabalho->versao_final_enviada_em->format('d/m/Y H:i') }}.</p>
+    @endif
+    @if($trabalho->decisao_justificativa) <p class="small text-muted texto-quebra">{{ $trabalho->decisao_justificativa }}</p> @endif
 
-    @if($trabalho->status === 'aguardando_correcao')
-        <p class="small mb-2">Prazo de correção: <strong>{{ $trabalho->prazo_correcao?->format('d/m/Y') }}</strong></p>
+    @if($trabalho->versao_final_pendente || $trabalho->status === 'aguardando_correcao')
+        <p class="small mb-1"><x-badge tipo="trabalho" valor="versao_final_pendente" /> O trabalho segue o fluxo; o autor envia a versão corrigida no final.</p>
+        <p class="small mb-2">Prazo da versão final: <strong>{{ $trabalho->prazo_correcao?->format('d/m/Y') }}</strong></p>
         <form action="{{ route('gestao.trabalhos.prorrogar', $trabalho) }}" method="POST" class="d-flex gap-2">
             @csrf
             <input type="date" name="prazo_correcao" class="form-control form-control-sm" min="{{ now()->addDay()->format('Y-m-d') }}" required>

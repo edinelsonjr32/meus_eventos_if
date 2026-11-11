@@ -63,7 +63,7 @@ class Trabalho extends Model
         'evento_id', 'codigo', 'submetido_por', 'titulo', 'resumo', 'abstract', 'palavras_chave', 'tipo_trabalho',
         'area_tematica_id', 'atividade_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
         'status', 'nota_final', 'nota_apresentacao', 'resultado_apresentacao', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
-        'apresentado', 'apresentado_em', 'apresentacao_origem',
+        'apresentado', 'apresentado_em', 'apresentacao_origem', 'versao_final_pendente', 'versao_final_enviada_em',
         'autoriza_publicacao', 'autorizou_em', 'autorizacao_solicitada_em', 'submetido_em',
     ];
 
@@ -79,6 +79,8 @@ class Trabalho extends Model
         'apresentado' => 'boolean',
         'apresentado_em' => 'datetime',
         'nota_final' => 'float',
+        'versao_final_pendente' => 'boolean',
+        'versao_final_enviada_em' => 'datetime',
     ];
 
     public function evento(): BelongsTo

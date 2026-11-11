@@ -109,39 +109,17 @@ it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Anai
     $this->actingAs($gestor)->post(route('gestao.trabalhos.decisao', $trabalho), [
         'decisao' => 'aprovado_com_ressalvas', 'justificativa' => 'Detalhar a metodologia e atualizar as referências.', 'prazo_correcao' => now()->addDays(4)->format('Y-m-d'),
     ])->assertSessionHas('success');
-    expect($trabalho->fresh()->status)->toBe('aguardando_correcao');
+    // Com ressalvas o trabalho SEGUE o fluxo (aprovado) e fica com a versão final pendente
+    expect($trabalho->fresh())->status->toBe('aprovado')->versao_final_pendente->toBeTrue()->decisao->toBe('aprovado_com_ressalvas');
     Mail::assertQueued(TrabalhoDecisaoMail::class, fn ($m) => $m->decisao === 'aprovado_com_ressalvas' && $m->hasTo('ana@ifpa.edu.br'));
 
     // O autor vê o resultado e o parecer anônimo, mas nunca avaliadores nem o painel da gestão
     $this->actingAs($autor)->get(route('trabalhos.show', $trabalho))->assertOk()
-        ->assertSee('Resultado da avaliação')->assertSee('Detalhar a metodologia')->assertDontSee($av1->email)->assertDontSee($av2->email);
+        ->assertSee('Resultado da avaliação')->assertSee('Detalhar a metodologia')->assertSee('Enviar versão final corrigida')->assertDontSee($av1->email)->assertDontSee($av2->email);
     $this->get(route('gestao.trabalhos.show', $trabalho))->assertForbidden();
 
-    // ---------- 7. Correção e reenvio pelo autor ----------
-    $this->get(route('trabalhos.edit', $trabalho))->assertOk();
-    $this->put(route('trabalhos.update', $trabalho), [
-        'acao' => 'submeter', 'titulo' => 'Monitoramento de igarapés com sensores de baixo custo (versão revisada)', 'tipo_trabalho' => 'pesquisa',
-        'area_tematica_id' => $area->id, 'modalidade_apresentacao' => 'poster', 'declaracao_ineditismo' => 1, 'declaracao_regulamento' => 1, 'autoriza_publicacao' => 1,
-        'autores' => [
-            ['id' => $trabalho->autores[0]->id, 'nome_completo' => 'Ana Apresentadora', 'cpf' => '111.444.777-35', 'email' => 'ana@ifpa.edu.br', 'instituicao' => 'IFPA Campus Óbidos', 'categoria_autor' => 'discente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'correspondente' => 1],
-            ['id' => $trabalho->autores[1]->id, 'nome_completo' => 'Prof. Otávio Orientador', 'instituicao' => 'IFPA Campus Óbidos', 'tipo_autor' => 'orientador'],
-        ],
-        'arquivo' => jornadaPdf('trabalho-revisado.pdf'),
-    ])->assertSessionHasNoErrors();
-    expect($trabalho->fresh()->status)->toBe('resubmetido')->and($trabalho->fresh()->arquivos)->toHaveCount(2);
-    Mail::assertQueued(TrabalhoReenviadoMail::class, fn ($m) => $m->hasTo('gestor@jornada.com'));
-
-    // ---------- 8. Nova rodada com os mesmos avaliadores e aprovação ----------
-    $this->actingAs($gestor)->post(route('gestao.trabalhos.reavaliar', $trabalho))->assertSessionHas('success');
-    expect($trabalho->fresh()->status)->toBe('em_avaliacao')->and($trabalho->fresh()->rodadaAtual())->toBe(2);
-    $avaliar($av1, [9, 9], 2);
-    $avaliar($av2, [9, 9], 2);
-    expect($trabalho->fresh())->status->toBe('avaliado')->nota_final->toBe(9.0);
-    $this->actingAs($gestor)->post(route('gestao.trabalhos.decisao', $trabalho), ['decisao' => 'aprovado', 'justificativa' => 'Parabéns!'])->assertSessionHas('success');
-    expect($trabalho->fresh()->status)->toBe('aprovado');
-
     // ---------- 9. Apresentação: a presença do apresentador na sessão confirma sozinha ----------
-    $this->post(route('gestao.trabalhos.apresentacao', $trabalho), ['acao' => 'sessao', 'atividade_id' => $sessao->id])->assertSessionHas('success');
+    $this->actingAs($gestor)->post(route('gestao.trabalhos.apresentacao', $trabalho), ['acao' => 'sessao', 'atividade_id' => $sessao->id])->assertSessionHas('success');
     expect($trabalho->fresh()->apresentado)->toBeFalse();
     $this->post(route('gestao.trabalhos.certificados.emitir', $trabalho))->assertSessionHas('error');   // ainda não apresentou
 
@@ -169,8 +147,14 @@ it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Anai
     $this->get(route('certificado.trabalho.validar', $hash))->assertOk()->assertSee('Certificado autêntico')->assertSee('Ana Apresentadora');
     expect($this->get(route('certificado.trabalho.download', $hash))->assertOk()->getContent())->toStartWith('%PDF-');
 
+    // ---------- 10b. Versão final: o autor envia o PDF corrigido no fim, sem nova aprovação da gestão ----------
+    Mail::fake();
+    $this->actingAs($autor)->post(route('trabalhos.versao-final', $trabalho), ['arquivo' => jornadaPdf('trabalho-final.pdf')])->assertSessionHas('success');
+    expect($trabalho->fresh())->status->toBe('aprovado')->versao_final_pendente->toBeFalse()->and($trabalho->fresh()->arquivos)->toHaveCount(2);
+    Mail::assertQueued(TrabalhoReenviadoMail::class, fn ($m) => $m->hasTo('gestor@jornada.com'));
+
     // ---------- 11. Ranking da comissão ----------
-    $this->actingAs($gestor)->get(route('gestao.trabalhos.ranking', $evento))->assertOk()->assertSee($trabalho->codigo)->assertSee('9,00');
+    $this->actingAs($gestor)->get(route('gestao.trabalhos.ranking', $evento))->assertOk()->assertSee($trabalho->codigo)->assertSee('7,50');
     $this->get(route('gestao.trabalhos.exportar-notas', ['evento' => $evento, 'relatorio' => 'detalhado', 'formato' => 'csv']))->assertOk();
 
     // ---------- 12. Anais ----------

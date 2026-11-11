@@ -24,6 +24,7 @@
             'avaliado' => ['roxo', 'fa-clipboard-check', 'Avaliado'], 'aguardando_correcao' => ['ambar', 'fa-pen-to-square', 'Aguardando correção'],
             'resubmetido' => ['rosa', 'fa-arrows-rotate', 'Resubmetido'], 'aprovado' => ['verde-forte', 'fa-circle-check', 'Aprovado'],
             'aprovado_com_ressalvas' => ['lima', 'fa-circle-exclamation', 'Aprovado com ressalvas'], 'reprovado' => ['vermelho-forte', 'fa-circle-xmark', 'Reprovado'],
+            'versao_final_pendente' => ['ambar', 'fa-file-pen', 'Trabalho final pendente'],
             'retirado' => ['ardosia', 'fa-box-archive', 'Retirado'],
             'aprovado_escrita' => ['lima', 'fa-file-circle-check', 'Aprovado na parte escrita'], 'aguardando_certificado' => ['dourado', 'fa-award', 'Aguardando emissão de certificado'], 'concluido' => ['esmeralda', 'fa-flag-checkered', 'Concluído (certificados emitidos)'], 'aprovado_apresentacao' => ['azul', 'fa-person-chalkboard', 'Aprovado na apresentação'],
         ],

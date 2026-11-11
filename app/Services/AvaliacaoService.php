@@ -25,7 +25,8 @@ class AvaliacaoService
     /** Decisão => status resultante. */
     public const DECISOES = [
         'aprovado' => 'aprovado',
-        'aprovado_com_ressalvas' => Trabalho::AGUARDANDO_CORRECAO,
+        // Com ressalvas o trabalho SEGUE o fluxo (apresentação, certificado); a versão corrigida é enviada no final
+        'aprovado_com_ressalvas' => 'aprovado',
         'reprovado' => 'reprovado',
     ];
 
@@ -317,6 +318,8 @@ class AvaliacaoService
                 'decisao_em' => now(),
                 'decidido_por' => $gestor->id,
                 'prazo_correcao' => $decisao === 'aprovado_com_ressalvas' ? $prazoCorrecao : null,
+                'versao_final_pendente' => $decisao === 'aprovado_com_ressalvas',
+                'versao_final_enviada_em' => null,
                 'nota_final' => $this->notaMedia($trabalho) ?? $trabalho->nota_final,
             ]);
             $this->workflow->registrar($trabalho, $gestor, $de, $novoStatus, $justificativa !== '' ? $justificativa : null);
@@ -333,15 +336,15 @@ class AvaliacaoService
 
     public function prorrogarCorrecao(Trabalho $trabalho, User $gestor, Carbon $novoPrazo): void
     {
-        if ($trabalho->status !== Trabalho::AGUARDANDO_CORRECAO) {
-            throw new \DomainException('O trabalho não está aguardando correção.');
+        if (!$trabalho->versao_final_pendente && $trabalho->status !== Trabalho::AGUARDANDO_CORRECAO) {
+            throw new \DomainException('O trabalho não está aguardando a versão final.');
         }
         if ($novoPrazo->isPast()) {
             throw new \DomainException('O novo prazo deve estar no futuro.');
         }
 
         $trabalho->update(['prazo_correcao' => $novoPrazo]);
-        $this->workflow->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, 'Prazo de correção prorrogado até ' . $novoPrazo->format('d/m/Y'));
+        $this->workflow->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, 'Prazo da versão final prorrogado até ' . $novoPrazo->format('d/m/Y'));
     }
 
     /** Nova rodada: os avaliadores da rodada anterior recebem a versão corrigida. */

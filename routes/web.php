@@ -116,6 +116,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/trabalhos/{trabalho}', [\App\Http\Controllers\TrabalhoController::class, 'update'])->name('trabalhos.update');
     Route::get('/trabalhos/{trabalho}/arquivo', [\App\Http\Controllers\TrabalhoController::class, 'arquivo'])->name('trabalhos.arquivo');
     Route::post('/trabalhos/{trabalho}/autorizacao-publicacao', [\App\Http\Controllers\TrabalhoController::class, 'autorizarPublicacao'])->name('trabalhos.autorizacao-publicacao');
+    Route::post('/trabalhos/{trabalho}/versao-final', [\App\Http\Controllers\TrabalhoController::class, 'enviarVersaoFinal'])->name('trabalhos.versao-final');
     Route::post('/trabalhos/{trabalho}/retirar', [\App\Http\Controllers\TrabalhoController::class, 'retirar'])->name('trabalhos.retirar');
 
     // --- AVALIADOR (somente as próprias avaliações; autorização por Policy) ---

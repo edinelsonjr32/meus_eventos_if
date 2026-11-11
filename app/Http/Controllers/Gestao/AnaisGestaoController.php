@@ -54,7 +54,7 @@ class AnaisGestaoController extends Controller
         }
 
         return $consulta->get()->each(function ($t) {
-            $t->motivoAnais = !$t->autoriza_publicacao ? 'autorizacao' : ($this->pdf->arquivoPublico($t) === null ? 'pdf' : null);
+            $t->motivoAnais = !$t->autoriza_publicacao ? 'autorizacao' : ($t->versao_final_pendente ? 'versao_final' : ($this->pdf->arquivoPublico($t) === null ? 'pdf' : null));
         })->filter(fn ($t) => $t->motivoAnais !== null)->values();
     }
 

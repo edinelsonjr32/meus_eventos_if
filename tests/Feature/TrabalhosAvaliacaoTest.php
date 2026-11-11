@@ -3,6 +3,7 @@
 use App\Mail\AvaliacaoLembreteMail;
 use App\Mail\AvaliadorAtribuidoMail;
 use App\Mail\TrabalhoDecisaoMail;
+use App\Mail\TrabalhoReenviadoMail;
 use App\Models\CriterioAvaliacao;
 use App\Models\Evento;
 use App\Models\Trabalho;
@@ -302,65 +303,64 @@ it('parecer confidencial nunca chega ao autor, mas a gestão vê', function () {
     $this->actingAs($this->gestor)->get(route('gestao.trabalhos.show', $t->fresh()))->assertSee('Suspeita de plágio parcial');
 });
 
-// ---------- Correção e nova rodada ----------
-it('fluxo completo de ressalvas: correção, reenvio, nova rodada e aprovação', function () {
+// ---------- Aprovado com ressalvas: segue o fluxo e a versão final é enviada no fim ----------
+it('aprovado com ressalvas segue o fluxo (sem nova aprovação) e o autor envia a versão final', function () {
     $t = trabalhoAvaliado();
     Mail::fake();
 
-    // 1. gestão aprova com ressalvas
+    // 1. gestão aprova com ressalvas: o trabalho já fica aprovado, com a versão final pendente
     $this->actingAs($this->gestor)->post(route('gestao.trabalhos.decisao', $t), [
         'decisao' => 'aprovado_com_ressalvas', 'justificativa' => 'Reforçar a metodologia.', 'prazo_correcao' => now()->addDays(7)->format('Y-m-d'),
     ])->assertSessionHas('success');
     $t->refresh();
-    expect($t->status)->toBe('aguardando_correcao')->and($t->prazo_correcao->isFuture())->toBeTrue();
+    expect($t->status)->toBe('aprovado')->and($t->versao_final_pendente)->toBeTrue()->and($t->prazo_correcao->isFuture())->toBeTrue();
     Mail::assertQueued(TrabalhoDecisaoMail::class, fn ($m) => $m->decisao === 'aprovado_com_ressalvas');
 
-    // 2. autor corrige e reenvia
-    $this->actingAs($this->autor)->get(route('trabalhos.edit', $t))->assertOk();
-    $this->actingAs($this->autor)->put(route('trabalhos.update', $t), [
-        'acao' => 'submeter', 'titulo' => 'Título corrigido', 'resumo' => str_repeat('palavra ', 120), 'palavras_chave' => 'a, b, c',
-        'tipo_trabalho' => 'pesquisa', 'modalidade_apresentacao' => 'oral', 'declaracao_ineditismo' => 1, 'declaracao_regulamento' => 1,
-        'arquivo' => UploadedFile::fake()->createWithContent('v2.pdf', "%PDF-1.4\n%%EOF"),
-        'autores' => [['nome_completo' => 'Fulana', 'cpf' => '111.444.777-35', 'email' => $this->autor->email, 'instituicao' => 'IFPA', 'categoria_autor' => 'discente', 'tipo_autor' => 'autor_principal', 'apresentador' => 1, 'correspondente' => 1]],
-    ])->assertSessionHasNoErrors();
-    expect($t->fresh()->status)->toBe('resubmetido');
+    // 2. quem não é autor não envia; PDF inválido é recusado
+    $this->actingAs($this->av1)->post(route('trabalhos.versao-final', $t), ['arquivo' => UploadedFile::fake()->createWithContent('v2.pdf', "%PDF-1.4\n%%EOF")])->assertForbidden();
+    $this->actingAs($this->autor)->post(route('trabalhos.versao-final', $t), ['arquivo' => UploadedFile::fake()->createWithContent('falso.pdf', 'texto qualquer')])->assertSessionHas('error');
+    expect($t->fresh()->versao_final_pendente)->toBeTrue();
 
-    // 3. nova rodada com os mesmos avaliadores
-    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.reavaliar', $t))->assertSessionHas('success');
+    // 3. o autor envia a versão final: não volta para a gestão aprovar de novo
+    $this->actingAs($this->autor)->post(route('trabalhos.versao-final', $t), ['arquivo' => UploadedFile::fake()->createWithContent('v2.pdf', "%PDF-1.4\n%%EOF")])->assertSessionHas('success');
     $t->refresh();
-    expect($t->status)->toBe('em_avaliacao')->and($t->rodadaAtual())->toBe(2)->and($t->nota_final)->toBeNull();
-    Mail::assertQueued(AvaliadorAtribuidoMail::class, 2);
+    expect($t->status)->toBe('aprovado')->and($t->versao_final_pendente)->toBeFalse()->and($t->versao_final_enviada_em)->not->toBeNull()
+        ->and($t->arquivoAtual->tipo)->toBe('corrigido');
+    Mail::assertQueued(TrabalhoReenviadoMail::class);
 
-    // a avaliação da rodada 1 deixa de ser editável e o avaliador vê somente a rodada 2
-    $this->actingAs($this->av1)->post(route('avaliador.avaliacoes.salvar', $this->a1), ['parecer' => 'x'])->assertForbidden();
-    $r2 = $t->avaliacoes()->where('rodada', 2)->where('avaliador_id', $this->av1->id)->first();
-    $this->actingAs($this->av1)->get(route('avaliador.avaliacoes.index'))->assertOk()->assertSee('Rodada 2');
+    // 4. não dá para enviar de novo
+    $this->actingAs($this->autor)->post(route('trabalhos.versao-final', $t), ['arquivo' => UploadedFile::fake()->createWithContent('v3.pdf', "%PDF-1.4\n%%EOF")])->assertSessionHas('error');
+});
 
-    // 4. avaliadores concluem a rodada 2 e a gestão aprova
-    concluirAvaliacao($r2, [10, 10]);
-    concluirAvaliacao($t->avaliacoes()->where('rodada', 2)->where('avaliador_id', $this->av2->id)->first(), [9, 9]);
-    $t->refresh();
-    expect($t->status)->toBe('avaliado')->and($t->nota_final)->toBe(9.5);
+it('trabalho com versão final pendente fica fora dos Anais até o autor enviar', function () {
+    $t = trabalhoAvaliado();
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.decisao', $t), [
+        'decisao' => 'aprovado_com_ressalvas', 'justificativa' => 'Ajustar.', 'prazo_correcao' => now()->addDays(3)->format('Y-m-d'),
+    ]);
+    $t->refresh()->update(['apresentado' => true, 'autoriza_publicacao' => true]);
 
-    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.decisao', $t), ['decisao' => 'aprovado'])->assertSessionHas('success');
-    expect($t->fresh()->status)->toBe('aprovado');
+    expect(\App\Models\Anais::elegiveis($t->evento)->whereKey($t->id)->exists())->toBeFalse();
+    $t->update(['versao_final_pendente' => false]);
+    expect(\App\Models\Anais::elegiveis($t->evento)->whereKey($t->id)->exists())->toBeTrue();
 });
 
 it('só reavalia trabalho reenviado', function () {
     $this->actingAs($this->gestor)->post(route('gestao.trabalhos.reavaliar', $this->trabalho))->assertSessionHas('error');
 });
 
-it('prazo de correção vencido bloqueia o autor até a gestão prorrogar', function () {
+it('prazo da versão final vencido bloqueia o envio até a gestão prorrogar', function () {
     $t = trabalhoAvaliado();
     $this->actingAs($this->gestor)->post(route('gestao.trabalhos.decisao', $t), [
         'decisao' => 'aprovado_com_ressalvas', 'justificativa' => 'Ajustar.', 'prazo_correcao' => now()->addDay()->format('Y-m-d'),
     ]);
     Trabalho::whereKey($t->id)->update(['prazo_correcao' => now()->subHour()]);
+    $pdf = fn () => UploadedFile::fake()->createWithContent('f.pdf', "%PDF-1.4\n%%EOF");
 
-    $this->actingAs($this->autor)->get(route('trabalhos.edit', $t))->assertRedirect(route('trabalhos.show', $t));
+    $this->actingAs($this->autor)->post(route('trabalhos.versao-final', $t), ['arquivo' => $pdf()])->assertSessionHas('error');
+    expect($t->fresh()->versao_final_pendente)->toBeTrue();
 
     $this->actingAs($this->gestor)->post(route('gestao.trabalhos.prorrogar', $t), ['prazo_correcao' => now()->addDays(3)->format('Y-m-d')])->assertSessionHas('success');
-    $this->actingAs($this->autor)->get(route('trabalhos.edit', $t))->assertOk();
+    $this->actingAs($this->autor)->post(route('trabalhos.versao-final', $t), ['arquivo' => $pdf()])->assertSessionHas('success');
 
     $this->actingAs($this->gestor)->post(route('gestao.trabalhos.prorrogar', $t), ['prazo_correcao' => now()->subDay()->format('Y-m-d')])->assertSessionHasErrors('prazo_correcao');
 });
