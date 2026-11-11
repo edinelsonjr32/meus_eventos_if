@@ -73,3 +73,31 @@ it('criar evento com título repetido no mesmo ano gera outro endereço em vez d
     $this->post(route('admin.eventos.store'), dadosEvento(['titulo' => 'Evento Repetido']))->assertSessionHasNoErrors();
     expect(Evento::where('slug', "{$base}-4")->exists())->toBeTrue();
 });
+
+it('a organização escolhe exibir ou não a logo e o banner na página pública', function () {
+    $this->actingAs($this->admin)->post(route('admin.eventos.store'), dadosEvento([
+        'titulo' => 'Evento Visual', 'logo' => UploadedFile::fake()->image('l.png'), 'banner' => UploadedFile::fake()->image('b.png', 1600, 500),
+    ]))->assertSessionHasNoErrors();
+    $e = Evento::firstWhere('titulo', 'Evento Visual');
+    expect($e->exibeLogo())->toBeTrue()->and($e->exibeBanner())->toBeTrue();   // padrão: exibir
+
+    // desmarcar as duas opções: os arquivos continuam guardados, mas não aparecem
+    $this->put(route('admin.eventos.update', $e), dadosEvento(['titulo' => 'Evento Visual', 'exibir_logo' => 0, 'exibir_banner' => 0]))->assertSessionHasNoErrors();
+    $e->refresh();
+    expect($e->exibeLogo())->toBeFalse()->and($e->exibeBanner())->toBeFalse()->and($e->caminho_logo)->not->toBeNull()->and($e->caminho_banner)->not->toBeNull();
+    auth()->logout();
+    $this->get(route('evento.publico.show', $e->slug))->assertOk()->assertDontSee($e->logoUrl(), false)->assertDontSee($e->bannerUrl(), false);
+
+    // só a logo
+    $this->actingAs($this->admin)->put(route('admin.eventos.update', $e), dadosEvento(['titulo' => 'Evento Visual', 'exibir_logo' => 1, 'exibir_banner' => 0]));
+    auth()->logout();
+    $this->get(route('evento.publico.show', $e->slug))->assertSee($e->logoUrl(), false)->assertDontSee($e->bannerUrl(), false);
+
+    // formulário antigo, sem os campos: mantém a escolha anterior
+    $this->actingAs($this->admin)->put(route('admin.eventos.update', $e), dadosEvento(['titulo' => 'Evento Visual']));
+    expect($e->fresh()->exibeLogo())->toBeTrue()->and($e->fresh()->exibeBanner())->toBeFalse();
+});
+
+it('o formulário do evento oferece as opções de exibição', function () {
+    $this->actingAs($this->admin)->get(route('admin.eventos.create'))->assertOk()->assertSee('Exibir a logo na página pública')->assertSee('Exibir o banner na página pública');
+});

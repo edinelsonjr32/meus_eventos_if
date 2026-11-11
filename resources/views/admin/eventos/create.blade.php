@@ -114,6 +114,19 @@
                         </div>
                     </div>
 
+                    <div class="d-flex flex-wrap gap-4 mb-4 p-3 rounded-3 bg-light border">
+                        <div class="form-check form-switch mb-0">
+                            <input type="hidden" name="exibir_logo" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="exibir_logo" value="1" id="exibir_logo" @checked(old('exibir_logo', true))>
+                            <label class="form-check-label small fw-bold" for="exibir_logo">Exibir a logo na página pública</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input type="hidden" name="exibir_banner" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="exibir_banner" value="1" id="exibir_banner" @checked(old('exibir_banner', true))>
+                            <label class="form-check-label small fw-bold" for="exibir_banner">Exibir o banner na página pública</label>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-end pt-3">
                         <button type="submit" class="btn-primary-custom px-5">
                             Criar Evento

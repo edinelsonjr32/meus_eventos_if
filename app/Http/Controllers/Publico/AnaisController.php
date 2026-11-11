@@ -76,7 +76,17 @@ class AnaisController extends Controller
             'areas' => $evento->areasTematicas,
             'citacao' => $this->citacao,
             'pdfs' => $this->pdf,
+            ...$this->totais($evento),
         ]);
+    }
+
+    /** Números do cabeçalho dos Anais: trabalhos publicados e áreas representadas. */
+    private function totais(Evento $evento): array
+    {
+        return [
+            'totalTrabalhos' => Anais::elegiveis($evento)->count(),
+            'totalAreas' => Anais::elegiveis($evento)->whereNotNull('area_tematica_id')->distinct('area_tematica_id')->count('area_tematica_id'),
+        ];
     }
 
     public function show(string $slug, string $codigo)
@@ -85,6 +95,7 @@ class AnaisController extends Controller
         $trabalho = $this->trabalho($evento, $codigo);
 
         return view('publico.anais.show', [
+            ...$this->totais($evento),
             'evento' => $evento,
             'anais' => $anais,
             'trabalho' => $trabalho,

@@ -246,3 +246,15 @@ it('o formulário de submissão e o filtro dos Anais oferecem a categoria Ensino
     $this->actingAs($this->autor)->get(route('trabalhos.create', $this->evento->slug))->assertOk()->assertSee('value="ensino"', false);
     expect(\App\Models\TrabalhoConfig::TIPOS)->toHaveKey('ensino');
 });
+
+it('categoria Outros: existe na lista de categorias e funciona no ranking e na premiação', function () {
+    expect(\App\Models\TrabalhoConfig::TIPOS)->toHaveKey('outros')->and(\App\Models\TrabalhoConfig::TIPOS['outros'])->toBe('Outros');
+    $this->evento->trabalhoConfig->update(['tipos_permitidos' => ['pesquisa', 'outros']]);
+    expect($this->svc->categorias($this->evento->fresh()))->toBe(['pesquisa' => 'Pesquisa', 'outros' => 'Outros']);
+
+    $o1 = premiavel($this, 'outros', 'Outros Um', 9, 9);
+    expect($this->svc->ranking($this->evento->fresh(), 'outros')->pluck('id')->all())->toBe([$o1->id]);
+
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.premiacao.sugerir', $this->evento))->assertSessionHas('success');
+    expect(Premiacao::where('evento_id', $this->evento->id)->where('tipo_trabalho', 'outros')->count())->toBe(1);
+});

@@ -27,17 +27,8 @@ use App\Http\Controllers\ProfileController;
 // Política de Privacidade (LGPD)
 Route::view('/privacidade', 'privacidade')->name('privacidade');
 
-// Portal de Eventos (Landing Page Principal)
-Route::get('/', function () {
-    // Busca os próximos 9 eventos ativos ou futuros
-    $proximosEventos = \App\Models\Evento::where('data_fim', '>=', now())
-        // eventos criados por contas fictícias de teste não aparecem no portal público
-        ->whereNotIn('criado_por', \App\Models\User::where('email', 'like', '%@teste.com')->select('id'))
-        ->orderBy('data_inicio', 'asc')
-        ->take(9)
-        ->get();
-    return view('welcome', compact('proximosEventos'));
-})->name('home');
+// Portal de Eventos (página inicial pública)
+Route::get('/', [\App\Http\Controllers\Publico\PortalController::class, 'home'])->name('home');
 
 // Anais de Trabalhos (públicos somente após a publicação pela gestão)
 Route::prefix('e/{slug}/anais')->name('anais.')->middleware('throttle:anais')->group(function () {

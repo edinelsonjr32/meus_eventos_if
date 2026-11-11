@@ -67,3 +67,24 @@ it('o layout prepara as tabelas para o modo cartão no celular e avisa quando a 
     $this->actingAs(mkUser('admin'))->get(route('admin.dashboard'))->assertOk()
         ->assertSee('tabela-cartoes', false)->assertSee('aviso-rolagem', false)->assertSee('data-label', false);
 });
+
+it('a página inicial pública mostra números, eventos, Anais publicados, como funciona, validação e perguntas frequentes', function () {
+    $dono = mkUser('admin', 'dono@ifpa.edu.br');
+    $evento = mkEvento($dono);
+    $evento->update(['titulo' => 'Semana Real', 'slug' => 'semana-real', 'data_inicio' => now()->addDays(3), 'data_fim' => now()->addDays(4)]);
+    \App\Models\Anais::create(['evento_id' => $evento->id, 'titulo' => 'Anais da Semana Real', 'ano' => 2026, 'status' => 'publicado', 'publicado_em' => now()]);
+
+    $this->get('/')->assertOk()
+        ->assertSee('Semana Real')->assertSee('Ver programação e inscrever-se')
+        ->assertSee('eventos na plataforma')->assertSee('participantes inscritos')
+        ->assertSee('Anais da Semana Real')->assertSee('Como participar de um evento')
+        ->assertSee('Validar certificado')->assertSee('Perguntas frequentes')->assertSee('Política de privacidade');
+});
+
+it('eventos de contas de teste não aparecem na página inicial pública', function () {
+    $teste = mkUser('admin', 'dono@teste.com');
+    $evento = mkEvento($teste);
+    $evento->update(['titulo' => 'Evento Fictício Oculto', 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDays(2)]);
+
+    $this->get('/')->assertOk()->assertDontSee('Evento Fictício Oculto')->assertSee('Nenhum evento agendado');
+});

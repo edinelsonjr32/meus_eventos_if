@@ -38,6 +38,30 @@ class Evento extends Model
         'cert_equipe_corpo',
     ];
 
+    /** A organização escolheu mostrar a logo nas páginas públicas? (padrão: sim) */
+    public function exibeLogo(): bool
+    {
+        return (bool) (($this->configuracoes['exibir_logo'] ?? true));
+    }
+
+    /** A organização escolheu mostrar o banner nas páginas públicas? (padrão: sim) */
+    public function exibeBanner(): bool
+    {
+        return (bool) (($this->configuracoes['exibir_banner'] ?? true));
+    }
+
+    /** Logo para as páginas públicas: só quando existe e está marcada para exibição. */
+    public function logoPublicaUrl(): ?string
+    {
+        return $this->exibeLogo() ? $this->logoUrl() : null;
+    }
+
+    /** Banner para as páginas públicas: só quando existe e está marcado para exibição. */
+    public function bannerPublicoUrl(): ?string
+    {
+        return $this->exibeBanner() ? $this->bannerUrl() : null;
+    }
+
     /** URL pública da logo do evento (null se não houver arquivo). */
     public function logoUrl(): ?string
     {

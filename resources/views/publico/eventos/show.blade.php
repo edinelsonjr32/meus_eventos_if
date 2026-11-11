@@ -1,270 +1,247 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $evento->titulo }} - Inscrição Oficial</title>
+@php
+    $cor = $evento->configuracoes['cor_fundo'] ?? '#059669';
+    $cfg = $evento->trabalhoConfig;
+    $chamadaAtiva = $cfg && $cfg->ativo;
+    $chamadaAberta = $cfg?->estaAberta();
+    $bannerUrl = $evento->bannerPublicoUrl();
+    $logoUrl = $evento->logoPublicaUrl();
+    $emAndamento = $evento->data_inicio->isPast() && $evento->data_fim->isFuture();
+    $encerrado = $evento->data_fim->isPast();
+    $mesmoDia = $evento->data_inicio->isSameDay($evento->data_fim);
+    $periodo = $mesmoDia ? $evento->data_inicio->format('d/m/Y') : $evento->data_inicio->format('d/m') . ' a ' . $evento->data_fim->format('d/m/Y');
+    $primeiroDia = $cronogramaPorDia->keys()->first();
+    $fmtHoras = fn ($h) => rtrim(rtrim(number_format($h, 1, ',', ''), '0'), ',') . 'h';
+@endphp
+<x-publico-layout :titulo="$evento->titulo" :descricao="strip_tags($evento->descricao ?? 'Programação, inscrição e informações do evento.')" :marca="$cor" :mascara="true">
+    <x-slot:estilos>
+        <style>
+            .ev-hero { position: relative; color: #fff; padding: 3.2rem 0 5.2rem; background: linear-gradient(135deg, var(--brand-deep), var(--brand-dark) 55%, var(--brand)); overflow: hidden; }
+            .ev-hero.com-banner { background: linear-gradient(135deg, rgba(0,0,0,.62), rgba(0,0,0,.34)), var(--banner) center / cover no-repeat; }
+            .ev-hero::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.1) 1px, transparent 1px); background-size: 28px 28px; opacity: .5; }
+            .ev-hero > .container { position: relative; }
+            .ev-hero h1 { color: #fff; font-weight: 800; font-size: clamp(1.9rem, 4.4vw, 3.1rem); line-height: 1.12; }
+            .ev-trilha { font-size: .83rem; color: rgba(255,255,255,.75); } .ev-trilha a { color: rgba(255,255,255,.85); text-decoration: none; } .ev-trilha a:hover { color: #fff; }
+            .ev-selo { display: inline-flex; align-items: center; gap: .45rem; font-size: .76rem; font-weight: 700; padding: .38rem .85rem; border-radius: 999px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); }
+            .ev-selo i { font-size: .5rem; color: #6ee7b7; } .ev-selo.fim i { color: #fca5a5; }
+            .ev-logo { max-height: 84px; max-width: 100%; object-fit: contain; background: rgba(255,255,255,.95); padding: 8px 16px; border-radius: 16px; }
+            .ev-fatos { display: flex; flex-wrap: wrap; gap: .6rem; }
+            .ev-fato { display: flex; align-items: center; gap: .6rem; background: rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.14); padding: .6rem 1rem; border-radius: 14px; font-size: .92rem; font-weight: 600; }
+            .ev-fato i { opacity: .85; }
+            .btn-ev { background: #fff; color: var(--brand-dark); padding: .8rem 1.5rem; box-shadow: 0 14px 28px -12px rgba(0,0,0,.5); }
+            .btn-ev:hover { background: var(--brand-light); color: var(--brand-deep); transform: translateY(-1px); }
+            .btn-ev-out { border: 2px solid rgba(255,255,255,.6); color: #fff; padding: .8rem 1.5rem; } .btn-ev-out:hover { background: rgba(255,255,255,.14); color: #fff; }
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            .ev-subnav { position: sticky; top: 61px; z-index: 900; background: rgba(255,255,255,.94); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+            .ev-subnav .container { display: flex; gap: .25rem; overflow-x: auto; scrollbar-width: none; }
+            .ev-subnav a { padding: .85rem 1rem; font-weight: 700; font-size: .88rem; color: var(--muted); text-decoration: none; white-space: nowrap; border-bottom: 3px solid transparent; }
+            .ev-subnav a:hover { color: var(--brand-dark); border-bottom-color: var(--brand); }
 
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+            .ev-bloco { padding: 1.75rem; margin-bottom: 1.5rem; scroll-margin-top: 130px; }
+            .ev-bloco h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 1.1rem; display: flex; align-items: center; gap: .6rem; }
+            .ev-bloco h2 i { width: 36px; height: 36px; border-radius: 11px; background: var(--brand-light); color: var(--brand-dark); display: grid; place-items: center; font-size: .95rem; }
+            .ev-desc { line-height: 1.8; font-size: 1.02rem; color: var(--ink-2); } .ev-desc img { max-width: 100%; height: auto; }
+            .ev-num { text-align: center; padding: 1rem .5rem; background: var(--brand-light); border-radius: 14px; }
+            .ev-num b { display: block; font-size: 1.5rem; font-weight: 800; color: var(--brand-deep); line-height: 1.1; } .ev-num span { font-size: .76rem; color: var(--muted); font-weight: 600; }
 
-    <style>
-        :root {
-            --brand: {{ $evento->configuracoes['cor_fundo'] ?? '#059669' }};
-            --brand-dark: color-mix(in srgb, var(--brand), black 20%);
-            --brand-light: color-mix(in srgb, var(--brand), white 90%);
-            --surface: #ffffff;
-            --bg: #f8fafc;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-        }
+            .dias { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.4rem; }
+            .dia-btn { border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: .55rem 1rem; text-align: center; line-height: 1.15; cursor: pointer; transition: all .15s; min-width: 76px; }
+            .dia-btn b { display: block; font-size: 1.15rem; color: var(--ink); } .dia-btn small { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+            .dia-btn.ativo { background: var(--brand); border-color: var(--brand); } .dia-btn.ativo b, .dia-btn.ativo small { color: #fff; }
+            .atividade { display: flex; gap: 1.1rem; padding: 1.1rem 1.2rem; border: 1px solid var(--line); border-radius: 16px; margin-bottom: .8rem; background: #fff; transition: box-shadow .2s, border-color .2s; }
+            .atividade:hover { border-color: var(--brand); box-shadow: var(--sh-1); }
+            .atividade .hora { flex: 0 0 74px; text-align: center; border-right: 2px solid var(--brand-light); padding-right: 1rem; }
+            .atividade .hora b { display: block; font-size: 1.2rem; color: var(--ink); line-height: 1.1; } .atividade .hora small { font-size: .74rem; color: var(--muted); font-weight: 600; }
+            .atividade h3 { font-size: 1.05rem; font-weight: 700; margin: .35rem 0 .45rem; line-height: 1.3; }
+            .atividade .meta { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .82rem; color: var(--muted); } .atividade .meta i { color: var(--brand); margin-right: .3rem; }
+            .vagas { font-size: .74rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; background: #ecfdf5; color: #047857; } .vagas.esgotado { background: #fef2f2; color: #b91c1c; }
 
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); overflow-x: hidden; }
-
-        /* HERO HEADER - Imersivo */
-        .event-hero {
-            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
-            padding: 6rem 0 8rem 0;
-            color: white;
-            position: relative;
-            border-bottom-left-radius: 60px;
-            border-bottom-right-radius: 60px;
-            margin-bottom: 3rem;
-            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);
-        }
-        .hero-pattern {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: radial-gradient(rgba(255,255,255,0.15) 2px, transparent 2px);
-            background-size: 32px 32px;
-            opacity: 0.6;
-        }
-
-        /* CARD FLUTUANTE (Formulário) */
-        .booking-card {
-            background: var(--surface);
-            border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
-            border: 1px solid rgba(0,0,0,0.04);
-            position: sticky;
-            top: 2rem;
-            z-index: 50;
-            overflow: hidden;
-        }
-        .booking-header {
-            background: var(--brand-light);
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-
-        /* TIMELINE (Programação) */
-        .timeline-section {
-            position: relative;
-            padding-left: 2rem;
-        }
-        .timeline-item {
-            position: relative;
-            padding-bottom: 2.5rem;
-            border-left: 2px dashed #cbd5e1;
-            padding-left: 2.5rem;
-        }
-        .timeline-item:last-child { border-left: 2px dashed transparent; }
-
-        .timeline-marker {
-            position: absolute;
-            left: -11px;
-            top: 0;
-            width: 20px;
-            height: 20px;
-            background: var(--brand);
-            border: 4px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 0 3px var(--brand-light);
-        }
-
-        .activity-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-        .activity-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05);
-            border-color: var(--brand);
-        }
-
-        /* Form Controls */
-        .form-control, .form-select {
-            border-radius: 12px;
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-            font-size: 0.95rem;
-        }
-        .form-control:focus, .form-select:focus {
-            background: white;
-            border-color: var(--brand);
-            box-shadow: 0 0 0 4px var(--brand-light);
-        }
-
-        /* Badge Custom */
-        .badge-soft {
-            background: var(--brand-light);
-            color: var(--brand-dark);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .top-nav {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            padding: 1rem 0;
-            z-index: 100;
-        }
-    </style>
-</head>
-<body>
-
-    <nav class="top-nav">
-        <div class="container">
-            <div class="d-flex justify-content-end gap-3">
-
-                <a href="{{ route('home') }}" class="btn btn-sm btn-outline-light fw-bold px-3 shadow-sm">
-                    <i class="fa-solid fa-home me-1"></i> Tela Inicial
-                </a>
-
-                @if(optional($evento->anais)->publicado())
-                    <a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-sm btn-outline-light fw-bold px-3 shadow-sm">
-                        <i class="fa-solid fa-book me-1"></i> Anais
-                    </a>
-                @endif
-
-                @if(optional($evento->trabalhoConfig)->estaAberta())
-                    <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-sm btn-warning fw-bold px-3 shadow-sm text-dark">
-                        <i class="fa-solid fa-file-arrow-up me-1"></i> Submeter Trabalho
-                    </a>
-                @endif
-
-                @auth
-                    <a href="{{ route('dashboard') }}" class="btn btn-sm btn-light fw-bold px-3 shadow-sm text-dark">
-                        <i class="fa-solid fa-user-circle me-1"></i> Minha Área
-                    </a>
-                @else
-                    <a href="{{ route('login') }}" class="btn btn-sm btn-light fw-bold px-3 shadow-sm text-dark">
-                        <i class="fa-solid fa-sign-in-alt me-1"></i> Entrar
-                    </a>
-                @endauth
-            </div>
-        </div>
-    </nav>
+            .booking-card { position: sticky; top: 130px; overflow: hidden; }
+            .booking-header { background: var(--brand-light); padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--line); }
+            .info-linha { display: flex; gap: .8rem; padding: .7rem 0; border-bottom: 1px solid #eef1f5; font-size: .9rem; } .info-linha:last-child { border-bottom: 0; }
+            .info-linha i { width: 22px; color: var(--brand); text-align: center; margin-top: .15rem; } .info-linha small { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+            @media (max-width: 767.98px) { .atividade { flex-direction: column; gap: .6rem; } .atividade .hora { flex: none; text-align: left; border-right: 0; padding-right: 0; display: flex; align-items: baseline; gap: .5rem; } .booking-card { position: static; } .ev-subnav { top: 57px; } }
+        </style>
+    </x-slot:estilos>
 
     @if(session('error'))
         <div class="container mt-3"><div class="alert alert-warning shadow-sm mb-0">{{ session('error') }}</div></div>
     @endif
 
-    @php($bannerUrl = $evento->bannerUrl())
-    @php($logoUrl = $evento->logoUrl())
-    <header class="event-hero" @if($bannerUrl) style="background: linear-gradient(135deg, rgba(0,0,0,.55), rgba(0,0,0,.35)), url('{{ $bannerUrl }}') center / cover no-repeat;" @endif>
-        <div class="hero-pattern"></div>
-        <div class="container position-relative z-1">
+    {{-- ===== Cabeçalho do evento ===== --}}
+    <header class="ev-hero {{ $bannerUrl ? 'com-banner' : '' }}" @if($bannerUrl) style="--banner: url('{{ $bannerUrl }}');" @endif>
+        <div class="container">
+            <div class="ev-trilha mb-3"><a href="{{ route('home') }}">Início</a> <i class="fa-solid fa-chevron-right mx-1" style="font-size:.6rem"></i> <a href="{{ route('home') }}#eventos">Eventos</a> <i class="fa-solid fa-chevron-right mx-1" style="font-size:.6rem"></i> <span>{{ \Illuminate\Support\Str::limit($evento->titulo, 40) }}</span></div>
+
             <div class="row">
-                <div class="col-lg-8">
-                    <div class="mb-4">
-                        <span class="badge bg-white bg-opacity-25 text-white backdrop-blur border border-white border-opacity-25 px-3 py-2 rounded-pill">
-                            <i class="fa-solid fa-circle text-success small me-2"></i> Inscrições Abertas
-                        </span>
+                <div class="col-lg-9">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="ev-selo {{ $encerrado ? 'fim' : '' }}"><i class="fa-solid fa-circle"></i> {{ $encerrado ? 'Evento encerrado' : ($emAndamento ? 'Acontecendo agora' : 'Inscrições abertas') }}</span>
+                        @if($chamadaAberta)<span class="ev-selo"><i class="fa-solid fa-file-arrow-up" style="font-size:.7rem"></i> Chamada de trabalhos aberta</span>@endif
+                        @if($anaisPublicados)<span class="ev-selo"><i class="fa-solid fa-book" style="font-size:.7rem"></i> Anais publicados</span>@endif
                     </div>
 
-                    @if($logoUrl)
-                        <img src="{{ $logoUrl }}" alt="Logo do evento {{ $evento->titulo }}" class="mb-3 d-block" style="max-height: 90px; max-width: 100%; object-fit: contain; background: rgba(255,255,255,.92); padding: 8px 14px; border-radius: 14px;">
-                    @endif
-                    <h1 class="display-4 fw-bold mb-4" style="letter-spacing: -1px;">{{ $evento->titulo }}</h1>
+                    @if($logoUrl)<img src="{{ $logoUrl }}" alt="Logo do evento {{ $evento->titulo }}" class="ev-logo mb-3 d-block">@endif
+                    <h1 class="mb-4">{{ $evento->titulo }}</h1>
 
-                    <div class="d-flex flex-wrap gap-4 text-white opacity-90 mb-5">
-                        <div class="d-flex align-items-center gap-2 bg-black bg-opacity-10 px-3 py-2 rounded-3">
-                            <i class="fa-regular fa-calendar fs-5"></i>
-                            <span class="fw-medium">{{ $evento->data_inicio->format('d/m/Y') }}</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 bg-black bg-opacity-10 px-3 py-2 rounded-3">
-                            <i class="fa-solid fa-location-dot fs-5"></i>
-                            <span class="fw-medium">{{ $evento->local }}</span>
-                        </div>
+                    <div class="ev-fatos mb-4">
+                        <div class="ev-fato"><i class="fa-regular fa-calendar"></i> {{ $periodo }}</div>
+                        <div class="ev-fato"><i class="fa-solid fa-location-dot"></i> {{ $evento->local }}</div>
+                        @if($atividades->isNotEmpty())<div class="ev-fato"><i class="fa-solid fa-list-check"></i> {{ $atividades->count() }} atividade(s)</div>@endif
+                        @if($cargaTotal > 0)<div class="ev-fato"><i class="fa-regular fa-clock"></i> até {{ $fmtHoras($cargaTotal) }} de carga horária</div>@endif
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        @unless($encerrado)<a href="#inscricao" class="btn btn-ev">Quero me inscrever <i class="fa-solid fa-arrow-down ms-1"></i></a>@endunless
+                        @if($chamadaAberta)
+                            <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-file-arrow-up me-1"></i> Submeter Trabalho</a>
+                        @endif
+                        @if($anaisPublicados)
+                            <a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-book me-1"></i> Anais</a>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </header>
-    <br>
 
-    <div class="container" style="margin-top: -6rem;">
-        <div class="row gy-5 gx-lg-5">
+    <nav class="ev-subnav" aria-label="Seções do evento">
+        <div class="container">
+            <a href="#sobre">Sobre</a>
+            @if($atividades->isNotEmpty())<a href="#programacao">Programação</a>@endif
+            @if($chamadaAtiva)<a href="#trabalhos">Trabalhos</a>@endif
+            <a href="#local">Local</a>
+            <a href="#inscricao">Inscrição</a>
+        </div>
+    </nav>
 
-            <div class="col-lg-7">
+    <div class="container pt-4 pb-2">
+        <div class="row gy-4 gx-lg-5">
 
-                <div class="bg-white rounded-4 p-5 shadow-sm border border-light mb-5">
-                    <h4 class="fw-bold text-dark mb-4 border-bottom pb-3">Sobre o Evento</h4>
-                    <div class="text-muted" style="line-height: 1.8; font-size: 1.05rem;">
-    {!! nl2br($evento->descricao ?? 'Participe deste evento acadêmico no IFPA Campus Óbidos. Uma oportunidade única de aprendizado, networking e certificação oficial.') !!}
-</div>
-                </div>
+            <div class="col-lg-7 col-xl-8">
 
-                <div class="bg-white rounded-4 p-5 shadow-sm border border-light">
-                    <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-3">
-                        <h4 class="fw-bold text-dark m-0">Programação Oficial</h4>
-                        <span class="badge bg-dark rounded-pill">{{ $evento->atividades->count() }} Atividades</span>
+                {{-- Sobre --}}
+                <section class="cartao ev-bloco" id="sobre">
+                    <h2><i class="fa-solid fa-circle-info"></i> Sobre o evento</h2>
+                    <div class="ev-desc">{!! $evento->descricao ? nl2br($evento->descricao) : 'Participe deste evento acadêmico no IFPA Campus Óbidos: uma oportunidade de aprendizado, troca de experiências e certificação oficial.' !!}</div>
+
+                    <div class="row g-3 mt-3">
+                        <div class="col-6 col-md-3"><div class="ev-num"><b>{{ $atividades->count() }}</b><span>atividades</span></div></div>
+                        <div class="col-6 col-md-3"><div class="ev-num"><b>{{ $cronogramaPorDia->count() }}</b><span>{{ $cronogramaPorDia->count() === 1 ? 'dia' : 'dias' }}</span></div></div>
+                        <div class="col-6 col-md-3"><div class="ev-num"><b>{{ $cargaTotal > 0 ? $fmtHoras($cargaTotal) : '—' }}</b><span>carga horária</span></div></div>
+                        <div class="col-6 col-md-3"><div class="ev-num"><b>{{ $totalInscritos }}</b><span>inscritos</span></div></div>
                     </div>
+                </section>
 
-                    @if($evento->atividades->isEmpty())
+                {{-- Programação --}}
+                <section class="cartao ev-bloco" id="programacao" x-data="{ dia: '{{ $primeiroDia }}' }">
+                    <h2><i class="fa-regular fa-calendar-days"></i> Programação oficial</h2>
+
+                    @if($atividades->isEmpty())
                         <div class="text-center py-5 text-muted">
                             <i class="fa-regular fa-calendar-xmark fs-2 mb-3 opacity-50"></i>
-                            <p>A programação será divulgada em breve.</p>
+                            <p class="mb-0">A programação será divulgada em breve.</p>
                         </div>
                     @else
-                        <div class="timeline-section">
-                            @foreach($evento->atividades as $ativ)
-                            <div class="timeline-item">
-                                <div class="timeline-marker"></div>
-
-                                <div class="activity-card">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div class="d-flex flex-column">
-                                            <span class="fw-bold text-dark fs-5">{{ $ativ->data_inicio->format('H:i') }}</span>
-                                            <span class="text-muted small text-uppercase fw-bold">{{ $ativ->data_inicio->format('d/m') }}</span>
-                                        </div>
-
-                                        <div class="text-end">
-                                            <span class="badge-soft mb-1 d-inline-block">{{ ucfirst($ativ->tipo) }}</span>
-                                            <div class="text-muted small"><i class="fa-regular fa-clock me-1"></i> {{ $ativ->carga_horaria }}h</div>
-                                        </div>
-                                    </div>
-
-                                    <h5 class="fw-bold text-dark mb-2">{{ $ativ->titulo }}</h5>
-
-                                    <p class="text-muted small mb-0">Participe para garantir sua presença e certificação.</p>
-                                </div>
+                        @if($cronogramaPorDia->count() > 1)
+                            <div class="dias" role="tablist">
+                                @foreach($cronogramaPorDia as $data => $itens)
+                                    @php $d = \Carbon\Carbon::parse($data); @endphp
+                                    <button type="button" class="dia-btn" :class="{ 'ativo': dia === '{{ $data }}' }" @click="dia = '{{ $data }}'" role="tab">
+                                        <small>{{ $d->translatedFormat('D') }}</small><b>{{ $d->format('d/m') }}</b>
+                                    </button>
+                                @endforeach
                             </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
+                        @endif
 
+                        @foreach($cronogramaPorDia as $data => $itens)
+                            <div x-show="dia === '{{ $data }}'" x-cloak>
+                                @if($cronogramaPorDia->count() > 1)
+                                    <div class="small fw-bold text-muted text-uppercase mb-3" style="letter-spacing:.06em;">{{ \Carbon\Carbon::parse($data)->translatedFormat('l, d \\d\\e F') }}</div>
+                                @endif
+                                @foreach($itens as $ativ)
+                                    @php
+                                        $restantes = is_null($ativ->vagas) ? null : max(0, $ativ->vagas - $ativ->inscritos_count);
+                                    @endphp
+                                    <article class="atividade">
+                                        <div class="hora">
+                                            <b>{{ $ativ->data_inicio->format('H:i') }}</b>
+                                            <small>{{ $ativ->data_fim ? 'até ' . $ativ->data_fim->format('H:i') : '' }}</small>
+                                        </div>
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                <span class="selo">{{ ucfirst($ativ->tipo) }}</span>
+                                                @if($restantes !== null)
+                                                    <span class="vagas {{ $restantes === 0 ? 'esgotado' : '' }}">{{ $restantes === 0 ? 'Vagas esgotadas' : $restantes . ' vaga(s)' }}</span>
+                                                @endif
+                                            </div>
+                                            <h3>{{ $ativ->titulo }}</h3>
+                                            <div class="meta">
+                                                @if($ativ->responsavel)<span><i class="fa-solid fa-user-tie"></i>{{ $ativ->responsavel }}</span>@endif
+                                                @if($ativ->local)<span><i class="fa-solid fa-location-dot"></i>{{ $ativ->local }}</span>@endif
+                                                @if($ativ->carga_horaria)<span><i class="fa-regular fa-clock"></i>{{ $fmtHoras($ativ->carga_horaria) }} de certificado</span>@endif
+                                            </div>
+                                        </div>
+                                    </article>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    @endif
+                </section>
+
+                {{-- Chamada de trabalhos --}}
+                @if($chamadaAtiva)
+                    <section class="cartao ev-bloco" id="trabalhos">
+                        <h2><i class="fa-solid fa-file-lines"></i> Chamada de trabalhos</h2>
+                        @if($cfg->chamada_tema)<p class="fw-semibold mb-2" style="color: var(--brand-dark);">Tema: “{{ $cfg->chamada_tema }}”</p>@endif
+                        <p class="text-muted">{{ $cfg->chamada_intro ? \Illuminate\Support\Str::limit(strip_tags($cfg->chamada_intro), 320) : 'Envie o seu trabalho acadêmico para avaliação da comissão. Os aprovados e apresentados são publicados nos Anais do evento.' }}</p>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6"><div class="info-linha"><i class="fa-regular fa-calendar-check"></i><div><small>Período de submissão</small>{{ $cfg->submissao_inicio ? $cfg->submissao_inicio->format('d/m/Y') : 'já aberto' }} @if($cfg->submissao_fim) a {{ $cfg->submissao_fim->format('d/m/Y') }} @endif</div></div></div>
+                            <div class="col-sm-6"><div class="info-linha"><i class="fa-solid fa-users"></i><div><small>Autores por trabalho</small>até {{ $cfg->max_autores }}</div></div></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="small fw-bold text-muted text-uppercase mb-2" style="letter-spacing:.05em;">Categorias aceitas</div>
+                            <div class="d-flex flex-wrap gap-2">@foreach($cfg->tiposHabilitados() as $rotulo)<span class="selo">{{ $rotulo }}</span>@endforeach</div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            @if($chamadaAberta)
+                                <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-brand px-4"><i class="fa-solid fa-file-arrow-up me-1"></i> Enviar meu trabalho</a>
+                            @elseif($cfg->submissao_inicio && $cfg->submissao_inicio->isFuture())
+                                <span class="selo selo-azul"><i class="fa-regular fa-clock"></i> A chamada abre em {{ $cfg->submissao_inicio->format('d/m/Y') }}</span>
+                            @else
+                                <span class="selo selo-cinza"><i class="fa-regular fa-circle-xmark"></i> Chamada encerrada</span>
+                            @endif
+                            @if($cfg->template_url)<a href="{{ $cfg->template_url }}" target="_blank" rel="noopener" class="btn btn-outline-brand"><i class="fa-solid fa-download me-1"></i> Modelo (template)</a>@endif
+                            @if($anaisPublicados)<a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-outline-brand"><i class="fa-solid fa-book me-1"></i> Ver os Anais</a>@endif
+                        </div>
+                    </section>
+                @endif
+
+                {{-- Local --}}
+                <section class="cartao ev-bloco" id="local">
+                    <h2><i class="fa-solid fa-location-dot"></i> Local</h2>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="fw-bold" style="font-size:1.05rem;">{{ $evento->local }}</div>
+                            <div class="small text-muted">IFPA – Campus Óbidos · Óbidos, Pará</div>
+                        </div>
+                        @if($evento->latitude && $evento->longitude)
+                            <a class="btn btn-outline-brand" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query={{ $evento->latitude }},{{ $evento->longitude }}"><i class="fa-solid fa-map-location-dot me-1"></i> Abrir no mapa</a>
+                        @endif
+                    </div>
+                    @if($evento->latitude && $evento->longitude)
+                        <div class="small text-muted mt-3"><i class="fa-solid fa-circle-info me-1"></i> A presença nas atividades pode exigir que você esteja no local do evento (conferência por GPS).</div>
+                    @endif
+                </section>
             </div>
 
-            <div class="col-lg-5">
-                <div class="booking-card">
+            {{-- ===== Coluna lateral: inscrição ===== --}}
+            <div class="col-lg-5 col-xl-4">
+                <div class="cartao booking-card" id="inscricao">
                     <div class="booking-header">
-                        <h4 class="fw-bold m-0"><i class="fa-solid fa-ticket me-2" style="color: var(--brand);"></i> Inscrição</h4>
+                        <h4 class="fw-bold m-0" style="font-size:1.15rem;"><i class="fa-solid fa-ticket me-2" style="color: var(--brand);"></i> Inscrição</h4>
                         <p class="text-muted small m-0 mt-1">{{ auth()->check() ? 'Confirme seus dados para garantir a vaga.' : 'Entre ou crie sua conta para garantir a vaga.' }}</p>
                     </div>
 
@@ -370,17 +347,9 @@
         </div>
     </div>
 
-    <footer class="text-center py-5 mt-5 border-top">
-        <div class="container">
-            <p class="text-muted small mb-0">&copy; {{ date('Y') }} IFPA Campus Óbidos - Sistema CertificaIF · <a href="{{ route('privacidade') }}" class="text-muted">Política de Privacidade</a></p>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        $(document).ready(function(){
-            $('.cpf-mask').mask('000.000.000-00');
-        });
-    </script>
-</body>
-</html>
+    <x-slot:scripts>
+        <script>
+            $(document).ready(function () { $('.cpf-mask').mask('000.000.000-00'); });
+        </script>
+    </x-slot:scripts>
+</x-publico-layout>

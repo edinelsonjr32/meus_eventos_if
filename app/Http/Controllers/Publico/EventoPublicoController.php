@@ -28,6 +28,7 @@ class EventoPublicoController extends Controller
 
         // 1. Carrega e ordena todas as atividades
         $atividades = $evento->atividades()
+            ->withCount('inscritos')
             ->orderBy('data_inicio', 'asc') // Ordena primeiro por data completa e hora
             ->get();
 
@@ -44,7 +45,11 @@ class EventoPublicoController extends Controller
         // Carrega turmas para o select do formulário
         $turmas = Turma::with('curso')->get()->sortBy('nome_completo');
 
-        return view('publico.eventos.show', compact('evento', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado'));
+        $totalInscritos = $evento->inscricoes()->count();
+        $cargaTotal = (float) $atividades->sum('carga_horaria');
+        $anaisPublicados = (bool) optional($evento->anais)->publicado();
+
+        return view('publico.eventos.show', compact('evento', 'atividades', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado', 'totalInscritos', 'cargaTotal', 'anaisPublicados'));
     }
 
 

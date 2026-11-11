@@ -14,6 +14,7 @@ class TrabalhoConfig extends Model
         'projeto_integrador' => 'Projeto Integrador (alunos do IFPA)',
         'relato_experiencia' => 'Relato de Experiência',
         'ensino' => 'Ensino',
+        'outros' => 'Outros',
     ];
 
     public const CERT_CABECALHO_PADRAO = "Ministério da Educação\nInstituto Federal do Pará - Campus Óbidos";

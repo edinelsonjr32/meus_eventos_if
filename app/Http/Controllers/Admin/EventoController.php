@@ -106,6 +106,8 @@ class EventoController extends Controller
             'criado_por' => Auth::id(),
             'configuracoes' => [
                 'cor_fundo' => $request->input('cor_fundo', '#10b981'),
+                'exibir_logo' => $request->boolean('exibir_logo', true),
+                'exibir_banner' => $request->boolean('exibir_banner', true),
             ]
         ]);
 
@@ -178,6 +180,12 @@ class EventoController extends Controller
         // Atualiza configurações de cor
         $configuracoes = $evento->configuracoes ?? [];
         $configuracoes['cor_fundo'] = $request->cor_fundo;
+        // (campo ausente = mantém o que já estava)
+        foreach (['exibir_logo', 'exibir_banner'] as $opcao) {
+            if ($request->has($opcao)) {
+                $configuracoes[$opcao] = $request->boolean($opcao);
+            }
+        }
         $evento->configuracoes = $configuracoes;
 
         $evento->save();

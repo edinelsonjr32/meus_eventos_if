@@ -93,6 +93,19 @@
                         </div>
                     </div>
 
+                    <div class="d-flex flex-wrap gap-4 mb-4 p-3 rounded-3 bg-light border">
+                        <div class="form-check form-switch mb-0">
+                            <input type="hidden" name="exibir_logo" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="exibir_logo" value="1" id="exibir_logo" @checked(old('exibir_logo', $evento->exibeLogo()))>
+                            <label class="form-check-label small fw-bold" for="exibir_logo">Exibir a logo na página pública</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input type="hidden" name="exibir_banner" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="exibir_banner" value="1" id="exibir_banner" @checked(old('exibir_banner', $evento->exibeBanner()))>
+                            <label class="form-check-label small fw-bold" for="exibir_banner">Exibir o banner na página pública</label>
+                        </div>
+                    </div>
+
                     <hr class="my-4 text-secondary opacity-25">
                     <h6 class="text-uppercase text-secondary fw-bold mb-3 small">
                         <i class="fa-solid fa-location-crosshairs me-2"></i> Controle de Presença (GPS)
