@@ -394,3 +394,11 @@ it('o formulário é uma página só: todas as seções ficam visíveis, sem eta
         ->assertSee('id="sec-dados"', false)->assertSee('id="sec-apresentador"', false)->assertSee('id="sec-arquivo"', false)
         ->assertDontSee('passo === ', false)->assertDontSee('Próxima')->assertSee('name="palavras_chave[]"', false);
 });
+
+it('trabalho de um evento excluído continua abrindo em Meus Trabalhos e na página do trabalho (sem erro 500)', function () {
+    $t = Trabalho::create(['evento_id' => $this->evento->id, 'submetido_por' => $this->usuario->id, 'titulo' => 'Trabalho de evento apagado', 'codigo' => 'TRB-X-0001', 'status' => 'submetido', 'tipo_trabalho' => 'pesquisa']);
+    $this->evento->delete();   // exclusão lógica do evento
+
+    $this->actingAs($this->usuario)->get(route('trabalhos.index'))->assertOk()->assertSee('Trabalho de evento apagado')->assertSee('X Semana de Ciência e Tecnologia');
+    $this->get(route('trabalhos.show', $t))->assertOk()->assertSee('Trabalho de evento apagado');
+});

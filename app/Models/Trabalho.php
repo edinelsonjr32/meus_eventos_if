@@ -85,7 +85,8 @@ class Trabalho extends Model
 
     public function evento(): BelongsTo
     {
-        return $this->belongsTo(Evento::class);
+        // Mesmo com o evento excluído (exclusão lógica) o trabalho continua existindo e precisa abrir: sem isto "evento" vinha nulo e as telas davam erro 500
+        return $this->belongsTo(Evento::class)->withTrashed();
     }
 
     public function submetente(): BelongsTo
