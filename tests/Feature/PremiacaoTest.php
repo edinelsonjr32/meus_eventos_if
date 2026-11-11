@@ -217,3 +217,32 @@ it('apurar de novo várias vezes não repete trabalhos nem certificados; a impre
     $pdf = $this->get(route('gestao.trabalhos.premiacao.imprimir', $this->evento))->assertOk();
     expect($pdf->headers->get('content-type'))->toContain('pdf');
 });
+
+it('categoria Ensino: é aceita na chamada, entra no ranking, na premiação e no certificado como as demais', function () {
+    $this->evento->trabalhoConfig->update(['tipos_permitidos' => ['pesquisa', 'ensino']]);
+    expect($this->svc->categorias($this->evento->fresh()))->toBe(['pesquisa' => 'Pesquisa', 'ensino' => 'Ensino']);
+
+    $e1 = premiavel($this, 'ensino', 'Ensino Um', 9, 9);
+    $e2 = premiavel($this, 'ensino', 'Ensino Dois', 8, 8);
+    premiavel($this, 'pesquisa', 'Pesquisa Um', 10, 10);
+
+    // o ranking da categoria só traz os de Ensino, do melhor para o pior
+    expect($this->svc->ranking($this->evento->fresh(), 'ensino')->pluck('id')->all())->toBe([$e1->id, $e2->id]);
+
+    $this->actingAs($this->gestor)->post(route('gestao.trabalhos.premiacao.sugerir', $this->evento))->assertSessionHas('success');
+    $prem = Premiacao::where('evento_id', $this->evento->id)->where('tipo_trabalho', 'ensino')->orderBy('colocacao')->get();
+    expect($prem->pluck('trabalho_id')->all())->toBe([$e1->id, $e2->id]);
+
+    // certificados de premiação com a categoria "Ensino"
+    $cert = CertificadoPremiacao::whereIn('premiacao_id', $prem->pluck('id'))->first();
+    expect($cert)->not->toBeNull();
+    $this->get(route('gestao.trabalhos.premiacao.certificado', $cert))->assertOk();
+    $this->get(route('gestao.trabalhos.premiacao.imprimir', [$this->evento, 'tipo' => 'ensino']))->assertOk();
+    $this->get(route('gestao.trabalhos.ranking', $this->evento))->assertOk()->assertSee('Ensino');
+});
+
+it('o formulário de submissão e o filtro dos Anais oferecem a categoria Ensino', function () {
+    $this->evento->trabalhoConfig->update(['ativo' => true, 'tipos_permitidos' => ['pesquisa', 'ensino'], 'submissao_inicio' => now()->subDay(), 'submissao_fim' => now()->addDay()]);
+    $this->actingAs($this->autor)->get(route('trabalhos.create', $this->evento->slug))->assertOk()->assertSee('value="ensino"', false);
+    expect(\App\Models\TrabalhoConfig::TIPOS)->toHaveKey('ensino');
+});

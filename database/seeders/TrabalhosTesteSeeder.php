@@ -41,7 +41,7 @@ class TrabalhosTesteSeeder extends Seeder
             'resumo_min_palavras' => 20,
             'resumo_max_palavras' => 300,
             // Mesma estrutura do formulário utilizado na Semana de Ciência e Tecnologia
-            'tipos_permitidos' => ['pesquisa', 'extensao', 'projeto_integrador', 'relato_experiencia'],
+            'tipos_permitidos' => ['pesquisa', 'extensao', 'ensino', 'projeto_integrador', 'relato_experiencia'],
             'chamada_tema' => 'Planeta Amazônia: cultura das águas para enfrentar as mudanças climáticas',
             'chamada_intro' => "Este formulário destina-se à submissão de trabalhos para o evento, que terá como tema \"Planeta Amazônia: cultura das águas para enfrentar as mudanças climáticas\".\n\nSe você tem uma proposta que se alinha a esse tema, preencha o formulário com os detalhes de seu trabalho. As propostas serão analisadas pela comissão organizadora e os selecionados terão a oportunidade de compartilhar seu conhecimento e experiência durante o evento.",
             'exige_resumo' => false,
