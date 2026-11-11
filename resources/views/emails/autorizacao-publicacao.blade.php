@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
-    <h2 style="color: #047857;">Autorize a publicação do seu trabalho nos Anais</h2>
-    <p>Evento: <strong>{{ $trabalho->evento->titulo }}</strong></p>
-    <p>Trabalho: <strong>{{ $trabalho->titulo }}</strong> (protocolo {{ $trabalho->codigo }})</p>
-    <p>Seu trabalho foi aprovado e apresentado, mas ainda <strong>não consta nos Anais</strong> porque a publicação não foi autorizada.
-       Se você concorda, entre na plataforma e autorize na página do trabalho (apenas título, resumo, nome e instituição dos autores e o PDF são publicados; CPF e e-mail nunca são divulgados):</p>
-    <p><a href="{{ route('trabalhos.show', $trabalho) }}">Abrir meu trabalho e autorizar a publicação</a></p>
-</body>
-</html>
+<x-email.layout titulo="Autorize a publicação do seu trabalho nos Anais" :preheader="$trabalho->titulo . ' · ' . $trabalho->codigo">
+    <x-email.dados :linhas="['Evento' => $trabalho->evento->titulo, 'Trabalho' => $trabalho->titulo, 'Protocolo' => $trabalho->codigo]" />
+
+    <p style="margin:0 0 4px;">Seu trabalho foi aprovado e apresentado, mas ainda <strong>não consta nos Anais</strong> porque a publicação não foi autorizada.</p>
+
+    <x-email.aviso tipo="info">
+        Se você concorda, autorize na página do trabalho. Apenas <strong>título, resumo, nome e instituição dos autores e o PDF</strong> são publicados; CPF e e-mail nunca são divulgados.
+    </x-email.aviso>
+
+    <x-email.botao :href="route('trabalhos.show', $trabalho)">Abrir meu trabalho e autorizar</x-email.botao>
+</x-email.layout>

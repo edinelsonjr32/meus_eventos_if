@@ -1,23 +1,24 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
-    <h2 style="color: #047857;">Trabalho recebido com sucesso</h2>
-    <p>O trabalho abaixo foi submetido ao evento <strong>{{ $trabalho->evento->titulo }}</strong>.</p>
+<x-email.layout titulo="Trabalho recebido com sucesso" :preheader="'Protocolo ' . $trabalho->codigo . ' · ' . $trabalho->evento->titulo">
+    <p style="margin:0 0 4px;">O trabalho abaixo foi submetido ao evento <strong>{{ $trabalho->evento->titulo }}</strong>. Guarde o número de protocolo para acompanhar o andamento.</p>
 
-    <table cellpadding="6" style="border-collapse: collapse;">
-        <tr><td><strong>Protocolo</strong></td><td>{{ $trabalho->codigo }}</td></tr>
-        <tr><td><strong>Título</strong></td><td>{{ $trabalho->titulo }}</td></tr>
-        <tr><td><strong>Categoria</strong></td><td>{{ \App\Models\TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? $trabalho->tipo_trabalho }}</td></tr>
-        <tr><td><strong>Data do envio</strong></td><td>{{ $trabalho->submetido_em?->format('d/m/Y H:i') }}</td></tr>
+    <x-email.dados :linhas="[
+        'Protocolo' => $trabalho->codigo,
+        'Título' => $trabalho->titulo,
+        'Categoria' => \App\Models\TrabalhoConfig::TIPOS[$trabalho->tipo_trabalho] ?? $trabalho->tipo_trabalho,
+        'Enviado em' => $trabalho->submetido_em?->format('d/m/Y \à\s H:i'),
+    ]" />
+
+    <p style="margin:0 0 6px; font-weight:700; color:#064e3b;">Autores</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        @foreach($trabalho->autores as $autor)
+            <tr>
+                <td style="padding:6px 0; border-bottom:1px solid #f1f5f9; font-size:15px;">
+                    <strong>{{ $autor->nome_completo }}</strong>
+                    <span style="color:#64748b;"> &middot; {{ $autor->tipoRotulo() }}{{ $autor->apresentador ? ' (apresentador)' : '' }}</span>
+                </td>
+            </tr>
+        @endforeach
     </table>
 
-    <p><strong>Autores</strong></p>
-    <ul>
-        @foreach($trabalho->autores as $autor)
-            <li>{{ $autor->nome_completo }} — {{ $autor->tipoRotulo() }}{{ $autor->apresentador ? ' (apresentador)' : '' }}</li>
-        @endforeach
-    </ul>
-
-    <p>Acompanhe o andamento em <a href="{{ route('trabalhos.show', $trabalho) }}">Meus Trabalhos</a>. Guarde o número de protocolo.</p>
-</body>
-</html>
+    <x-email.botao :href="route('trabalhos.show', $trabalho)">Acompanhar meu trabalho</x-email.botao>
+</x-email.layout>

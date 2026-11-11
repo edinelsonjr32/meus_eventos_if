@@ -1,25 +1,24 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
-    <h2 style="color: #047857;">{{ \App\Mail\TrabalhoDecisaoMail::ROTULOS[$decisao] ?? 'Resultado da avaliação' }}</h2>
-    <p>Evento: <strong>{{ $trabalho->evento->titulo }}</strong><br>
-       Trabalho: <strong>{{ $trabalho->titulo }}</strong> ({{ $trabalho->codigo }})</p>
+@php
+    $titulos = ['aprovado' => 'Seu trabalho foi aprovado', 'aprovado_com_ressalvas' => 'Trabalho aprovado com ressalvas', 'reprovado' => 'Resultado da avaliação do seu trabalho'];
+@endphp
+<x-email.layout :titulo="$titulos[$decisao] ?? (\App\Mail\TrabalhoDecisaoMail::ROTULOS[$decisao] ?? 'Resultado da avaliação')" :preheader="$trabalho->titulo . ' · ' . $trabalho->codigo">
+    <x-email.dados :linhas="['Evento' => $trabalho->evento->titulo, 'Trabalho' => $trabalho->titulo, 'Protocolo' => $trabalho->codigo]" />
 
     @if($decisao === 'aprovado')
-        <p>Parabéns! Seu trabalho foi <strong>aprovado</strong>.</p>
+        <x-email.aviso tipo="ok"><strong>Parabéns!</strong> Seu trabalho foi <strong>aprovado</strong>.</x-email.aviso>
     @elseif($decisao === 'aprovado_com_ressalvas')
-        <p>Seu trabalho foi <strong>aprovado com ressalvas</strong>. Ele segue normalmente para a apresentação. Ao final, envie a <strong>versão final corrigida</strong> (PDF)
-           {!! $trabalho->prazo_correcao ? 'até <strong>' . e($trabalho->prazo_correcao->format('d/m/Y')) . '</strong>' : '' !!} para constar nos Anais.</p>
+        <x-email.aviso tipo="alerta">
+            Seu trabalho foi <strong>aprovado com ressalvas</strong> e segue normalmente para a apresentação.
+            Ao final, envie a <strong>versão final corrigida</strong> (PDF){!! $trabalho->prazo_correcao ? ' até <strong>' . e($trabalho->prazo_correcao->format('d/m/Y')) . '</strong>' : '' !!} para constar nos Anais.
+        </x-email.aviso>
     @else
-        <p>Infelizmente seu trabalho <strong>não foi aprovado</strong> nesta avaliação.</p>
+        <x-email.aviso tipo="erro">Infelizmente seu trabalho <strong>não foi aprovado</strong> nesta avaliação.</x-email.aviso>
     @endif
 
     @if($trabalho->decisao_justificativa)
-        <p><strong>Mensagem da gestão:</strong></p>
-        <blockquote style="border-left: 4px solid #d1d5db; margin: 0; padding: 4px 12px; white-space: pre-line;">{{ $trabalho->decisao_justificativa }}</blockquote>
+        <x-email.citacao titulo="Mensagem da gestão">{{ $trabalho->decisao_justificativa }}</x-email.citacao>
     @endif
 
-    <p>Veja o parecer e os próximos passos em
-        <a href="{{ $decisao === 'aprovado_com_ressalvas' ? route('trabalhos.show', $trabalho) : route('trabalhos.show', $trabalho) }}">Meus Trabalhos</a>.</p>
-</body>
-</html>
+    <p style="margin:0;">Veja os pareceres e os próximos passos na página do seu trabalho.</p>
+    <x-email.botao :href="route('trabalhos.show', $trabalho)">Ver resultado completo</x-email.botao>
+</x-email.layout>

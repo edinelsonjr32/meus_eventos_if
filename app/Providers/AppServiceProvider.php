@@ -30,6 +30,23 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
+        // E-mails de conta (o Laravel os envia em inglês, em modelo próprio): mesmo layout dos demais e-mails do sistema
+        \Illuminate\Auth\Notifications\ResetPassword::toMailUsing(function ($usuario, string $token) {
+            $link = url(route('password.reset', ['token' => $token, 'email' => $usuario->getEmailForPasswordReset()], false));
+
+            return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject('Redefinição de senha — ' . config('app.name'))
+                ->view('emails.redefinir-senha', [
+                    'nome' => $usuario->name, 'link' => $link,
+                    'minutos' => (int) config('auth.passwords.' . config('auth.defaults.passwords') . '.expire', 60),
+                ]);
+        });
+        \Illuminate\Auth\Notifications\VerifyEmail::toMailUsing(function ($usuario, string $url) {
+            return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject('Confirme seu e-mail — ' . config('app.name'))
+                ->view('emails.verificar-email', ['nome' => $usuario->name, 'link' => $url]);
+        });
+
         // Limites independentes (um contador por finalidade) para as rotas públicas dos Anais
         \Illuminate\Support\Facades\RateLimiter::for('anais', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->ip()));
         \Illuminate\Support\Facades\RateLimiter::for('anais-certificado', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(10)->by($request->ip()));
