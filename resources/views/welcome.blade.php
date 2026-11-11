@@ -172,8 +172,12 @@
                 @foreach($proximosEventos as $evento)
                 <div class="col-md-6 col-lg-4">
                     <div class="event-card group">
-                        <div class="card-header-img" style="background: {{ $evento->configuracoes['cor_fundo'] ?? 'linear-gradient(45deg, #064e3b, #10b981)' }}">
-                            <i class="fa-solid fa-calendar-check text-white fs-1 opacity-25"></i>
+                        <div class="card-header-img" style="background: {{ $evento->configuracoes['cor_fundo'] ?? 'linear-gradient(45deg, #064e3b, #10b981)' }}; @if($evento->bannerUrl()) background-image: url('{{ $evento->bannerUrl() }}'); background-size: cover; background-position: center; @endif">
+                            @if($evento->logoUrl())
+                                <img src="{{ $evento->logoUrl() }}" alt="Logo" style="max-height:60px; max-width:60%; object-fit:contain; background:rgba(255,255,255,.9); padding:6px 10px; border-radius:10px;">
+                            @elseif(!$evento->bannerUrl())
+                                <i class="fa-solid fa-calendar-check text-white fs-1 opacity-25"></i>
+                            @endif
 
                             <div class="date-badge">
                                 <span class="date-day">{{ $evento->data_inicio->format('d') }}</span>

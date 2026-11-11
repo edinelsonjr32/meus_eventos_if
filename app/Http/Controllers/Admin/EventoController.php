@@ -14,6 +14,32 @@ use Illuminate\Support\Str;
 
 class EventoController extends Controller
 {
+    // Imagens do site do evento (sem SVG, que pode carregar script)
+    private const REGRA_LOGO = 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048';
+    private const REGRA_BANNER = 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120';
+
+    /** Grava (ou remove, no cadastro/edição) a logo e o banner exibidos no site do evento. */
+    private function salvarIdentidade(Request $request, Evento $evento): void
+    {
+        foreach (['logo' => 'caminho_logo', 'banner' => 'caminho_banner'] as $campo => $coluna) {
+            $remover = $request->boolean("remover_{$campo}");
+
+            if ($request->hasFile($campo)) {
+                if ($evento->{$coluna}) {
+                    Storage::disk('public')->delete($evento->{$coluna});
+                }
+                $evento->{$coluna} = $request->file($campo)->store("eventos/{$evento->id}/identidade", 'public');
+            } elseif ($remover && $evento->{$coluna}) {
+                Storage::disk('public')->delete($evento->{$coluna});
+                $evento->{$coluna} = null;
+            }
+        }
+
+        if ($evento->isDirty()) {
+            $evento->save();
+        }
+    }
+
     /**
      * Lista os eventos do administrador logado.
      */
@@ -47,6 +73,8 @@ class EventoController extends Controller
             'data_fim' => 'required|date|after_or_equal:data_inicio',
             'local' => 'required|string',
             'cor_fundo' => 'nullable|string',
+            'logo' => self::REGRA_LOGO,
+            'banner' => self::REGRA_BANNER,
 
             // Geo-fencing
             'latitude' => 'nullable|string',
@@ -57,7 +85,7 @@ class EventoController extends Controller
         $slug = Str::slug($validated['titulo']) . '-' . date('Y');
 
         // 2. Criação do Registro
-        Evento::create([
+        $evento = Evento::create([
             'titulo' => $validated['titulo'],
             'slug' => $slug,
             'descricao' => $validated['descricao'],
@@ -75,6 +103,8 @@ class EventoController extends Controller
                 'cor_fundo' => $request->input('cor_fundo', '#10b981'),
             ]
         ]);
+
+        $this->salvarIdentidade($request, $evento);
 
         return redirect()->route('admin.eventos.index')
             ->with('success', 'Evento criado com sucesso!');
@@ -115,6 +145,8 @@ class EventoController extends Controller
             'local' => 'required|string|max:255',
             'descricao' => 'nullable|string',
             'cor_fundo' => 'nullable|string|size:7|starts_with:#',
+            'logo' => self::REGRA_LOGO,
+            'banner' => self::REGRA_BANNER,
 
             // Geolocalização
             'latitude' => 'nullable|numeric',
@@ -128,7 +160,7 @@ class EventoController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $validated = $validator->validated();
+        $validated = collect($validator->validated())->except(['logo', 'banner'])->all();
 
 
         // 2. GESTÃO DE IMAGENS/ASSINATURAS: REMOVIDA
@@ -144,6 +176,8 @@ class EventoController extends Controller
         $evento->configuracoes = $configuracoes;
 
         $evento->save();
+
+        $this->salvarIdentidade($request, $evento);
 
 
         // 4. GESTÃO DE ASSINATURAS: REMOVIDA
@@ -310,6 +344,8 @@ class EventoController extends Controller
         // Limpeza de arquivos ao deletar evento
         if ($evento->caminho_fundo) Storage::disk('public')->delete($evento->caminho_fundo);
         if ($evento->caminho_brasao) Storage::disk('public')->delete($evento->caminho_brasao);
+        if ($evento->caminho_logo) Storage::disk('public')->delete($evento->caminho_logo);
+        if ($evento->caminho_banner) Storage::disk('public')->delete($evento->caminho_banner);
 
         foreach ($evento->assinaturas as $ass) {
             if ($ass->arquivo_assinatura) Storage::disk('public')->delete($ass->arquivo_assinatura);

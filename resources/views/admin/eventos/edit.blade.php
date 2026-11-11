@@ -62,6 +62,37 @@
                         <input type="color" name="cor_fundo" class="form-control form-control-color w-100" value="{{ $evento->configuracoes['cor_fundo'] ?? '#10b981' }}">
                     </div>
 
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold text-secondary small">LOGO DO EVENTO <span class="fw-normal">(JPG, PNG ou WebP, até 2 MB)</span></label>
+                            @if(!empty($evento) && $evento->logoUrl())
+                                <div class="d-flex align-items-center gap-3 mb-2 p-2 border rounded-3 bg-light">
+                                    <img src="{{ $evento->logoUrl() }}" alt="Logo atual" style="max-height:56px; max-width:140px; object-fit:contain;">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="checkbox" name="remover_logo" value="1" id="remover_logo">
+                                        <label class="form-check-label small" for="remover_logo">Remover logo</label>
+                                    </div>
+                                </div>
+                            @endif
+                            <input type="file" name="logo" class="form-control @error('logo') is-invalid @enderror" accept="image/png,image/jpeg,image/webp">
+                            @error('logo') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold text-secondary small">BANNER DO EVENTO <span class="fw-normal">(imagem larga, ex.: 1600×500 · até 5 MB)</span></label>
+                            @if(!empty($evento) && $evento->bannerUrl())
+                                <div class="d-flex align-items-center gap-3 mb-2 p-2 border rounded-3 bg-light">
+                                    <img src="{{ $evento->bannerUrl() }}" alt="Banner atual" style="max-height:56px; max-width:200px; object-fit:cover; border-radius:6px;">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="checkbox" name="remover_banner" value="1" id="remover_banner">
+                                        <label class="form-check-label small" for="remover_banner">Remover banner</label>
+                                    </div>
+                                </div>
+                            @endif
+                            <input type="file" name="banner" class="form-control @error('banner') is-invalid @enderror" accept="image/png,image/jpeg,image/webp">
+                            @error('banner') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+
                     <hr class="my-4 text-secondary opacity-25">
                     <h6 class="text-uppercase text-secondary fw-bold mb-3 small">
                         <i class="fa-solid fa-location-crosshairs me-2"></i> Controle de Presença (GPS)

@@ -30,11 +30,32 @@ class Evento extends Model
         'raio_permitido',
         'caminho_fundo',
         'caminho_brasao',
+        'caminho_logo',
+        'caminho_banner',
         'cert_cabecalho',
         'cert_corpo',
         'cert_rodape',
         'cert_equipe_corpo',
     ];
+
+    /** URL pública da logo do evento (null se não houver arquivo). */
+    public function logoUrl(): ?string
+    {
+        return $this->urlPublica($this->caminho_logo);
+    }
+
+    /** URL pública do banner do evento (null se não houver arquivo). */
+    public function bannerUrl(): ?string
+    {
+        return $this->urlPublica($this->caminho_banner);
+    }
+
+    private function urlPublica(?string $caminho): ?string
+    {
+        return $caminho && \Illuminate\Support\Facades\Storage::disk('public')->exists($caminho)
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($caminho)
+            : null;
+    }
 
     /**
      * Eventos que o usuário pode gerenciar (dono ou co-administrador).

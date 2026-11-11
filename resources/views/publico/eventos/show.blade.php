@@ -173,7 +173,9 @@
         <div class="container mt-3"><div class="alert alert-warning shadow-sm mb-0">{{ session('error') }}</div></div>
     @endif
 
-    <header class="event-hero">
+    @php($bannerUrl = $evento->bannerUrl())
+    @php($logoUrl = $evento->logoUrl())
+    <header class="event-hero" @if($bannerUrl) style="background: linear-gradient(135deg, rgba(0,0,0,.55), rgba(0,0,0,.35)), url('{{ $bannerUrl }}') center / cover no-repeat;" @endif>
         <div class="hero-pattern"></div>
         <div class="container position-relative z-1">
             <div class="row">
@@ -184,6 +186,9 @@
                         </span>
                     </div>
 
+                    @if($logoUrl)
+                        <img src="{{ $logoUrl }}" alt="Logo do evento {{ $evento->titulo }}" class="mb-3 d-block" style="max-height: 90px; max-width: 100%; object-fit: contain; background: rgba(255,255,255,.92); padding: 8px 14px; border-radius: 14px;">
+                    @endif
                     <h1 class="display-4 fw-bold mb-4" style="letter-spacing: -1px;">{{ $evento->titulo }}</h1>
 
                     <div class="d-flex flex-wrap gap-4 text-white opacity-90 mb-5">
