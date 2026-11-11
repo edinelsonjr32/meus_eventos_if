@@ -18,7 +18,7 @@ function rascunhoRico($ctx): Trabalho
 {
     return app(TrabalhoWorkflow::class)->salvar($ctx->evento, $ctx->autor, [
         'titulo' => 'Íntegro', 'resumo' => 'Resumo', 'palavras_chave' => 'a, b, c', 'tipo_trabalho' => 'extensao', 'modalidade_apresentacao' => 'oral',
-        'agencia_fomento' => 'CNPq', 'projeto_pesquisa' => 'Proj', 'comite_etica' => 'CAAE', 'autoriza_publicacao' => false,
+        'autoriza_publicacao' => false,
         'autores' => [
             ['nome_completo' => 'Ana', 'cpf' => '111.444.777-35', 'email' => 'ana@x.com', 'instituicao' => 'IFPA', 'categoria_autor' => 'discente', 'tipo_autor' => 'autor_principal', 'apresentador' => false, 'correspondente' => false,
                 'telefone' => '(93) 90000-0001', 'vinculo' => 'aluno', 'titulacao' => 'Graduanda', 'lattes' => 'https://lattes.cnpq.br/1', 'orcid' => '0000-0001-2345-6789'],
@@ -40,7 +40,7 @@ function payloadDoFormulario(Trabalho $t, array $mudar = []): array
     })->all();
 
     return array_replace_recursive(['acao' => 'rascunho', 'titulo' => $t->titulo, 'resumo' => $t->resumo, 'palavras_chave' => implode(', ', $t->palavras_chave), 'tipo_trabalho' => $t->tipo_trabalho,
-        'modalidade_apresentacao' => $t->modalidade_apresentacao, 'agencia_fomento' => $t->agencia_fomento, 'projeto_pesquisa' => $t->projeto_pesquisa, 'comite_etica' => $t->comite_etica,
+        'modalidade_apresentacao' => $t->modalidade_apresentacao,
         'autoriza_publicacao' => (int) $t->autoriza_publicacao, 'autores' => $autores], $mudar);
 }
 
@@ -57,7 +57,7 @@ it('salvar sem alterar nada não muda NENHUM dado dos autores (CPF dos demais, t
 
     expect(fotografia($t))->toBe($antes);
     $m = $t->fresh();
-    expect($m->agencia_fomento)->toBe('CNPq')->and($m->projeto_pesquisa)->toBe('Proj')->and($m->comite_etica)->toBe('CAAE')->and($m->tipo_trabalho)->toBe('extensao');
+    expect($m->tipo_trabalho)->toBe('extensao');
 });
 
 it('o que o autor altera vale, e esvaziar um campo enviado o limpa (sem confundir com campo ausente)', function () {

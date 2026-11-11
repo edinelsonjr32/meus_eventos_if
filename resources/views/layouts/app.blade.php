@@ -196,10 +196,23 @@
         [x-cloak] { display: none !important; }
 
         /* Mobile Responsive */
+        .sidebar-backdrop { display: none; }
         @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 1rem; }
+            .sidebar { transform: translateX(-100%); width: min(86vw, var(--sidebar-width)); box-shadow: none; }
+            .sidebar.active { transform: translateX(0); box-shadow: 8px 0 32px rgba(0,0,0,.35); }
+            .sidebar.active ~ .sidebar-backdrop { display: block; position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 999; }
+            .main-content { margin-left: 0; padding: .85rem; min-width: 0; overflow-x: hidden; }
+            .main-content h3, .main-content .h3 { font-size: 1.25rem; }
+            .main-content h4 { font-size: 1.1rem; }
+            .main-content img, .main-content video, .main-content iframe { max-width: 100%; height: auto; }
+            .main-content .btn { white-space: normal; }
+            .main-content .d-flex.justify-content-between.align-items-center:not(.flex-nowrap) { flex-wrap: wrap; gap: .5rem; }
+            .main-content .row > [class*="col-"] { min-width: 0; }
+            .main-content dl.row dt { margin-top: .5rem; }
+            .main-content .nav-tabs, .main-content .nav-pills { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .main-content pre, .main-content code { white-space: pre-wrap; word-break: break-word; }
+            .main-content .form-control, .main-content .form-select { font-size: 16px; } /* evita o zoom automático do iOS ao focar */
+            .modal-dialog { margin: .5rem; }
         }
     </style>
 </head>
@@ -313,11 +326,13 @@
         </div>
     </nav>
 
+    <div class="sidebar-backdrop" onclick="document.getElementById('sidebar').classList.remove('active')" aria-hidden="true"></div>
+
     <main class="main-content">
         <nav class="navbar navbar-light bg-white rounded-3 shadow-sm mb-4 d-md-none p-3 border">
             <div class="container-fluid px-0">
                 <span class="navbar-brand fw-bold text-success mb-0 h1"><i class="fa-solid fa-leaf me-2"></i> MeusEventosIf</span>
-                <button class="btn btn-light border" onclick="document.getElementById('sidebar').classList.toggle('active')">
+                <button class="btn btn-light border" onclick="document.getElementById('sidebar').classList.toggle('active')" aria-label="Abrir menu">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
@@ -327,6 +342,10 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // No celular o menu fecha ao tocar em um item
+        document.querySelectorAll('#sidebar a.nav-link').forEach(a => a.addEventListener('click', () => document.getElementById('sidebar').classList.remove('active')));
+    </script>
     <x-feedback />
 </body>
 </html>

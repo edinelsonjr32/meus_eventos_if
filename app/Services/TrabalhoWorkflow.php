@@ -56,9 +56,6 @@ class TrabalhoWorkflow
                 'tipo_trabalho' => $dados['tipo_trabalho'] ?? null,
                 'area_tematica_id' => $dados['area_tematica_id'] ?? null,
                 'modalidade_apresentacao' => $dados['modalidade_apresentacao'] ?? null,
-                'agencia_fomento' => $dados['agencia_fomento'] ?? null,
-                'projeto_pesquisa' => $dados['projeto_pesquisa'] ?? null,
-                'comite_etica' => $dados['comite_etica'] ?? null,
                 'autoriza_publicacao' => (bool) ($dados['autoriza_publicacao'] ?? false),
             ];
             $campos['autorizou_em'] = $campos['autoriza_publicacao'] ? ($trabalho?->autorizou_em ?? now()) : null;

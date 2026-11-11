@@ -13,17 +13,20 @@
     $tema = $config->chamada_tema;
     $templateUrl = $config->template_url;
 
-    // Seção que contém o primeiro erro de validação do servidor (para reabrir o formulário no lugar certo)
-    $chavesComErro = collect($errors->keys());
-    $passoInicial = 1;
-    if ($chavesComErro->isNotEmpty()) {
-        $passoInicial = match (true) {
-            $chavesComErro->contains(fn ($k) => preg_match('/^(titulo|tipo_trabalho|resumo|abstract|palavras_chave|area_tematica_id|agencia_fomento|projeto_pesquisa|comite_etica)/', $k)) => 1,
-            $chavesComErro->contains(fn ($k) => $k === 'autores' || str_starts_with($k, 'autores.0.')) => 2,
-            $chavesComErro->contains(fn ($k) => preg_match('/^autores\.[1-9]/', $k)) => 3,
-            default => 4,
-        };
+    // Erros do servidor viram mensagens junto de cada campo (além do alerta no topo)
+    $mapaErros = [
+        'titulo' => 'titulo', 'tipo_trabalho' => 'tipo', 'resumo' => 'resumo', 'palavras_chave' => 'palavras', 'modalidade_apresentacao' => 'modalidade',
+        'arquivo' => 'arquivo', 'autores' => 'autores', 'autores.0.nome_completo' => 'ap_nome', 'autores.0.cpf' => 'ap_cpf', 'autores.0.email' => 'ap_email',
+        'autores.0.instituicao' => 'ap_ies', 'autores.0.categoria_autor' => 'ap_categoria', 'declaracao_ineditismo' => 'declaracoes', 'declaracao_regulamento' => 'declaracoes',
+    ];
+    $errosServidor = [];
+    foreach ($mapaErros as $chave => $campo) {
+        if ($errors->has($chave) && !isset($errosServidor[$campo])) {
+            $errosServidor[$campo] = $errors->first($chave);
+        }
     }
+    $palavrasAtuais = old('palavras_chave', $trabalho->palavras_chave ?? []);
+    $palavrasAtuais = is_array($palavrasAtuais) ? $palavrasAtuais : \App\Http\Requests\SalvarTrabalhoRequest::palavras($palavrasAtuais);
 
     $maisAutores = old('mais_autores', count($autores) > 1 ? 'sim' : 'nao');
     $dadosJs = [
@@ -35,12 +38,12 @@
         'exigeResumo' => (bool) $exigeResumo,
         'exigePalavras' => (bool) $exigePalavras,
         'exigeCpf' => (bool) $exigeCpf,
-        'passo' => $passoInicial,
+        'erros' => $errosServidor,
         'maisAutores' => $maisAutores,
         'tipo' => old('tipo_trabalho', $trabalho->tipo_trabalho),
         'modalidade' => old('modalidade_apresentacao', $trabalho->modalidade_apresentacao),
         'titulo' => old('titulo', $trabalho->titulo),
-        'palavras' => old('palavras_chave', implode(', ', $trabalho->palavras_chave ?? [])),
+        'palavras' => array_values(array_filter($palavrasAtuais, 'is_string')),
         'temArquivo' => (bool) $arquivoAtual,
         'maxArquivoMb' => (int) $config->max_arquivo_mb,
         'decl1' => (bool) old('declaracao_ineditismo'),
@@ -99,8 +102,9 @@
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
             @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
             @if($errors->any())
-                <div class="alert alert-danger">
-                    <strong>Corrija os campos abaixo:</strong>
+                <div class="alert alert-danger" id="alerta-erros" role="alert" tabindex="-1">
+                    <strong><i class="fa-solid fa-circle-exclamation me-1"></i> Não foi possível salvar. Corrija os campos abaixo:</strong>
+                    <div class="small mt-1">Os dados que você preencheu foram mantidos{{ $trabalho->arquivoAtual ? '' : ' (o navegador não guarda o arquivo PDF: selecione-o novamente)' }}.</div>
                     <ul class="mb-0 mt-1 small">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul>
                 </div>
             @endif
@@ -112,16 +116,15 @@
                 @csrf
                 @if($editando) @method('PUT') @endif
 
-                {{-- Indicador de seções --}}
-                <div class="d-flex flex-wrap gap-2 mb-3 small">
-                    <template x-for="p in secoes()" :key="p.n">
-                        <span class="badge rounded-pill px-3 py-2" :class="passo === p.n ? 'bg-success' : (passo > p.n ? 'bg-success bg-opacity-25 text-success' : 'bg-secondary bg-opacity-25 text-secondary')" x-text="p.n + '. ' + p.titulo"></span>
-                    </template>
+                {{-- Erros encontrados no navegador (antes de enviar) --}}
+                <div class="alert alert-danger d-none" id="alerta-erros-cliente" role="alert" tabindex="-1" :class="{ 'd-none': !listaErros.length }">
+                    <strong><i class="fa-solid fa-circle-exclamation me-1"></i> Revise o formulário antes de enviar:</strong>
+                    <ul class="mb-0 mt-1 small"><template x-for="e in listaErros" :key="e"><li x-text="e"></li></template></ul>
                 </div>
 
                 {{-- ============ Seção 1: dados do trabalho ============ --}}
-                <section x-show="passo === 1" class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-3">Dados do trabalho</h6>
+                <section class="glass-card bg-white mb-4" id="sec-dados">
+                    <h6 class="fw-bold text-success mb-3"><span class="badge bg-success me-2">1</span> Dados do trabalho</h6>
 
                     @if($modoGestao && !$editando)
                         <div class="mb-3">
@@ -174,13 +177,28 @@
                     @endif
                     @if($exigePalavras)
                         <div class="mb-3">
-                            <label class="small fw-bold text-secondary">Palavras-chave * (3 a 5, separadas por vírgula)</label>
-                            <input type="text" name="palavras_chave" class="form-control" value="{{ old('palavras_chave', implode(', ', $trabalho->palavras_chave ?? [])) }}" x-model="palavras">
+                            <label class="small fw-bold text-secondary">Palavras-chave * (3 a 5)</label>
+                            <div>
+                            <div class="d-flex flex-wrap gap-2 mb-2" x-show="palavras.length" x-cloak>
+                                <template x-for="(p, i) in palavras" :key="p">
+                                    <span class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle d-inline-flex align-items-center gap-2 px-3 py-2 fs-6 fw-semibold">
+                                        <span class="texto-quebra" x-text="p"></span>
+                                        <button type="button" class="btn-close btn-close-sm" style="font-size:.6rem" @click="removerPalavra(i)" :aria-label="'Remover ' + p"></button>
+                                        <input type="hidden" name="palavras_chave[]" :value="p">
+                                    </span>
+                                </template>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" class="form-control" x-model="novaPalavra" maxlength="60" placeholder="Digite uma palavra-chave" @keydown.enter.prevent="adicionarPalavra()" @blur="adicionarPalavra()" :disabled="palavras.length >= 5">
+                                <button type="button" class="btn btn-outline-success" @click="adicionarPalavra()" :disabled="palavras.length >= 5 || !novaPalavra.trim()"><i class="fa-solid fa-plus"></i> Adicionar</button>
+                            </div>
+                            <div class="form-text"><span x-text="palavras.length"></span>/5 · mínimo 3. Digite uma palavra ou expressão e pressione Enter (ou toque em Adicionar).</div>
                             <div class="text-danger small" x-show="erros.palavras" x-text="erros.palavras"></div>
+                        </div>
                         </div>
                     @endif
 
-                    <details @if(!$exigeResumo || !$exigePalavras || $trabalho->abstract || $trabalho->agencia_fomento || $trabalho->projeto_pesquisa || $trabalho->comite_etica || $trabalho->area_tematica_id) open @endif>
+                    <details @if(!$exigeResumo || !$exigePalavras || $trabalho->abstract || $trabalho->area_tematica_id) open @endif>
                         <summary class="small fw-bold text-secondary mb-2">Informações complementares (opcional)</summary>
                         <div class="row g-3 mt-1">
                             @if($areas->isNotEmpty())
@@ -206,34 +224,37 @@
                             @endunless
                             @unless($exigePalavras)
                                 <div class="col-md-6">
-                                    <label class="small fw-bold text-secondary">Palavras-chave (3 a 5, separadas por vírgula)</label>
-                                    <input type="text" name="palavras_chave" class="form-control" value="{{ old('palavras_chave', implode(', ', $trabalho->palavras_chave ?? [])) }}" x-model="palavras">
-                                    <div class="text-danger small" x-show="erros.palavras" x-text="erros.palavras"></div>
+                                    <label class="small fw-bold text-secondary">Palavras-chave (3 a 5)</label>
+                                    <div>
+                            <div class="d-flex flex-wrap gap-2 mb-2" x-show="palavras.length" x-cloak>
+                                <template x-for="(p, i) in palavras" :key="p">
+                                    <span class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle d-inline-flex align-items-center gap-2 px-3 py-2 fs-6 fw-semibold">
+                                        <span class="texto-quebra" x-text="p"></span>
+                                        <button type="button" class="btn-close btn-close-sm" style="font-size:.6rem" @click="removerPalavra(i)" :aria-label="'Remover ' + p"></button>
+                                        <input type="hidden" name="palavras_chave[]" :value="p">
+                                    </span>
+                                </template>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" class="form-control" x-model="novaPalavra" maxlength="60" placeholder="Digite uma palavra-chave" @keydown.enter.prevent="adicionarPalavra()" @blur="adicionarPalavra()" :disabled="palavras.length >= 5">
+                                <button type="button" class="btn btn-outline-success" @click="adicionarPalavra()" :disabled="palavras.length >= 5 || !novaPalavra.trim()"><i class="fa-solid fa-plus"></i> Adicionar</button>
+                            </div>
+                            <div class="form-text"><span x-text="palavras.length"></span>/5 · mínimo 3. Digite uma palavra ou expressão e pressione Enter (ou toque em Adicionar).</div>
+                            <div class="text-danger small" x-show="erros.palavras" x-text="erros.palavras"></div>
+                        </div>
                                 </div>
                             @endunless
                             <div class="col-12">
                                 <label class="small fw-bold text-secondary">Abstract</label>
                                 <textarea name="abstract" rows="4" class="form-control">{{ old('abstract', $trabalho->abstract) }}</textarea>
                             </div>
-                            <div class="col-md-4">
-                                <label class="small fw-bold text-secondary">Agência de fomento</label>
-                                <input type="text" name="agencia_fomento" class="form-control" value="{{ old('agencia_fomento', $trabalho->agencia_fomento) }}">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="small fw-bold text-secondary">Projeto de pesquisa</label>
-                                <input type="text" name="projeto_pesquisa" class="form-control" value="{{ old('projeto_pesquisa', $trabalho->projeto_pesquisa) }}">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="small fw-bold text-secondary">Comitê de ética (nº do parecer)</label>
-                                <input type="text" name="comite_etica" class="form-control" value="{{ old('comite_etica', $trabalho->comite_etica) }}">
-                            </div>
                         </div>
                     </details>
                 </section>
 
                 {{-- ============ Seção 2: autor apresentador ============ --}}
-                <section x-show="passo === 2" class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-1">Cadastro de autores</h6>
+                <section class="glass-card bg-white mb-4" id="sec-apresentador">
+                    <h6 class="fw-bold text-success mb-1"><span class="badge bg-success me-2">2</span> Cadastro de autores</h6>
                     <p class="small text-muted">Insira o nome completo e a Instituição de Ensino ao qual o apresentador(a) esteja vinculado(a).</p>
 
                     <input type="hidden" name="autores[0][id]" value="{{ $autores[0]['id'] ?? '' }}">
@@ -291,8 +312,8 @@
                 </section>
 
                 {{-- ============ Seção 3: demais autores ============ --}}
-                <section x-show="passo === 3" class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-1">Cadastro de autores</h6>
+                <section x-show="maisAutores === 'sim'" x-cloak class="glass-card bg-white mb-4" id="sec-autores">
+                    <h6 class="fw-bold text-success mb-1"><span class="badge bg-success me-2">3</span> Cadastro de autores (demais)</h6>
                     <p class="small text-muted">Insira o nome completo e a Instituição de Ensino ao qual cada autor(a) esteja vinculado(a) (João da Silva - Instituto Federal do Pará - Campus Óbidos).</p>
 
                     <template x-if="maisAutores === 'sim'">
@@ -349,8 +370,8 @@
                 </section>
 
                 {{-- ============ Seção 4: envio de arquivo ============ --}}
-                <section x-show="passo === 4" class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-3">Envio de arquivo</h6>
+                <section class="glass-card bg-white mb-4" id="sec-arquivo">
+                    <h6 class="fw-bold text-success mb-3"><span class="badge bg-success me-2" x-text="maisAutores === 'sim' ? 4 : 3"></span> Envio de arquivo</h6>
 
                     <div class="mb-3">
                         <label class="small fw-bold text-secondary d-block">Modalidade de Apresentação *</label>
@@ -402,21 +423,16 @@
                     <div class="small text-muted mt-2"><i class="fa-solid fa-shield-halved me-1"></i> Seus dados pessoais são tratados conforme a <a href="{{ route('privacidade') }}" target="_blank">Política de Privacidade</a>. CPF e e-mail dos autores nunca são publicados.</div>
                 </section>
 
-                {{-- Navegação --}}
-                <div class="d-flex flex-wrap gap-2 justify-content-between mb-5">
-                    <div>
-                        <button type="button" class="btn btn-light fw-bold" x-show="passo > 1" @click="voltar()"><i class="fa-solid fa-arrow-left me-1"></i> Voltar</button>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
+                {{-- Envio --}}
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mb-5">
+                    <a href="{{ $modoGestao ? ($editando ? route('gestao.trabalhos.show', $trabalho) : route('gestao.trabalhos.index', $evento)) : ($editando ? route('trabalhos.show', $trabalho) : route('trabalhos.index')) }}" class="btn btn-light fw-bold"><i class="fa-solid fa-arrow-left me-1"></i> Cancelar</a>
+                    <div class="d-flex flex-column flex-sm-row gap-2">
                         @unless($modoGestao)
                         <button type="submit" name="acao" value="rascunho" class="btn btn-outline-secondary fw-bold" @click="rascunho($event)">
                             <i class="fa-regular fa-floppy-disk me-1"></i> Salvar rascunho
                         </button>
                         @endunless
-                        <button type="button" class="btn btn-primary-custom fw-bold" x-show="passo < 4" @click="proximo()">
-                            Próxima <i class="fa-solid fa-arrow-right ms-1"></i>
-                        </button>
-                        <button type="submit" name="acao" value="submeter" class="btn btn-primary-custom fw-bold" x-show="passo === 4" @click="enviar($event)">
+                        <button type="submit" name="acao" value="submeter" class="btn btn-primary-custom fw-bold" @click="enviar($event)">
                             <i class="fa-solid fa-paper-plane me-1"></i> {{ $modoGestao ? ($editando ? 'Salvar alterações' : 'Cadastrar trabalho') : ($trabalho->status === 'aguardando_correcao' ? 'Reenviar versão corrigida' : 'Enviar') }}
                         </button>
                     </div>
@@ -438,20 +454,22 @@
 
             const lista = (cfg.autores && cfg.autores.length) ? cfg.autores : [{}];
             const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+            // Onde rolar para cada campo com problema
+            const ancora = { titulo: 'input[name=titulo]', tipo: '[name=tipo_trabalho]', resumo: 'textarea[name=resumo]', palavras: '[x-model=novaPalavra]', ap_nome: '[name="autores[0][nome_completo]"]', ap_email: '[name="autores[0][email]"]', ap_ies: '[name="autores[0][instituicao]"]', ap_categoria: '[name="autores[0][categoria_autor]"]', ap_cpf: '[name="autores[0][cpf]"]', autores: '#sec-apresentador', extras: '#sec-autores', modalidade: '[name=modalidade_apresentacao]', arquivo: 'input[name=arquivo]', declaracoes: '#d1' };
 
             return {
-                passo: cfg.passo, maisAutores: cfg.maisAutores, titulo: cfg.titulo || '', tipo: cfg.tipo || '', modalidade: cfg.modalidade || '',
-                resumo: cfg.resumo || '', palavras: cfg.palavras || '', resumoMin: cfg.resumoMin, resumoMax: cfg.resumoMax,
-                maxAutores: cfg.maxAutores, decl1: !!cfg.decl1, decl2: !!cfg.decl2, erros: {},
+                maisAutores: cfg.maisAutores, titulo: cfg.titulo || '', tipo: cfg.tipo || '', modalidade: cfg.modalidade || '',
+                resumo: cfg.resumo || '', palavras: cfg.palavras || [], novaPalavra: '', resumoMin: cfg.resumoMin, resumoMax: cfg.resumoMax,
+                listaErros: [], maxAutores: cfg.maxAutores, decl1: !!cfg.decl1, decl2: !!cfg.decl2, erros: cfg.erros || {},
                 apresentador: normaliza(lista[0]),
                 extras: lista.slice(1).map(normaliza),
 
-                secoes() {
-                    const s = [{ n: 1, titulo: 'Dados do trabalho' }, { n: 2, titulo: 'Autor apresentador' }];
-                    if (this.maisAutores === 'sim') s.push({ n: 3, titulo: 'Demais autores' });
-                    s.push({ n: 4, titulo: 'Envio do arquivo' });
-                    return s;
+                init() {
+                    // Erro vindo do servidor: leva a pessoa direto ao alerta (os dados continuam preenchidos)
+                    const alerta = document.getElementById('alerta-erros');
+                    if (alerta) this.$nextTick(() => { alerta.scrollIntoView({ behavior: 'smooth', block: 'center' }); alerta.focus({ preventScroll: true }); });
                 },
+
                 get palavrasResumo() { const t = (this.resumo || '').trim(); return t ? t.split(/\s+/).length : 0; },
 
                 mascara(v) {
@@ -463,61 +481,78 @@
                 adicionarExtra() { if (this.extras.length + 1 < this.maxAutores + 2) this.extras.push(vazio()); },
                 removerExtra(i) { this.extras.splice(i, 1); },
 
+                // ---- palavras-chave: uma de cada vez (a vírgula também separa, mas não é obrigatória) ----
+                adicionarPalavra() {
+                    const novas = this.novaPalavra.split(/[,;]+/).map(p => p.trim()).filter(Boolean);
+                    novas.forEach(p => {
+                        if (this.palavras.length >= 5) return;
+                        if (!this.palavras.some(x => x.toLowerCase() === p.toLowerCase())) this.palavras.push(p.slice(0, 60));
+                    });
+                    this.novaPalavra = '';
+                },
+                removerPalavra(i) { this.palavras.splice(i, 1); },
+
                 // ---- validação no navegador (o servidor continua sendo a validação definitiva) ----
-                validar(n) {
+                validarTudo() {
+                    this.adicionarPalavra();
                     const e = {};
-                    if (n === 1) {
-                        if (!this.titulo.trim()) e.titulo = 'Informe o título do trabalho.';
-                        if (!this.tipo) e.tipo = 'Selecione a categoria do trabalho.';
-                        if (cfg.exigeResumo && (this.palavrasResumo < this.resumoMin || this.palavrasResumo > this.resumoMax)) e.resumo = `O resumo deve ter entre ${this.resumoMin} e ${this.resumoMax} palavras.`;
-                        if (!cfg.exigeResumo && this.palavrasResumo > this.resumoMax) e.resumo = `O resumo deve ter no máximo ${this.resumoMax} palavras.`;
-                        const qtd = this.palavras.split(/[,;]+/).map(p => p.trim()).filter(Boolean).length;
-                        if ((cfg.exigePalavras || qtd > 0) && (qtd < 3 || qtd > 5)) e.palavras = 'Informe de 3 a 5 palavras-chave, separadas por vírgula.';
-                    }
-                    if (n === 2) {
-                        const a = this.apresentador;
-                        if (!a.nome_completo.trim()) e.ap_nome = 'Informe o nome completo do apresentador.';
-                        if (!emailOk(a.email)) e.ap_email = 'Informe um e-mail válido.';
-                        if (!a.instituicao.trim()) e.ap_ies = 'Informe a instituição de ensino.';
-                        if (!a.categoria_autor) e.ap_categoria = 'Informe se é docente ou discente.';
-                        if (cfg.exigeCpf && a.cpf.length !== 14) e.ap_cpf = 'Informe o CPF completo.';
-                        if (!this.maisAutores) e.autores = 'Informe se deseja cadastrar mais autores.';
-                    }
-                    if (n === 3 && this.maisAutores === 'sim') {
-                        this.extras.forEach(a => {
-                            a.erroNome = a.nome_completo.trim() ? '' : 'Informe o nome completo.';
-                            a.erroIes = a.instituicao.trim() ? '' : 'Informe a instituição.';
-                            if (a.erroNome || a.erroIes) e.extras = true;
+                    if (!this.titulo.trim()) e.titulo = 'Informe o título do trabalho.';
+                    if (!this.tipo) e.tipo = 'Selecione a categoria do trabalho.';
+                    if (cfg.exigeResumo && (this.palavrasResumo < this.resumoMin || this.palavrasResumo > this.resumoMax)) e.resumo = `O resumo deve ter entre ${this.resumoMin} e ${this.resumoMax} palavras.`;
+                    if (!cfg.exigeResumo && this.palavrasResumo > this.resumoMax) e.resumo = `O resumo deve ter no máximo ${this.resumoMax} palavras.`;
+                    const qtd = this.palavras.length;
+                    if ((cfg.exigePalavras || qtd > 0) && (qtd < 3 || qtd > 5)) e.palavras = 'Informe de 3 a 5 palavras-chave.';
+
+                    const a = this.apresentador;
+                    if (!a.nome_completo.trim()) e.ap_nome = 'Informe o nome completo do apresentador.';
+                    if (!emailOk(a.email)) e.ap_email = 'Informe um e-mail válido para o apresentador.';
+                    if (!a.instituicao.trim()) e.ap_ies = 'Informe a instituição de ensino do apresentador.';
+                    if (!a.categoria_autor) e.ap_categoria = 'Informe se o apresentador é docente ou discente.';
+                    if (cfg.exigeCpf && a.cpf.length !== 14) e.ap_cpf = 'Informe o CPF completo do apresentador.';
+                    if (!this.maisAutores) e.autores = 'Informe se deseja cadastrar mais autores.';
+
+                    if (this.maisAutores === 'sim') {
+                        this.extras.forEach((x, i) => {
+                            x.erroNome = x.nome_completo.trim() ? '' : 'Informe o nome completo.';
+                            x.erroIes = x.instituicao.trim() ? '' : 'Informe a instituição.';
+                            if ((x.erroNome || x.erroIes) && !e.extras) e.extras = `Complete os dados do autor ${i + 2} (nome e instituição).`;
                         });
                     }
-                    if (n === 4) {
-                        if (!this.modalidade) e.modalidade = 'Selecione a modalidade de apresentação.';
-                        const arq = this.$root.querySelector('input[name=arquivo]');
-                        if (!cfg.modoGestao) {
-                            if (!cfg.temArquivo && !(arq && arq.files.length)) e.arquivo = 'Envie o arquivo PDF do trabalho.';
-                            if (!this.decl1 || !this.decl2) e.declaracoes = 'É necessário aceitar as duas declarações obrigatórias.';
-                        }
+
+                    if (!this.modalidade) e.modalidade = 'Selecione a modalidade de apresentação.';
+                    const arq = this.$root.querySelector('input[name=arquivo]');
+                    if (!cfg.modoGestao) {
+                        if (!cfg.temArquivo && !(arq && arq.files.length)) e.arquivo = 'Envie o arquivo PDF do trabalho.';
+                        if (!this.decl1 || !this.decl2) e.declaracoes = 'É necessário aceitar as duas declarações obrigatórias.';
                     }
                     this.erros = e;
-                    return Object.keys(e).length === 0;
+                    this.listaErros = Object.values(e);
+                    return e;
                 },
-                irPara(n) { this.passo = n; this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' })); },
-                proximo() {
-                    if (!this.validar(this.passo)) return;
-                    this.irPara(this.passo === 2 && this.maisAutores !== 'sim' ? 4 : this.passo + 1);
+                irParaPrimeiroErro(e) {
+                    const chave = Object.keys(ancora).find(k => e[k]);
+                    this.$nextTick(() => {
+                        const alvo = document.getElementById('alerta-erros-cliente');
+                        if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        const campo = chave ? this.$root.querySelector(ancora[chave]) : null;
+                        if (campo && campo.focus) setTimeout(() => campo.focus({ preventScroll: true }), 350);
+                    });
                 },
-                voltar() { this.erros = {}; this.irPara(this.passo === 4 && this.maisAutores !== 'sim' ? 2 : this.passo - 1); },
 
                 // Rascunho exige apenas o título
                 rascunho(ev) {
-                    if (!this.titulo.trim()) { ev.preventDefault(); this.irPara(1); this.erros = { titulo: 'Informe ao menos o título para salvar o rascunho.' }; }
+                    this.listaErros = [];
+                    if (!this.titulo.trim()) {
+                        ev.preventDefault();
+                        this.erros = { titulo: 'Informe ao menos o título para salvar o rascunho.' };
+                        this.listaErros = [this.erros.titulo];
+                        this.irParaPrimeiroErro(this.erros);
+                    } else { this.adicionarPalavra(); }
                 },
-                // Envio: valida todas as seções e abre a primeira com problema
+                // Envio: valida tudo de uma vez, mostra a lista de problemas e leva ao primeiro
                 enviar(ev) {
-                    const ordem = this.maisAutores === 'sim' ? [1, 2, 3, 4] : [1, 2, 4];
-                    for (const n of ordem) {
-                        if (!this.validar(n)) { ev.preventDefault(); this.irPara(n); return; }
-                    }
+                    const e = this.validarTudo();
+                    if (Object.keys(e).length) { ev.preventDefault(); this.irParaPrimeiroErro(e); return; }
                     const aviso = cfg.modoGestao ? 'Salvar as alterações deste trabalho?' : 'Após enviar, o trabalho será encaminhado à gestão do evento. Deseja continuar?';
                     if (!confirm(aviso)) ev.preventDefault();
                 },

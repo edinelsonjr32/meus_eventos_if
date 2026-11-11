@@ -44,10 +44,6 @@
                             <dd class="col-sm-8">{{ \App\Models\Trabalho::MODALIDADES[$trabalho->modalidade_apresentacao] ?? '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Palavras-chave</dt>
                             <dd class="col-sm-8">{{ implode(', ', $trabalho->palavras_chave ?? []) ?: '—' }}</dd>
-                            <dt class="col-sm-4 text-secondary">Fomento / Projeto</dt>
-                            <dd class="col-sm-8">{{ $trabalho->agencia_fomento ?: '—' }} / {{ $trabalho->projeto_pesquisa ?: '—' }}</dd>
-                            <dt class="col-sm-4 text-secondary">Comitê de ética</dt>
-                            <dd class="col-sm-8">{{ $trabalho->comite_etica ?: '—' }}</dd>
                             <dt class="col-sm-4 text-secondary">Publicação nos Anais</dt>
                             <dd class="col-sm-8">
                                 <x-badge tipo="anais" :valor="$trabalho->autoriza_publicacao ? 'autorizado' : (in_array($trabalho->status, ['aprovado', 'aguardando_correcao', 'avaliado', 'resubmetido'], true) ? 'pendente' : 'nao_autorizado')" />

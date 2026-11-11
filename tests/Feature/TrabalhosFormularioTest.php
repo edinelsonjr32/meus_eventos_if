@@ -352,3 +352,45 @@ it('a configuração da chamada salva tema, abertura, template e exigências', f
     $this->put($url, array_merge($base, ['template_url' => 'não é url']))->assertSessionHasErrors('template_url');
     $this->put($url, array_merge($base, ['tipos_permitidos' => ['resumo']]))->assertSessionHasErrors('tipos_permitidos.0');   // tipos antigos não existem mais
 });
+
+// ---------- Formulário único, erros com dados mantidos e palavras-chave em lista ----------
+it('palavras-chave chegam como lista (uma por campo), sem depender de vírgula', function () {
+    $this->actingAs($this->usuario)->post($this->url, frmEnvio(['palavras_chave' => ['água', 'clima do Pará', 'Amazônia', 'água']]))->assertSessionHasNoErrors();
+
+    // repetidas (mesmo com maiúsculas diferentes) são descartadas; expressões com espaço e vírgula interna ficam inteiras
+    expect(Trabalho::latest('id')->first()->palavras_chave)->toBe(['água', 'clima do Pará', 'Amazônia']);
+});
+
+it('o texto antigo separado por vírgula continua aceito', function () {
+    $this->actingAs($this->usuario)->post($this->url, frmEnvio(['palavras_chave' => 'a, b, c']))->assertSessionHasNoErrors();
+    expect(Trabalho::latest('id')->first()->palavras_chave)->toBe(['a', 'b', 'c']);
+});
+
+it('rejeita menos de 3 ou mais de 5 palavras-chave informadas, com mensagem clara', function () {
+    $this->actingAs($this->usuario)->post($this->url, frmEnvio(['palavras_chave' => ['uma', 'duas']]))
+        ->assertSessionHasErrors(['palavras_chave' => 'Informe de 3 a 5 palavras-chave.']);
+    $this->post($this->url, frmEnvio(['palavras_chave' => ['a', 'b', 'c', 'd', 'e', 'f']]))->assertSessionHasErrors('palavras_chave');
+});
+
+it('após um erro o formulário volta com alerta e todos os dados preenchidos', function () {
+    $envio = frmEnvio([
+        'titulo' => 'Título que não pode sumir', 'palavras_chave' => ['solo', 'rio', 'peixe'], 'modalidade_apresentacao' => 'oral',
+        'autores' => [frmApresentador(['cpf' => '000.000.000-00']), ['nome_completo' => 'Otto Orientador', 'instituicao' => 'IFPA', 'tipo_autor' => 'orientador']],
+        'mais_autores' => 'sim',
+    ]);
+
+    $r = $this->actingAs($this->usuario)->from(route('trabalhos.create', $this->evento->slug))->post($this->url, $envio);
+    $r->assertSessionHasErrors()->assertRedirect(route('trabalhos.create', $this->evento->slug));
+
+    $this->followRedirects($r)->assertOk()
+        ->assertSee('Não foi possível salvar')->assertSee('id="alerta-erros"', false)
+        ->assertSee('Título que não pode sumir')->assertSee('Ana Apresentadora')->assertSee('Otto Orientador')
+        ->assertSee('selecione-o novamente')
+        ->assertSee('solo')->assertSee('peixe');   // palavras-chave voltam como chips
+});
+
+it('o formulário é uma página só: todas as seções ficam visíveis, sem etapas', function () {
+    $this->actingAs($this->usuario)->get(route('trabalhos.create', $this->evento->slug))->assertOk()
+        ->assertSee('id="sec-dados"', false)->assertSee('id="sec-apresentador"', false)->assertSee('id="sec-arquivo"', false)
+        ->assertDontSee('passo === ', false)->assertDontSee('Próxima')->assertSee('name="palavras_chave[]"', false);
+});

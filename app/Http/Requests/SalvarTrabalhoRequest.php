@@ -70,13 +70,21 @@ class SalvarTrabalhoRequest extends FormRequest
             ->values()
             ->all();
 
-        $this->merge(['autores' => $autores]);
+        $this->merge([
+            'autores' => $autores,
+            'palavras_chave' => $this->has('palavras_chave') ? self::palavras($this->input('palavras_chave')) : null,
+        ]);
     }
 
-    public static function palavras(?string $texto): array
+    /** Palavras-chave a partir de uma lista (formulário novo) ou de um texto separado por vírgula (compatível). */
+    public static function palavras(array|string|null $entrada): array
     {
-        return collect(preg_split('/[,;\n]+/', (string) $texto))
-            ->map(fn ($p) => trim($p))->filter()->unique()->values()->all();
+        $itens = is_array($entrada) ? $entrada : preg_split('/[,;\n]+/', (string) $entrada);
+
+        return collect($itens)
+            ->filter(fn ($p) => is_string($p))
+            ->map(fn ($p) => trim($p))->filter()
+            ->unique(fn ($p) => mb_strtolower($p))->values()->all();
     }
 
     public function rules(): array
@@ -96,14 +104,12 @@ class SalvarTrabalhoRequest extends FormRequest
             'titulo' => ['required', 'string', 'max:255'],
             'resumo' => [$exigeResumo ? 'required' : 'nullable', 'string', 'max:6000'],
             'abstract' => ['nullable', 'string', 'max:6000'],
-            'palavras_chave' => [$exigePalavras ? 'required' : 'nullable', 'string', 'max:255'],
+            'palavras_chave' => [$exigePalavras ? 'required' : 'nullable', 'array', 'max:5'],
+            'palavras_chave.*' => ['string', 'max:60'],
             // (a categoria já gravada no trabalho continua válida ao editar, mesmo que a chamada tenha deixado de aceitá-la)
             'tipo_trabalho' => [$obrigatorio, Rule::in(array_filter([...array_keys($config->tiposHabilitados()), $trabalho instanceof Trabalho ? $trabalho->tipo_trabalho : null]))],
             'area_tematica_id' => ['nullable', Rule::exists('areas_tematicas', 'id')->where('evento_id', $evento->id)],
             'modalidade_apresentacao' => [$obrigatorio, Rule::in(array_keys(Trabalho::MODALIDADES))],
-            'agencia_fomento' => ['nullable', 'string', 'max:255'],
-            'projeto_pesquisa' => ['nullable', 'string', 'max:255'],
-            'comite_etica' => ['nullable', 'string', 'max:255'],
             'autoriza_publicacao' => ['nullable', 'boolean'],
 
             'declaracao_ineditismo' => [$submeter ? 'accepted' : 'nullable'],
@@ -136,6 +142,9 @@ class SalvarTrabalhoRequest extends FormRequest
     {
         return [
             'titulo.required' => 'Informe o título do trabalho.',
+            'palavras_chave.required' => 'Informe de 3 a 5 palavras-chave.',
+            'palavras_chave.max' => 'Informe no máximo 5 palavras-chave.',
+            'palavras_chave.*.max' => 'Cada palavra-chave pode ter no máximo 60 caracteres.',
             'tipo_trabalho.required' => 'Selecione a categoria do trabalho.',
             'tipo_trabalho.in' => 'Categoria inválida para esta chamada.',
             'modalidade_apresentacao.required' => 'Selecione a modalidade de apresentação.',
@@ -223,7 +232,7 @@ class SalvarTrabalhoRequest extends FormRequest
             $palavras = self::palavras($this->input('palavras_chave'));
             if (($config->exige_palavras_chave ?? true) || $palavras !== []) {
                 if (count($palavras) < 3 || count($palavras) > 5) {
-                    $validator->errors()->add('palavras_chave', 'Informe de 3 a 5 palavras-chave, separadas por vírgula.');
+                    $validator->errors()->add('palavras_chave', 'Informe de 3 a 5 palavras-chave.');
                 }
             }
 
