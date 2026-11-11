@@ -48,6 +48,11 @@ class ParticipanteDaConta
         $participante = $this->daConta($user);
 
         if (!$participante) {
+            // Conta ainda sem cadastro de participante: CPF e nome são indispensáveis (antes faltar o CPF gerava erro 500)
+            if (blank($dados['cpf'] ?? null) || blank($dados['nome_completo'] ?? null)) {
+                throw new \DomainException('Informe seu CPF e nome completo para concluir o cadastro.');
+            }
+
             $existente = Participante::where('cpf', $dados['cpf'])->first();
             if ($existente && $existente->user_id && $existente->user_id !== $user->id) {
                 throw new \DomainException('Este CPF já está vinculado a outra conta. Entre com a conta correta ou procure a organização do evento.');

@@ -141,3 +141,11 @@ it('o servidor continua exigindo coordenadas válidas dentro do raio quando o ev
     $this->post($this->url, $dados + ['user_lat' => '10', 'user_lng' => '10'], ['Accept' => 'application/json'])->assertStatus(403);
     $this->post($this->url, $dados + ['user_lat' => '-1.9183', 'user_lng' => '-55.5186'], ['Accept' => 'application/json'])->assertOk();
 });
+
+it('conta sem cadastro de participante e sem CPF no envio recebe aviso claro, não erro 500', function () {
+    $user = mkUser('user', 'semcpf@x.com');
+
+    expect(fn () => app(\App\Services\ParticipanteDaConta::class)->resolver($user, ['tipo_vinculo' => 'externo']))
+        ->toThrow(\DomainException::class, 'Informe seu CPF e nome completo');
+    expect(Participante::count())->toBe(0);
+});
