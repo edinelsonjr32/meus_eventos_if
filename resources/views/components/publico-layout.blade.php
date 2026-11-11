@@ -48,9 +48,11 @@
         .pub-marca em { font-style: normal; color: #059669; }
         .pub-nav .nav-link { font-weight: 600; font-size: .92rem; color: var(--ink-2); padding: .5rem .9rem; border-radius: 10px; }
         .pub-nav .nav-link:hover, .pub-nav .nav-link.ativo { color: #047857; background: #ecfdf5; }
-        .btn { font-weight: 700; border-radius: 12px; }
-        .btn-brand { background: linear-gradient(180deg, #059669, #047857); color: #fff; border: 0; box-shadow: 0 1px 2px rgba(4,120,87,.35), 0 10px 20px -10px rgba(4,120,87,.7); }
-        .btn-brand:hover { background: linear-gradient(180deg, #06a06f, #065f46); color: #fff; transform: translateY(-1px); }
+        /* Botões: cor única, planos, sem sombra, degradê nem movimento */
+        .btn { font-weight: 700; border-radius: 12px; box-shadow: none !important; transform: none !important; background-image: none !important; transition: background-color .12s, color .12s, border-color .12s; }
+        .btn:focus-visible { outline: 3px solid rgba(16,185,129,.4); outline-offset: 2px; }
+        .btn-brand { background: #059669; color: #fff; border: 0; }
+        .btn-brand:hover, .btn-brand:focus { background: #047857; color: #fff; }
         .btn-outline-brand { border: 2px solid #059669; color: #047857; background: transparent; }
         .btn-outline-brand:hover { background: #059669; color: #fff; }
 

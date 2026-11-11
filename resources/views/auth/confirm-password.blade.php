@@ -14,6 +14,6 @@
             <x-campo-senha name="password" label="Senha" placeholder="Sua senha" autocomplete="current-password" :autofocus="true" />
         </div>
 
-        <button type="submit" class="btn-primary-custom shadow-lg text-uppercase tracking-wide w-100">Confirmar</button>
+        <button type="submit" class="btn btn-brand w-100 py-2">Confirmar</button>
     </form>
 </x-guest-layout>

@@ -358,6 +358,13 @@
         .item-agenda { border: 1px solid var(--line) !important; border-left: 4px solid var(--brand-500) !important; border-radius: 13px !important; background: #fbfdfc; transition: background .15s, box-shadow .15s; }
         .item-agenda:hover { background: #f3faf6; box-shadow: var(--sh-1); }
         .glass-card.border-primary, .glass-card.border-success { border-color: var(--brand-500) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.12), var(--sh-1); }
+        /* Botões: cor única, planos, sem sombra, degradê nem movimento (vale para todo o sistema) */
+        .btn, .btn-primary-custom, .btn:hover, .btn:active, .btn-primary-custom:hover, .btn-primary-custom:active, .btn.shadow, .btn.shadow-sm, .btn.shadow-lg {
+            box-shadow: none !important; transform: none !important; background-image: none !important;
+        }
+        .btn-primary-custom { background: var(--brand-600); }
+        .btn-primary-custom:hover { background: var(--brand-700); }
+        .btn:focus-visible { box-shadow: none !important; outline: 3px solid rgba(16,185,129,.4); outline-offset: 2px; }
         @media (min-width: 769px) {
             .main-content { margin-left: var(--sidebar-width); padding: 2rem 2.25rem 3rem; }
         }

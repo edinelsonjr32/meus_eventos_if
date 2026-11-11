@@ -20,7 +20,7 @@ it('login, cadastro, redefinição e confirmação têm o botão de mostrar/ocul
 it('a tela de esqueci a senha segue o estilo das demais e está em português', function () {
     $this->get(route('password.request'))->assertOk()
         ->assertSee('Esqueceu a senha?')->assertSee('Enviar link de redefinição')->assertSee('Voltar ao login')
-        ->assertSee('login-card', false)->assertSee('bg-success bg-opacity-10', false)
+        ->assertSee('auth-card', false)->assertSee('bg-success bg-opacity-10', false)
         ->assertDontSee('Forgot your password')->assertDontSee('Email Password Reset Link');
 });
 

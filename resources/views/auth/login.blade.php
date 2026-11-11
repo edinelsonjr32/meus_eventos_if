@@ -44,7 +44,7 @@
             @endif
         </div>
 
-        <button type="submit" class="btn-primary-custom shadow-lg text-uppercase tracking-wide w-100">
+        <button type="submit" class="btn btn-brand w-100 py-2">
             Entrar
         </button>
 

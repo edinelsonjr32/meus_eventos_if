@@ -15,7 +15,7 @@
 
     <form method="POST" action="{{ route('verification.send') }}">
         @csrf
-        <button type="submit" class="btn-primary-custom shadow-lg text-uppercase tracking-wide w-100">Reenviar e-mail de confirmação</button>
+        <button type="submit" class="btn btn-brand w-100 py-2">Reenviar e-mail de confirmação</button>
     </form>
 
     <form method="POST" action="{{ route('logout') }}" class="text-center mt-4 pt-3 border-top">

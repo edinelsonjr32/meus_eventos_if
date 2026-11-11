@@ -48,7 +48,7 @@
             <x-campo-senha name="password_confirmation" label="Confirmar Senha" placeholder="Repita a senha" autocomplete="new-password" />
         </div>
 
-        <button type="submit" class="btn-primary-custom shadow-lg text-uppercase tracking-wide w-100">
+        <button type="submit" class="btn btn-brand w-100 py-2">
             Cadastrar-se
         </button>
 

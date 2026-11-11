@@ -28,7 +28,7 @@
             @enderror
         </div>
 
-        <button type="submit" class="btn-primary-custom shadow-lg text-uppercase tracking-wide w-100">
+        <button type="submit" class="btn btn-brand w-100 py-2">
             <i class="fa-regular fa-paper-plane me-1"></i> Enviar link de redefinição
         </button>
 

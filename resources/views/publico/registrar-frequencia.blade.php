@@ -23,7 +23,7 @@
             background: #059669; border: none; font-size: 1.1rem;
             transition: all 0.2s; border-radius: 12px;
         }
-        .btn-success-custom:hover { background: #047857; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(5, 150, 105, 0.2); }
+        .btn-success-custom:hover { background: #047857; }
         .btn-success-custom:disabled { background: #9ca3af; transform: none; cursor: wait; opacity: 0.8; }
     </style>
 </head>
