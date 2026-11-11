@@ -18,7 +18,7 @@ Schedule::call(fn () => Cache::put('agendador:ultimo-batimento', now()->toIso860
 
 // Hospedagem compartilhada: não há processo permanente para a fila. Com QUEUE_VIA_CRON=true, o próprio
 // agendador (um único cron por minuto) processa os jobs pendentes e encerra (e-mails, PDF dos Anais...).
-if (env('QUEUE_VIA_CRON', false) && config('queue.default') !== 'sync') {
+if (config('queue.via_cron') && config('queue.default') !== 'sync') {
     Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=600')
         ->name('fila-via-cron')->everyMinute()->withoutOverlapping(10);
 }

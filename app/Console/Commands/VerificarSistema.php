@@ -212,7 +212,7 @@ class VerificarSistema extends Command
     private function filaECron(): void
     {
         $conexao = config('queue.default');
-        $this->ok("Fila: {$conexao}" . (env('QUEUE_VIA_CRON') ? ' (processada pelo agendador a cada minuto)' : ''));
+        $this->ok("Fila: {$conexao}" . (config('queue.via_cron') ? ' (processada pelo agendador a cada minuto)' : ''));
 
         if ($conexao === 'sync') {
             $this->aviso('Fila "sync": e-mails e PDFs rodam dentro da requisição (lento). Prefira QUEUE_CONNECTION=database + QUEUE_VIA_CRON=true');

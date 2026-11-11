@@ -16,6 +16,12 @@ return [
     'default' => env('QUEUE_CONNECTION', 'database'),
 
     /*
+    | Hospedagem compartilhada (sem processo permanente): o agendador (cron a cada minuto) processa a fila.
+    | Fica na configuração porque env() só funciona dentro de config/ depois do `artisan optimize` (config:cache).
+    */
+    'via_cron' => (bool) env('QUEUE_VIA_CRON', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
