@@ -59,6 +59,11 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
+        // Evita o administrador tirar o próprio acesso sem querer
+        if (auth()->id() === $user->id && $request->input('role') !== 'admin') {
+            return back()->withInput()->with('error', 'Você não pode remover o seu próprio acesso de administrador.');
+        }
+
         $user->name = $request->name;
         $user->email = $request->email;
 

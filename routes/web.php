@@ -244,9 +244,9 @@ Route::middleware(['auth', 'verified'])->get('/recepcao', [\App\Http\Controllers
 */
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
-    // Lista/edita todos os usuários do sistema: somente superadmin (SUPERADMIN_EMAILS)
+    // Gestão de usuários: administradores reais (contas fictícias de teste ficam de fora)
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)
-        ->middleware('can:superadmin')
+        ->middleware('can:gerir-usuarios')
         ->names('users')
         ->except(['show']);
 

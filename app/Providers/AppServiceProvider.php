@@ -67,6 +67,18 @@ class AppServiceProvider extends ServiceProvider
             return $lista === [] || in_array(mb_strtolower($user->email), $lista, true);
         });
 
+        // Gestão de usuários: todo administrador real. Contas fictícias de teste (domínio em MAIL_BLOQUEAR_DOMINIOS) ficam de fora,
+        // para não enxergarem os usuários reais. (O "superadmin" acima continua valendo para a busca de pessoas de todo o sistema.)
+        \Illuminate\Support\Facades\Gate::define('gerir-usuarios', function (\App\Models\User $user) {
+            if ($user->role !== 'admin') {
+                return false;
+            }
+            $dominios = array_filter(array_map('trim', explode(',', mb_strtolower((string) config('mail.bloquear_dominios')))));
+            $dominioDaConta = mb_strtolower(substr(strrchr($user->email, '@') ?: '', 1));
+
+            return !in_array($dominioDaConta, $dominios, true);
+        });
+
         // Contas fictícias de teste (domínio em MAIL_BLOQUEAR_DOMINIOS) nunca recebem e-mail de verdade
         \Illuminate\Support\Facades\Event::listen(\Illuminate\Mail\Events\MessageSending::class, function ($evento) {
             $dominios = array_filter(array_map('trim', explode(',', mb_strtolower((string) config('mail.bloquear_dominios')))));

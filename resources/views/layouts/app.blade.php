@@ -461,7 +461,7 @@
                         </a>
                     @endif
 
-                    @can('superadmin')
+                    @can('gerir-usuarios')
                         <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
                             <i class="fa-solid fa-users nav-ico"></i> Usuários
                         </a>

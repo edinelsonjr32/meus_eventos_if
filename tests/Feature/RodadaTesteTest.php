@@ -190,7 +190,7 @@ it('só aceita o padrão de e-mails dos alunos (p01..p30) e não apaga usuário 
 
 // ---------------- Patch de segurança da rodada ----------------
 
-it('com SUPERADMIN_EMAILS, só o superadmin lista usuários e busca pessoas de todo o sistema', function () {
+it('com SUPERADMIN_EMAILS, só o superadmin busca pessoas de todo o sistema (conta de teste não lista usuários)', function () {
     config(['app.superadmin_emails' => 'geral@ifpa.edu.br']);
     $geral = mkUser('admin', 'geral@ifpa.edu.br');
     $teste = mkUser('admin', 'org1@teste.com');
@@ -239,4 +239,28 @@ it('e-mail para domínio de teste é cancelado; para outros domínios sai normal
     expect($enviados())->toBe(1);
     Mail::raw('x', fn ($m) => $m->to('p01@teste.com')->cc('alguem@gmail.com')->subject('s'));
     expect($enviados())->toBe(2);
+});
+
+it('todo administrador real vê e abre a gestão de usuários, mesmo com SUPERADMIN_EMAILS; conta de teste não', function () {
+    config(['app.superadmin_emails' => 'geral@ifpa.edu.br']);
+    $colega = mkUser('admin', 'colega@ifpa.edu.br');
+    $teste = mkUser('admin', 'org1@teste.com');
+    $comum = mkUser('user', 'comum@x.com');
+
+    $this->actingAs($colega)->get(route('admin.users.index'))->assertOk()->assertSee('Gestão de Usuários');
+    $this->actingAs($colega)->get(route('admin.dashboard'))->assertOk()->assertSee('Usuários')->assertSee(route('admin.users.index'), false);
+
+    $this->actingAs($teste)->get(route('admin.users.index'))->assertForbidden();
+    $this->actingAs($teste)->get(route('admin.dashboard'))->assertOk()->assertDontSee(route('admin.users.index'), false);
+    $this->actingAs($comum)->get(route('admin.users.index'))->assertRedirect();
+});
+
+it('o administrador não pode tirar o próprio acesso na edição de usuários', function () {
+    $admin = mkUser('admin', 'adm@ifpa.edu.br');
+    $this->actingAs($admin)->put(route('admin.users.update', $admin), ['name' => $admin->name, 'email' => $admin->email, 'role' => 'user'])->assertSessionHas('error');
+    expect($admin->fresh()->role)->toBe('admin');
+
+    $outro = mkUser('user', 'outro@ifpa.edu.br');
+    $this->put(route('admin.users.update', $outro), ['name' => 'Outro', 'email' => $outro->email, 'role' => 'admin'])->assertSessionHasNoErrors();
+    expect($outro->fresh()->role)->toBe('admin');
 });
