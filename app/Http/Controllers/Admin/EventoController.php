@@ -82,7 +82,12 @@ class EventoController extends Controller
             'raio_permitido' => 'nullable|integer|min:10',
         ]);
 
-        $slug = Str::slug($validated['titulo']) . '-' . date('Y');
+        // Título repetido no mesmo ano não pode dar erro 500 (slug é único, inclusive entre eventos excluídos): acrescenta -2, -3...
+        $base = Str::slug($validated['titulo']) . '-' . date('Y');
+        $slug = $base;
+        for ($i = 2; Evento::withTrashed()->where('slug', $slug)->exists(); $i++) {
+            $slug = "{$base}-{$i}";
+        }
 
         // 2. Criação do Registro
         $evento = Evento::create([

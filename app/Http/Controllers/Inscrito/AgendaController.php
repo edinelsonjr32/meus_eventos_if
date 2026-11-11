@@ -7,6 +7,7 @@ use App\Models\Atividade;
 use App\Models\Evento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class AgendaController extends Controller
 {
@@ -38,6 +39,21 @@ class AgendaController extends Controller
             return redirect()->route('profile.edit')->with('error', 'Complete seu cadastro primeiro.');
         }
 
+        // Duplo clique / dois toques seguidos: só a primeira requisição age; a segunda não desfaz nem duplica
+        $trava = Cache::lock("toggle-atividade:{$participante->id}:{$atividade->id}", 5);
+        if (!$trava->get()) {
+            return back();
+        }
+
+        try {
+            return $this->alternarInscricao($participante, $atividade);
+        } finally {
+            $trava->release();
+        }
+    }
+
+    private function alternarInscricao($participante, Atividade $atividade)
+    {
         // Verifica se já está inscrito (para sair)
         $jaInscrito = $participante->atividadesInscritas()->where('atividade_id', $atividade->id)->exists();
 
@@ -70,7 +86,12 @@ class AgendaController extends Controller
             }
 
             // Se passou em tudo, inscreve
-            $participante->atividadesInscritas()->attach($atividade->id);
+            try {
+                $participante->atividadesInscritas()->attach($atividade->id);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                // outra requisição já inscreveu (corrida entre abas/aparelhos): o resultado é o mesmo
+            }
+
             return back()->with('success', 'Inscrição confirmada na atividade!');
         }
     }

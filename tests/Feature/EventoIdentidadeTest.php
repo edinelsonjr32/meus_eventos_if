@@ -56,3 +56,20 @@ it('recusa arquivos que não são imagem (inclusive SVG) ou grandes demais', fun
     $this->post(route('admin.eventos.store'), dadosEvento(['banner' => UploadedFile::fake()->image('g.jpg')->size(6000)]))->assertSessionHasErrors('banner');
     $this->post(route('admin.eventos.store'), dadosEvento(['logo' => UploadedFile::fake()->create('doc.pdf', 10, 'application/pdf')]))->assertSessionHasErrors('logo');
 });
+
+it('criar evento com título repetido no mesmo ano gera outro endereço em vez de erro 500', function () {
+    $this->actingAs($this->admin);
+
+    foreach (range(1, 3) as $_) {
+        $this->post(route('admin.eventos.store'), dadosEvento(['titulo' => 'Evento Repetido']))->assertSessionHasNoErrors()->assertRedirect(route('admin.eventos.index'));
+    }
+
+    $slugs = Evento::where('titulo', 'Evento Repetido')->orderBy('id')->pluck('slug')->all();
+    $base = 'evento-repetido-' . date('Y');
+    expect($slugs)->toBe([$base, "{$base}-2", "{$base}-3"]);
+
+    // também considera eventos já excluídos (o slug continua ocupado no banco)
+    Evento::where('slug', "{$base}-3")->first()->delete();
+    $this->post(route('admin.eventos.store'), dadosEvento(['titulo' => 'Evento Repetido']))->assertSessionHasNoErrors();
+    expect(Evento::where('slug', "{$base}-4")->exists())->toBeTrue();
+});

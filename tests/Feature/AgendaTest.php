@@ -67,3 +67,25 @@ it('participar de atividade sem cadastro volta a Minha Conta mostrando o motivo'
 it('Minha Conta exibe avisos enviados por outras telas', function () {
     $this->actingAs(agendaUsuario('user'))->withSession(['warning' => 'Aviso de teste exibido'])->get(route('profile.edit'))->assertOk()->assertSee('Aviso de teste exibido');
 });
+
+// ---------- Regressão: erros 500 vistos na rodada de testes ----------
+it('duplo clique em uma atividade não duplica nem cancela a inscrição', function () {
+    $u = agendaUsuario('user', true);
+    $dono = agendaUsuario('admin');
+    $evento = Evento::create(['titulo' => 'Semana Clique', 'slug' => 's-' . uniqid(), 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDays(2), 'local' => 'X', 'criado_por' => $dono->id]);
+    $ativ = Atividade::create(['evento_id' => $evento->id, 'titulo' => 'Oficina', 'tipo' => 'oficina', 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDay()->addHours(2), 'carga_horaria' => 2, 'vagas' => 10, 'token_frequencia' => uniqid()]);
+
+    $this->actingAs($u)->post(route('inscrito.atividade.toggle', $ativ))->assertSessionHas('success');
+
+    // segunda requisição chega enquanto a primeira ainda "segura" a trava: é ignorada
+    $trava = \Illuminate\Support\Facades\Cache::lock("toggle-atividade:{$u->participante->id}:{$ativ->id}", 5);
+    expect($trava->get())->toBeTrue();
+    $this->post(route('inscrito.atividade.toggle', $ativ))->assertRedirect();
+    $trava->release();
+
+    expect($u->participante->atividadesInscritas()->count())->toBe(1);   // continua inscrito, uma vez só
+
+    // fora do duplo clique, tocar de novo cancela normalmente
+    $this->post(route('inscrito.atividade.toggle', $ativ))->assertSessionHas('info');
+    expect($u->participante->atividadesInscritas()->count())->toBe(0);
+});
