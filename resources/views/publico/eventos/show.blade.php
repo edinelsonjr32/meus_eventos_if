@@ -208,7 +208,7 @@
     <br>
 
     <div class="container" style="margin-top: -6rem;">
-        <div class="row g-5">
+        <div class="row gy-5 gx-lg-5">
 
             <div class="col-lg-7">
 

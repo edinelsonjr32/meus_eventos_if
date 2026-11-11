@@ -19,13 +19,13 @@
 
             {{-- Resumo ao vivo (sempre vindo do servidor) --}}
             <div class="row g-3 mb-4">
-                <div class="col-4"><div class="glass-card bg-white p-3 d-flex align-items-center gap-3">
+                <div class="col-12 col-sm-4"><div class="glass-card bg-white p-3 d-flex align-items-center gap-3">
                     <div class="rounded p-2" style="background:#dcfce7;color:#15803d;"><i class="fa-solid fa-circle-check fs-5"></i></div>
                     <div><div class="fs-4 fw-bold lh-1" x-text="stats.credenciados">{{ $totalCredenciados }}</div><small class="text-secondary">Check-in feito</small></div></div></div>
-                <div class="col-4"><div class="glass-card bg-white p-3 d-flex align-items-center gap-3">
+                <div class="col-12 col-sm-4"><div class="glass-card bg-white p-3 d-flex align-items-center gap-3">
                     <div class="rounded p-2" style="background:#fef3c7;color:#b45309;"><i class="fa-solid fa-hourglass-half fs-5"></i></div>
                     <div><div class="fs-4 fw-bold lh-1" x-text="stats.total - stats.credenciados">{{ $totalInscritos - $totalCredenciados }}</div><small class="text-secondary">Pendentes</small></div></div></div>
-                <div class="col-4"><div class="glass-card bg-white p-3">
+                <div class="col-12 col-sm-4"><div class="glass-card bg-white p-3">
                     <div class="d-flex justify-content-between align-items-baseline"><span class="fs-4 fw-bold lh-1"><span x-text="stats.total ? Math.round(stats.credenciados * 100 / stats.total) : 0">{{ $totalInscritos ? round($totalCredenciados * 100 / $totalInscritos) : 0 }}</span>%</span><small class="text-secondary"><span x-text="stats.credenciados">{{ $totalCredenciados }}</span> / <span x-text="stats.total">{{ $totalInscritos }}</span></small></div>
                     <div class="progress mt-2" style="height:6px;"><div class="progress-bar bg-success" :style="`width:${stats.total ? stats.credenciados * 100 / stats.total : 0}%`"></div></div>
                     <small class="text-secondary">Comparecimento</small></div></div>

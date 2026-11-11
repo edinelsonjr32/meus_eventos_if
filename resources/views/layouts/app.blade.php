@@ -195,6 +195,29 @@
         /* Utilitários Alpine */
         [x-cloak] { display: none !important; }
 
+        /* ===== Tabelas no celular: cada linha vira um cartão (rótulo + valor), sem rolagem lateral escondida ===== */
+        .aviso-rolagem { display: none; }
+        @media (max-width: 767.98px) {
+            .table-responsive > .table.tabela-cartoes { min-width: 0 !important; }
+            .table-responsive:has(> .table.tabela-cartoes) { overflow-x: visible; box-shadow: none; margin-left: 0; margin-right: 0; }
+            .tabela-cartoes, .tabela-cartoes tbody, .tabela-cartoes tfoot { display: block; width: 100%; }
+            .tabela-cartoes thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+            .tabela-cartoes tr { display: block; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: .35rem .85rem; margin-bottom: .75rem; box-shadow: 0 2px 8px -4px rgba(0,0,0,.08); }
+            .tabela-cartoes tr.table-active, .tabela-cartoes tr[class*="detalhe"] { background: #f8fafc; }
+            .tabela-cartoes td { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: .5rem 0 !important; border: 0 !important; border-bottom: 1px dashed #e5e7eb !important; text-align: right !important; white-space: normal !important; min-width: 0 !important; background: transparent !important; }
+            .tabela-cartoes td:last-child { border-bottom: 0 !important; }
+            .tabela-cartoes td::before { content: attr(data-label); flex: 0 0 38%; max-width: 38%; text-align: left; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #64748b; padding-top: .15rem; }
+            .tabela-cartoes td:not([data-label])::before, .tabela-cartoes td[data-label=""]::before { content: none; }
+            .tabela-cartoes td > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+            .tabela-cartoes td:not([data-label]), .tabela-cartoes td[data-label=""] { justify-content: flex-end; flex-wrap: wrap; }
+            .tabela-cartoes td[colspan] { display: block; text-align: left !important; }
+            .tabela-cartoes td .btn { white-space: normal; }
+            /* Tabelas que precisam continuar largas (ex.: ranking): rolagem com aviso visível */
+            .table-responsive { position: relative; }
+            .aviso-rolagem { display: flex; align-items: center; gap: .4rem; font-size: .75rem; font-weight: 600; color: #0f766e; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 999px; padding: .25rem .75rem; margin: 0 0 .5rem; width: fit-content; }
+            .aviso-rolagem.oculto { display: none; }
+        }
+
         /* Mobile Responsive */
         .sidebar-backdrop { display: none; }
         @media (max-width: 768px) {
@@ -343,6 +366,48 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Tabelas: guarda o rótulo da coluna em cada célula (usado pelo modo "cartão" no celular).
+        // Quem precisar manter a tabela larga usa a classe "table-no-stack": aparece um aviso de rolagem lateral.
+        (function () {
+            function preparar(raiz) {
+                raiz.querySelectorAll('.main-content table.table').forEach(function (t) {
+                    if (t.dataset.preparada === (t.rows.length + '')) return;
+                    t.dataset.preparada = t.rows.length + '';
+                    if (t.classList.contains('table-no-stack')) return;
+                    var cab = t.tHead && t.tHead.rows[0] ? Array.prototype.map.call(t.tHead.rows[0].cells, function (c) { return { txt: (c.innerText || '').trim(), n: c.colSpan || 1 }; }) : [];
+                    var rotulos = [];
+                    cab.forEach(function (c) { for (var i = 0; i < c.n; i++) rotulos.push(c.txt); });
+                    if (!rotulos.length) return;
+                    t.classList.add('tabela-cartoes');
+                    Array.prototype.forEach.call(t.tBodies, function (tb) {
+                        Array.prototype.forEach.call(tb.rows, function (tr) {
+                            var i = 0;
+                            Array.prototype.forEach.call(tr.cells, function (td) {
+                                if (td.colSpan > 1) { i += td.colSpan; return; }
+                                if (!td.hasAttribute('data-label')) td.setAttribute('data-label', rotulos[i] || '');
+                                i++;
+                            });
+                        });
+                    });
+                });
+            }
+            function avisos() {
+                if (window.innerWidth >= 768) return;
+                document.querySelectorAll('.main-content .table-responsive').forEach(function (w) {
+                    if (w.querySelector('.table.tabela-cartoes') || w.previousElementSibling && w.previousElementSibling.classList.contains('aviso-rolagem')) return;
+                    if (w.scrollWidth <= w.clientWidth + 4) return;
+                    var a = document.createElement('div');
+                    a.className = 'aviso-rolagem';
+                    a.innerHTML = '<i class="fa-solid fa-arrows-left-right"></i> Deslize a tabela para o lado para ver mais colunas';
+                    w.parentNode.insertBefore(a, w);
+                    w.addEventListener('scroll', function () { a.classList.add('oculto'); }, { once: true, passive: true });
+                });
+            }
+            function tudo() { preparar(document); avisos(); }
+            document.addEventListener('DOMContentLoaded', function () { tudo(); setTimeout(tudo, 600); });
+            var t; new MutationObserver(function () { clearTimeout(t); t = setTimeout(tudo, 150); }).observe(document.body, { childList: true, subtree: true });
+        })();
+
         // No celular o menu fecha ao tocar em um item
         document.querySelectorAll('#sidebar a.nav-link').forEach(a => a.addEventListener('click', () => document.getElementById('sidebar').classList.remove('active')));
     </script>

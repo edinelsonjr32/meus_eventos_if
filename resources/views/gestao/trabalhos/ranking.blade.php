@@ -92,7 +92,7 @@
 
                 <div class="glass-card bg-white p-0 overflow-hidden">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 small" id="r-tabela">
+                        <table class="table table-hover align-middle mb-0 small table-no-stack" id="r-tabela">
                             <thead class="bg-light">
                                 <tr>
                                     <th class="ps-3" style="width:36px"></th>

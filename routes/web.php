@@ -266,7 +266,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     // Gestão de Atividades (Aninhada em Eventos)
     // Ex: admin.eventos.atividades.store
     Route::get('eventos/{evento}/atividades/qrcodes/pdf', [AtividadeController::class, 'qrcodesPdf'])->name('eventos.atividades.qrcodes');
-    Route::resource('eventos.atividades', AtividadeController::class)->shallow();
+    // Só os métodos que existem; quem digitar o endereço de listagem/criação/detalhe volta ao painel do evento (antes dava erro 500)
+    Route::resource('eventos.atividades', AtividadeController::class)->shallow()->only(['store', 'edit', 'update', 'destroy']);
+    Route::get('eventos/{evento}/atividades', fn (\App\Models\Evento $evento) => redirect()->route('admin.eventos.show', $evento));
+    Route::get('eventos/{evento}/atividades/create', fn (\App\Models\Evento $evento) => redirect()->route('admin.eventos.show', $evento));
+    Route::get('atividades/{atividade}', fn (\App\Models\Atividade $atividade) => redirect()->route('admin.eventos.show', $atividade->evento_id));
 
     // --- Gestão de Participantes (Lista de Presença) ---
     Route::prefix('atividades/{atividade}')->name('atividades.')->group(function () {

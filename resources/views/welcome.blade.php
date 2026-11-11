@@ -143,11 +143,11 @@
             <p class="lead opacity-75 mb-5 mx-auto" style="max-width: 700px;">
                 Acompanhe a agenda oficial, realize inscrições e emita seus certificados de forma simples e digital.
             </p>
-            <div class="d-flex gap-3 justify-content-center">
-                <a href="#eventos" class="btn btn-light rounded-pill px-5 py-3 fw-bold text-success shadow-lg">
+            <div class="d-flex flex-wrap gap-3 justify-content-center">
+                <a href="#eventos" class="btn btn-light rounded-pill px-4 px-sm-5 py-3 fw-bold text-success shadow-lg">
                     Ver Programação
                 </a>
-                <a href="#validar" class="btn btn-outline-light rounded-pill px-5 py-3 fw-bold">
+                <a href="#validar" class="btn btn-outline-light rounded-pill px-4 px-sm-5 py-3 fw-bold">
                     Validar Certificado
                 </a>
             </div>

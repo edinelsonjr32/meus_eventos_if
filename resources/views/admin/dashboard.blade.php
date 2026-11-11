@@ -73,14 +73,14 @@
                     <div class="list-group list-group-flush">
                         @foreach($proximasAtividades as $ativ)
                         <div class="list-group-item p-3 border-start border-4 border-primary m-3 mb-0 rounded bg-light">
-                            <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
                                 <div class="text-center px-2">
                                     <span class="d-block fw-bold text-dark h5 m-0">{{ $ativ->data_inicio->format('H:i') }}</span>
                                     <span class="text-secondary small text-uppercase">{{ $ativ->data_inicio->format('d M') }}</span>
                                 </div>
                                 <div class="vr"></div>
-                                <div class="flex-grow-1">
-                                    <h6 class="fw-bold text-dark m-0">{{ $ativ->titulo }}</h6>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <h6 class="fw-bold text-dark m-0 texto-quebra">{{ $ativ->titulo }}</h6>
                                     <small class="text-secondary">
                                         {{ $ativ->evento->titulo }} • {{ ucfirst($ativ->tipo) }}
                                     </small>

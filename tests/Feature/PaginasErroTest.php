@@ -51,3 +51,19 @@ it('a 500 e a 503 não consultam a conta (funcionam com o sistema fora do ar)', 
         expect($html)->not->toContain('Minha área');
     }
 });
+
+it('endereços de listagem/criação/detalhe de atividade redirecionam ao painel do evento em vez de dar erro 500', function () {
+    $dono = mkUser('admin');
+    $evento = mkEvento($dono);
+    $atividade = \App\Models\Atividade::create(['evento_id' => $evento->id, 'titulo' => 'Oficina', 'tipo' => 'oficina', 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDay()->addHour(), 'carga_horaria' => 1, 'vagas' => 5, 'token_frequencia' => uniqid()]);
+
+    $this->actingAs($dono);
+    foreach ([route('admin.eventos.show', $evento) . '/atividades', route('admin.eventos.show', $evento) . '/atividades/create', url("/admin/atividades/{$atividade->id}")] as $url) {
+        $this->get($url)->assertRedirect(route('admin.eventos.show', $evento));
+    }
+});
+
+it('o layout prepara as tabelas para o modo cartão no celular e avisa quando a rolagem lateral é necessária', function () {
+    $this->actingAs(mkUser('admin'))->get(route('admin.dashboard'))->assertOk()
+        ->assertSee('tabela-cartoes', false)->assertSee('aviso-rolagem', false)->assertSee('data-label', false);
+});
