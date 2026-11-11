@@ -262,3 +262,19 @@ it('a limpeza usa o prazo configurado e roda semanalmente', function () {
 
     $this->artisan('schedule:list')->expectsOutputToContain('lgpd:limpar-rascunhos')->assertExitCode(0);
 });
+
+it('a política de privacidade usa o layout do site público e traz o conteúdo completo da LGPD', function () {
+    config(['privacidade.atualizada_em' => '2026-03-15', 'privacidade.encarregado' => 'Maria Encarregada']);
+
+    $this->get(route('privacidade'))->assertOk()
+        ->assertSee('<header class="pub-nav">', false)->assertSee('<footer class="pub-rodape">', false)   // menu e rodapé do site público
+        ->assertSee('Versão vigente desde 15/03/2026')->assertDontSee('Atualizada em')
+        ->assertSee('Maria Encarregada')->assertSee('Por que podemos tratar')->assertSee('Cookies e armazenamento no navegador')
+        ->assertSee('Como exercer, passo a passo')->assertSee('Autoridade Nacional de Proteção de Dados')->assertSee('Estudantes menores de idade')
+        ->assertSee('Seus direitos')->assertSee('Nesta página');
+});
+
+it('a data da política é a da versão, não a de hoje', function () {
+    config(['privacidade.atualizada_em' => '2025-01-02']);
+    $this->get(route('privacidade'))->assertSee('02/01/2025');
+});
