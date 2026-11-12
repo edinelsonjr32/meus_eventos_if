@@ -77,7 +77,7 @@ class PropostaGestaoController extends Controller
 
         $proposta->load(['proponente', 'participante', 'apoios.participante', 'atividade', 'chamada']);
 
-        return view('admin.propostas.show', ['evento' => $evento, 'proposta' => $proposta, 'tipos' => ChamadaProposta::TIPOS]);
+        return view('admin.propostas.show', ['evento' => $evento, 'proposta' => $proposta, 'tipos' => ChamadaProposta::TIPOS, 'locais' => $evento->locais()->where('ativo', true)->get()]);
     }
 
     public function decisao(DecidirPropostaRequest $request, Evento $evento, Proposta $proposta)

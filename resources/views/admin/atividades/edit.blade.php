@@ -35,7 +35,12 @@
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-secondary" for="local">Local da atividade</label>
-                        <input id="local" name="local" class="form-control" maxlength="255" value="{{ old('local', $atividade->local) }}">
+                        <select id="local" name="local_id" class="form-select">
+                            <option value="">— sem local definido —</option>
+                            @foreach($locais as $lc)<option value="{{ $lc->id }}" @selected((int) old('local_id', $atividade->local_id) === $lc->id)>{{ $lc->rotulo() }}{{ $lc->capacidade ? ' · ' . $lc->capacidade . ' pessoas' : '' }}{{ $lc->ativo ? '' : ' (inativo)' }}</option>@endforeach
+                        </select>
+                        <div class="form-text small"><a href="{{ route('admin.locais.index', $evento->id) }}" target="_blank">Gerenciar locais</a></div>
+                        <div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="ignorar_conflito" value="1" id="ic"><label class="form-check-label small" for="ic">Ignorar conflito de horário ou capacidade do local</label></div>
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-secondary" for="ch">Carga horária (horas) *</label>

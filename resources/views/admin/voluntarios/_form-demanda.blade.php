@@ -9,7 +9,7 @@
         </select></div>
     <div class="col-md-3"><label class="small fw-bold">Início</label><input type="datetime-local" name="data_inicio" class="form-control form-control-sm" value="{{ old('data_inicio', $d?->data_inicio?->format('Y-m-d\TH:i')) }}"></div>
     <div class="col-md-3"><label class="small fw-bold">Término</label><input type="datetime-local" name="data_fim" class="form-control form-control-sm" value="{{ old('data_fim', $d?->data_fim?->format('Y-m-d\TH:i')) }}"></div>
-    <div class="col-md-3"><label class="small fw-bold">Local</label><input type="text" name="local" class="form-control form-control-sm" maxlength="255" value="{{ old('local', $d?->local) }}"></div>
+    <div class="col-md-3"><label class="small fw-bold">Local</label><select name="local_id" class="form-select form-select-sm"><option value="">— nenhum —</option>@foreach($locais as $lc)<option value="{{ $lc->id }}" @selected((int) old('local_id', $d?->local_id) === $lc->id)>{{ $lc->rotulo() }}</option>@endforeach</select></div>
     <div class="col-md-1"><label class="small fw-bold">Vagas</label><input type="number" name="vagas" min="1" class="form-control form-control-sm" value="{{ old('vagas', $d?->vagas) }}"></div>
     <div class="col-md-2"><label class="small fw-bold">Horas *</label><input type="number" step="0.5" min="0.5" name="carga_horaria" class="form-control form-control-sm" value="{{ old('carga_horaria', $d?->carga_horaria ?? 4) }}" required></div>
     <div class="col-md-6"><label class="small fw-bold">Servidor responsável (quem procurar)</label><input type="text" name="responsavel_nome" class="form-control form-control-sm" maxlength="255" placeholder="Nome do servidor" value="{{ old('responsavel_nome', $d?->responsavel_nome) }}"></div>

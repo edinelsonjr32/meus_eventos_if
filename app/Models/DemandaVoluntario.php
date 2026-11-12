@@ -11,9 +11,23 @@ class DemandaVoluntario extends Model
 {
     protected $table = 'demandas_voluntarios';
 
-    protected $fillable = ['evento_id', 'atividade_id', 'titulo', 'descricao', 'data_inicio', 'data_fim', 'local', 'vagas', 'carga_horaria', 'responsavel_nome', 'responsavel_contato'];
+    protected $fillable = ['evento_id', 'atividade_id', 'titulo', 'descricao', 'data_inicio', 'data_fim', 'local', 'local_id', 'vagas', 'carga_horaria', 'responsavel_nome', 'responsavel_contato'];
 
     protected $casts = ['data_inicio' => 'datetime', 'data_fim' => 'datetime', 'vagas' => 'integer', 'carga_horaria' => 'float'];
+
+    protected static function booted(): void
+    {
+        static::saving(function (DemandaVoluntario $d) {
+            if ($d->local_id && ($d->isDirty('local_id') || blank($d->local))) {
+                $d->local = Local::find($d->local_id)?->rotulo() ?? $d->local;
+            }
+        });
+    }
+
+    public function localCadastrado(): BelongsTo
+    {
+        return $this->belongsTo(Local::class, 'local_id');
+    }
 
     public function evento(): BelongsTo
     {

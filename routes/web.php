@@ -297,6 +297,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Gestão de Atividades (Aninhada em Eventos)
     // Ex: admin.eventos.atividades.store
+    Route::get('eventos/{evento}/locais', [\App\Http\Controllers\Admin\LocalController::class, 'index'])->name('locais.index');
+    Route::post('eventos/{evento}/locais', [\App\Http\Controllers\Admin\LocalController::class, 'store'])->name('locais.store');
+    Route::put('eventos/{evento}/locais/{local}', [\App\Http\Controllers\Admin\LocalController::class, 'update'])->name('locais.update');
+    Route::delete('eventos/{evento}/locais/{local}', [\App\Http\Controllers\Admin\LocalController::class, 'destroy'])->name('locais.destroy');
     Route::get('eventos/{evento}/atividades/qrcodes/pdf', [AtividadeController::class, 'qrcodesPdf'])->name('eventos.atividades.qrcodes');
     // Só os métodos que existem; quem digitar o endereço de listagem/criação/detalhe volta ao painel do evento (antes dava erro 500)
     Route::resource('eventos.atividades', AtividadeController::class)->shallow()->only(['store', 'edit', 'update', 'destroy']);

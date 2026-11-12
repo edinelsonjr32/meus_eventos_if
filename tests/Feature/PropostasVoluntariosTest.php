@@ -7,6 +7,7 @@ use App\Models\ChamadaVoluntario;
 use App\Models\DemandaVoluntario;
 use App\Models\Equipe;
 use App\Models\Inscricao;
+use App\Models\Local;
 use App\Models\Participante;
 use App\Models\Proposta;
 use App\Models\PropostaApoio;
@@ -19,6 +20,8 @@ beforeEach(function () {
     Mail::fake();
     $this->admin = mkUser('admin');
     $this->evento = mkEvento($this->admin);
+    $this->lab = Local::create(['evento_id' => $this->evento->id, 'nome' => 'Lab 1', 'bloco' => 'Bloco A', 'tipo' => 'laboratorio', 'capacidade' => 30]);
+    $this->sala = Local::create(['evento_id' => $this->evento->id, 'nome' => 'Sala 2', 'tipo' => 'sala', 'capacidade' => 40]);
     $this->autor = mkUser('user');
     Participante::create(['user_id' => $this->autor->id, 'nome_completo' => 'Prof. Autor', 'cpf' => '111.444.777-35', 'email' => $this->autor->email, 'tipo_vinculo' => 'servidor']);
     $this->chamada = ChamadaProposta::create(['evento_id' => $this->evento->id, 'titulo' => 'Minicursos', 'tipos_aceitos' => ['minicurso', 'oficina'], 'ativa' => true, 'max_por_usuario' => 2, 'criado_por' => $this->admin->id]);
@@ -27,7 +30,7 @@ beforeEach(function () {
 
 function aprovacao(array $extra = []): array
 {
-    return $extra + ['data_inicio' => now()->addDays(1)->setTime(9, 0), 'data_fim' => now()->addDays(1)->setTime(13, 0), 'local' => 'Bloco A', 'espaco' => 'Lab 1', 'vagas' => 25, 'carga_horaria' => 4, 'equipamentos' => 'Projetor'];
+    return $extra + ['data_inicio' => now()->addDays(1)->setTime(9, 0), 'data_fim' => now()->addDays(1)->setTime(13, 0), 'local_id' => test()->lab->id, 'vagas' => 25, 'carga_horaria' => 4, 'equipamentos' => 'Projetor'];
 }
 
 it('exige usuário autenticado e participante com CPF para propor', function () {
@@ -66,18 +69,22 @@ it('aprovar vincula a programação com local, espaço, vagas e equipamentos, e 
 
     $p->refresh();
     $a = Atividade::find($p->atividade_id);
-    expect($p->status)->toBe('aprovada')->and($a->espaco)->toBe('Lab 1')->and($a->vagas)->toBe(25)->and($a->equipamentos)->toBe('Projetor')->and($a->tipo)->toBe('minicurso');
+    expect($p->status)->toBe('aprovada')->and($a->local_id)->toBe($this->lab->id)->and($a->local)->toBe('Lab 1 (Bloco A)')->and($a->vagas)->toBe(25)->and($a->equipamentos)->toBe('Projetor')->and($a->tipo)->toBe('minicurso');
     Mail::assertQueued(CandidaturaDecididaMail::class);
 });
 
 it('bloqueia conflito de espaço/horário, a menos que o admin ignore', function () {
+    $this->chamada->update(['max_por_usuario' => 5]);
     $svc = app(PropostaService::class);
     $p1 = $svc->enviar($this->autor, $this->chamada, $this->dados);
     $p2 = $svc->enviar($this->autor, $this->chamada, ['titulo' => 'Docker'] + $this->dados);
     $svc->decidir($p1, $this->admin, 'aprovada', aprovacao());
 
-    expect(fn () => $svc->decidir($p2, $this->admin, 'aprovada', aprovacao(['local' => 'Bloco B'])))->toThrow(DomainException::class, 'Conflito');
-    expect($svc->decidir($p2, $this->admin, 'aprovada', aprovacao(['local' => 'Bloco B', 'ignorar_conflito' => true]))->status)->toBe('aprovada');
+    expect(fn () => $svc->decidir($p2, $this->admin, 'aprovada', aprovacao()))->toThrow(DomainException::class, 'Conflito');
+    expect($svc->decidir($p2, $this->admin, 'aprovada', aprovacao(['local_id' => $this->sala->id]))->status)->toBe('aprovada');
+    $p3 = $svc->enviar($this->autor, $this->chamada, ['titulo' => 'K8s'] + $this->dados);
+    expect(fn () => $svc->decidir($p3, $this->admin, 'aprovada', aprovacao(['local_id' => $this->sala->id])))->toThrow(DomainException::class, 'Conflito');
+    expect($svc->decidir($p3, $this->admin, 'aprovada', aprovacao(['local_id' => $this->sala->id, 'ignorar_conflito' => true]))->status)->toBe('aprovada');
 });
 
 it('ajustes e reprovação exigem mensagem; ajustes permitem editar e reenviar', function () {
@@ -208,9 +215,9 @@ it('valida a decisão: campos da aprovação, janela do evento, carga horária e
     $this->actingAs($this->admin);
     $decide = fn (array $d) => $this->post(route('admin.propostas.decisao', [$this->evento, $p]), $d);
     $dia = $this->evento->data_inicio->copy()->addDay();
-    $ok = ['decisao' => 'aprovada', 'data_inicio' => $dia->copy()->setTime(9, 0)->format('Y-m-d\TH:i'), 'data_fim' => $dia->copy()->setTime(13, 0)->format('Y-m-d\TH:i'), 'local' => 'Bloco A', 'vagas' => 20, 'carga_horaria' => 4];
+    $ok = ['decisao' => 'aprovada', 'data_inicio' => $dia->copy()->setTime(9, 0)->format('Y-m-d\TH:i'), 'data_fim' => $dia->copy()->setTime(13, 0)->format('Y-m-d\TH:i'), 'local_id' => $this->lab->id, 'vagas' => 20, 'carga_horaria' => 4];
 
-    $decide(['decisao' => 'aprovada'])->assertSessionHasErrors(['data_inicio', 'data_fim', 'local', 'vagas', 'carga_horaria']);
+    $decide(['decisao' => 'aprovada'])->assertSessionHasErrors(['data_inicio', 'data_fim', 'local_id', 'vagas', 'carga_horaria']);
     $decide(['decisao' => 'ajustes'])->assertSessionHasErrors('parecer');
     $decide(['decisao' => 'reprovada', 'parecer' => ''])->assertSessionHasErrors('parecer');
     $decide(array_merge($ok, ['data_fim' => $ok['data_inicio']]))->assertSessionHasErrors('data_fim');

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\CandidaturaDecididaMail;
 use App\Models\Atividade;
+use App\Models\Local;
 use App\Models\ChamadaProposta;
 use App\Models\Equipe;
 use App\Models\Evento;
@@ -137,9 +138,9 @@ class PropostaService
     /** Cria (ou atualiza) a atividade da programação a partir da proposta aprovada. */
     private function vincularAtividade(Proposta $proposta, array $d): Atividade
     {
-        foreach (['data_inicio', 'data_fim', 'local', 'vagas', 'carga_horaria'] as $obrigatorio) {
+        foreach (['data_inicio', 'data_fim', 'local_id', 'vagas', 'carga_horaria'] as $obrigatorio) {
             if (blank($d[$obrigatorio] ?? null)) {
-                throw new \DomainException('Informe data/hora de início e fim, local, capacidade máxima e carga horária para aprovar.');
+                throw new \DomainException('Informe data/hora de início e fim, o local, a capacidade máxima e carga horária para aprovar.');
             }
         }
 
@@ -149,14 +150,20 @@ class PropostaService
             throw new \DomainException('O horário de término deve ser depois do início.');
         }
 
+        $local = Local::where('evento_id', $proposta->evento_id)->find($d['local_id']);
+        if (!$local) {
+            throw new \DomainException('Escolha um local cadastrado para este evento.');
+        }
+
         if (empty($d['ignorar_conflito'])) {
-            $this->verificarConflito($proposta, $inicio, $fim, $d);
+            app(LocalService::class)->garantirLivre($proposta->evento_id, $local->id, $inicio, $fim, $proposta->atividade_id);
+            app(LocalService::class)->garantirCapacidade($local->id, (int) $d['vagas']);
         }
 
         $proponente = $proposta->participante?->nome_completo ?: $proposta->proponente->name;
         $campos = [
             'titulo' => $proposta->titulo, 'descricao' => $proposta->resumo, 'tipo' => $proposta->tipo, 'responsavel' => $proponente,
-            'local' => $d['local'], 'espaco' => $d['espaco'] ?? null, 'equipamentos' => $d['equipamentos'] ?? null, 'observacoes_organizacao' => $d['observacoes_organizacao'] ?? null,
+            'local_id' => $local->id, 'local' => $local->rotulo(), 'espaco' => null, 'equipamentos' => $d['equipamentos'] ?? null, 'observacoes_organizacao' => $d['observacoes_organizacao'] ?? null,
             'carga_horaria' => (int) $d['carga_horaria'], 'vagas' => (int) $d['vagas'], 'data_inicio' => $inicio, 'data_fim' => $fim, 'proposta_id' => $proposta->id,
         ];
 
@@ -176,31 +183,6 @@ class PropostaService
         } while (Atividade::where('token_frequencia', $token)->exists());
 
         return Atividade::create($campos + ['evento_id' => $proposta->evento_id, 'token_frequencia' => $token]);
-    }
-
-    /** Duas atividades não podem usar o mesmo espaço (ou o mesmo local, se não houver espaço específico) ao mesmo tempo. */
-    private function verificarConflito(Proposta $proposta, $inicio, $fim, array $d): void
-    {
-        $espaco = trim((string) ($d['espaco'] ?? ''));
-        $local = trim((string) ($d['local'] ?? ''));
-
-        $conflito = Atividade::where('evento_id', $proposta->evento_id)
-            ->when($proposta->atividade_id, fn ($q) => $q->where('id', '!=', $proposta->atividade_id))
-            ->where('data_inicio', '<', $fim)->where('data_fim', '>', $inicio)
-            ->where(function ($q) use ($espaco, $local) {
-                if ($espaco !== '') {
-                    $q->whereRaw('LOWER(espaco) = ?', [mb_strtolower($espaco)]);
-                } elseif ($local !== '') {
-                    $q->whereRaw('LOWER(local) = ?', [mb_strtolower($local)]);
-                } else {
-                    $q->whereRaw('1 = 0');
-                }
-            })->first();
-
-        if ($conflito) {
-            $onde = $espaco !== '' ? "o espaço \"{$espaco}\"" : "o local \"{$local}\"";
-            throw new \DomainException("Conflito de agenda: {$onde} já está reservado para \"{$conflito->titulo}\" ({$conflito->data_inicio->format('d/m H:i')} a {$conflito->data_fim->format('H:i')}). Mude o horário ou o espaço, ou marque para aprovar mesmo assim.");
-        }
     }
 
     /** Se a proposta deixa de ser aprovada, a atividade criada some da programação (só se ninguém se inscreveu nem registrou presença). */

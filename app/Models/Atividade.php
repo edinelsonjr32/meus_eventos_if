@@ -9,6 +9,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Atividade extends Model
 {
+    protected static function booted(): void
+    {
+        // O texto "local" (usado em telas, QR codes e certificados) acompanha sempre o local cadastrado
+        static::saving(function (Atividade $a) {
+            if ($a->local_id && ($a->isDirty('local_id') || blank($a->local))) {
+                $a->local = Local::find($a->local_id)?->rotulo() ?? $a->local;
+            }
+        });
+    }
+
+    public function localCadastrado(): BelongsTo
+    {
+        return $this->belongsTo(Local::class, 'local_id');
+    }
+
     // CORREÇÃO: Adicionados 'data_fim' e 'vagas' que estavam faltando
     protected $fillable = [
         'evento_id',
@@ -17,6 +32,7 @@ class Atividade extends Model
         'tipo',
         'responsavel',
         'local',
+        'local_id',
         'espaco',
         'equipamentos',
         'observacoes_organizacao',

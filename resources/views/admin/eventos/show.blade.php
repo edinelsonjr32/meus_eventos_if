@@ -24,6 +24,10 @@
                 <i class="fa-solid fa-inbox me-1"></i> Trabalhos
             </a>
 
+            <a href="{{ route('admin.locais.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
+                <i class="fa-solid fa-map-location-dot me-1"></i> Locais e Mapa
+            </a>
+
             <a href="{{ route('admin.propostas.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
                 <i class="fa-solid fa-chalkboard-user me-1"></i> Minicursos
             </a>
@@ -123,7 +127,12 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-secondary">LOCAL DA ATIVIDADE</label>
-                        <input type="text" name="local" class="form-control" placeholder="Ex: Auditório, Sala 3" maxlength="255">
+                        <select name="local_id" class="form-select">
+                            <option value="">— sem local definido —</option>
+                            @foreach($evento->locais()->where('ativo', true)->get() as $lc)<option value="{{ $lc->id }}">{{ $lc->rotulo() }}{{ $lc->capacidade ? ' · ' . $lc->capacidade . ' pessoas' : '' }}</option>@endforeach
+                        </select>
+                        <div class="form-text small">Não encontrou? <a href="{{ route('admin.locais.index', $evento->id) }}">Cadastre em Locais e Mapa</a>.</div>
+                        <div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="ignorar_conflito" value="1" id="ic-n"><label class="form-check-label small" for="ic-n">Ignorar conflito de horário ou capacidade</label></div>
                     </div>
 
                     <div class="mb-3">

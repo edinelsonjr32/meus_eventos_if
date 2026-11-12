@@ -113,14 +113,18 @@
                         <div class="row g-2">
                             <div class="col-6"><label class="small">Início *</label><input type="datetime-local" name="data_inicio" class="form-control form-control-sm" value="{{ $v('data_inicio', $a?->data_inicio?->format('Y-m-d\TH:i')) }}"></div>
                             <div class="col-6"><label class="small">Término *</label><input type="datetime-local" name="data_fim" class="form-control form-control-sm" value="{{ $v('data_fim', $a?->data_fim?->format('Y-m-d\TH:i')) }}"></div>
-                            <div class="col-12"><label class="small">Local *</label><input type="text" name="local" class="form-control form-control-sm" maxlength="255" placeholder="Ex.: Bloco B, sala 3" value="{{ $v('local', $a?->local) }}"></div>
-                            <div class="col-12"><label class="small">Espaço específico (laboratório)</label><input type="text" name="espaco" class="form-control form-control-sm" maxlength="255" placeholder="Ex.: Laboratório de Informática 2" value="{{ $v('espaco', $a?->espaco ?? $proposta->espaco_solicitado) }}"><div class="form-text">Dois eventos no mesmo espaço e horário são barrados.</div></div>
+                            <div class="col-12"><label class="small">Local *</label>
+                                <select name="local_id" class="form-select form-select-sm">
+                                    <option value="">Escolha o local…</option>
+                                    @foreach($locais as $lc)<option value="{{ $lc->id }}" @selected((int) $v('local_id', $a?->local_id) === $lc->id)>{{ $lc->rotulo() }}{{ $lc->capacidade ? ' · ' . $lc->capacidade . ' pessoas' : '' }}</option>@endforeach
+                                </select>
+                                <div class="form-text">@if($proposta->requer_laboratorio && $proposta->espaco_solicitado)Pedido do proponente: <strong>{{ $proposta->espaco_solicitado }}</strong>. @endif Dois eventos no mesmo local e horário são barrados. <a href="{{ route('admin.locais.index', $evento->id) }}" target="_blank">Gerenciar locais</a></div></div>
                             <div class="col-6"><label class="small">Capacidade máxima *</label><input type="number" name="vagas" min="1" class="form-control form-control-sm" value="{{ $v('vagas', $a?->vagas ?? $proposta->vagas_sugeridas) }}"></div>
                             <div class="col-6"><label class="small">Carga horária (h) *</label><input type="number" name="carga_horaria" min="1" class="form-control form-control-sm" value="{{ $v('carga_horaria', $a?->carga_horaria ?? $proposta->carga_horaria_prevista) }}"></div>
                             <div class="col-12"><label class="small">Equipamentos que serão disponibilizados</label><textarea name="equipamentos" rows="2" class="form-control form-control-sm">{{ $v('equipamentos', $a?->equipamentos ?? $proposta->equipamentos_solicitados) }}</textarea></div>
                             <div class="col-12"><label class="small">Observações da organização (internas)</label><textarea name="observacoes_organizacao" rows="2" class="form-control form-control-sm">{{ $v('observacoes_organizacao', $a?->observacoes_organizacao) }}</textarea></div>
                         </div>
-                        <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="ignorar_conflito" value="1" id="ic"><label class="form-check-label small" for="ic">Aprovar mesmo com conflito de espaço/horário</label></div>
+                        <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="ignorar_conflito" value="1" id="ic"><label class="form-check-label small" for="ic">Aprovar mesmo com conflito de local/horário ou capacidade</label></div>
                     </div>
 
                     <label class="small fw-bold text-secondary mt-3" x-text="decisao === 'aprovada' ? 'Mensagem ao proponente (opcional)' : 'Mensagem ao proponente (obrigatória)'"></label>

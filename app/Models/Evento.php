@@ -206,6 +206,11 @@ class Evento extends Model
     }
 
     // Adicione este método no Model Evento
+    public function locais()
+    {
+        return $this->hasMany(Local::class)->orderBy('nome');
+    }
+
     public function chamadasPropostas()
     {
         return $this->hasMany(ChamadaProposta::class);

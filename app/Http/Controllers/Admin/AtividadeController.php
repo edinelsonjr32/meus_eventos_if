@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Rules\Cpf;
 use App\Http\Controllers\Controller;
 use App\Models\Atividade;
+use App\Models\Local;
+use App\Services\LocalService;
 use App\Models\Evento;
 use App\Models\Frequencia;
 use App\Models\Inscricao;
@@ -33,11 +35,12 @@ class AtividadeController extends Controller
             'titulo' => 'required|string|max:255',
             'tipo' => 'required|string',
             'responsavel' => 'nullable|string|max:255',
-            'local' => 'nullable|string|max:255',
+            'local_id' => ['nullable', 'integer', Rule::exists('locais', 'id')->where('evento_id', $evento->id)->where('ativo', true)],
+            'ignorar_conflito' => 'nullable|boolean',
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
             'vagas' => 'nullable|integer|min:0',
-        ]);
+        ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
 
         // CORREÇÃO 1: Cast para (int) para evitar TypeError no Carbon
         $horas = (int) $validated['carga_horaria'];
@@ -46,11 +49,16 @@ class AtividadeController extends Controller
         $inicio = Carbon::parse($validated['data_inicio']);
         $fim = $inicio->copy()->addHours($horas);
 
+        if ($erro = $this->conflitoDeLocal($evento->id, $validated['local_id'] ?? null, $inicio, $fim, $validated['vagas'] ?? null, $request->boolean('ignorar_conflito'))) {
+            return back()->withInput()->withErrors(['local_id' => $erro]);
+        }
+
         $evento->atividades()->create([
             'titulo' => $validated['titulo'],
             'tipo' => $validated['tipo'],
             'responsavel' => $validated['responsavel'] ?? null,
-            'local' => $validated['local'] ?? null,
+            'local_id' => $validated['local_id'] ?? null,
+            'local' => null,
             'data_inicio' => $validated['data_inicio'],
             'data_fim' => $fim, // Agora o Model aceitará este campo
             'carga_horaria' => $horas,
@@ -59,6 +67,22 @@ class AtividadeController extends Controller
         ]);
 
         return back()->with('success', 'Atividade adicionada com sucesso à programação!');
+    }
+
+    /** Mensagem de erro se o local já está ocupado no horário ou não comporta as vagas (null = tudo certo ou conflito ignorado). */
+    private function conflitoDeLocal(int $eventoId, $localId, Carbon $inicio, Carbon $fim, $vagas, bool $ignorar, ?int $atividadeId = null): ?string
+    {
+        if ($ignorar || !$localId) {
+            return null;
+        }
+        try {
+            app(LocalService::class)->garantirLivre($eventoId, (int) $localId, $inicio, $fim, $atividadeId);
+            app(LocalService::class)->garantirCapacidade((int) $localId, $vagas ? (int) $vagas : null);
+        } catch (\DomainException $e) {
+            return $e->getMessage();
+        }
+
+        return null;
     }
 
     public const TIPOS = ['palestra' => 'Palestra', 'minicurso' => 'Minicurso', 'oficina' => 'Oficina', 'mesa_redonda' => 'Mesa Redonda'];
@@ -71,6 +95,7 @@ class AtividadeController extends Controller
             'atividade' => $atividade,
             'evento' => $atividade->evento,
             'tipos' => self::TIPOS,
+            'locais' => $atividade->evento->locais()->where(fn ($q) => $q->where('ativo', true)->orWhere('id', $atividade->local_id))->get(),
             'inscritos' => $atividade->inscritos()->count(),
             'equipe' => $atividade->evento->equipe()->with('participante')->get()->pluck('participante.nome_completo')->filter()->unique()->sort()->values(),
         ]);
@@ -85,11 +110,12 @@ class AtividadeController extends Controller
             'titulo' => 'required|string|max:255',
             'tipo' => ['required', Rule::in(array_keys(self::TIPOS))],
             'responsavel' => 'nullable|string|max:255',
-            'local' => 'nullable|string|max:255',
+            'local_id' => ['nullable', 'integer', Rule::exists('locais', 'id')->where('evento_id', $atividade->evento_id)->where(fn ($q) => $q->where('ativo', true)->orWhere('id', $atividade->local_id))],
+            'ignorar_conflito' => 'nullable|boolean',
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
             'vagas' => 'nullable|integer|min:0',
-        ]);
+        ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
 
         $inscritos = $atividade->inscritos()->count();
         if (!empty($dados['vagas']) && $dados['vagas'] < $inscritos) {
@@ -97,11 +123,17 @@ class AtividadeController extends Controller
         }
 
         $inicio = Carbon::parse($dados['data_inicio']);
+        $fimNovo = $inicio->copy()->addHours((int) $dados['carga_horaria']);
+        if ($erro = $this->conflitoDeLocal($atividade->evento_id, $dados['local_id'] ?? null, $inicio, $fimNovo, $dados['vagas'] ?? null, $request->boolean('ignorar_conflito'), $atividade->id)) {
+            return back()->withInput()->withErrors(['local_id' => $erro]);
+        }
+
         $atividade->update([
             'titulo' => $dados['titulo'],
             'tipo' => $dados['tipo'],
             'responsavel' => $dados['responsavel'] ?? null,
-            'local' => $dados['local'] ?? null,
+            'local_id' => $dados['local_id'] ?? null,
+            'local' => null,
             'data_inicio' => $inicio,
             'data_fim' => $inicio->copy()->addHours((int) $dados['carga_horaria']),
             'carga_horaria' => (int) $dados['carga_horaria'],

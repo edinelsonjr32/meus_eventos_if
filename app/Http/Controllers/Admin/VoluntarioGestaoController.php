@@ -36,6 +36,7 @@ class VoluntarioGestaoController extends Controller
             'voluntarios' => $voluntarios,
             'demandas' => $evento->demandasVoluntarios()->withCount('voluntarios')->with('voluntarios.usuario')->orderBy('data_inicio')->get(),
             'aprovados' => Voluntario::with('usuario')->where('evento_id', $evento->id)->where('status', 'aprovado')->get()->sortBy(fn ($v) => $v->usuario->name)->values(),
+            'locais' => $evento->locais()->where('ativo', true)->get(),
             'atividades' => $evento->atividades()->orderBy('data_inicio')->get(),
             'contagem' => Voluntario::where('evento_id', $evento->id)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'status' => $status, 'certificados' => $certificados,
@@ -190,12 +191,17 @@ class VoluntarioGestaoController extends Controller
 
     private function validarDemanda(Request $request, Evento $evento): array
     {
-        return $request->validate([
+        $dados = $request->validate([
             'titulo' => 'required|string|max:255', 'descricao' => 'nullable|string|max:3000',
             'atividade_id' => ['nullable', Rule::exists('atividades', 'id')->where('evento_id', $evento->id)],
             'data_inicio' => 'nullable|date', 'data_fim' => 'nullable|date|after:data_inicio',
-            'local' => 'nullable|string|max:255', 'vagas' => 'nullable|integer|min:1|max:500', 'carga_horaria' => 'required|numeric|min:0.5|max:200',
+            'local_id' => ['nullable', 'integer', Rule::exists('locais', 'id')->where('evento_id', $evento->id)], 'vagas' => 'nullable|integer|min:1|max:500', 'carga_horaria' => 'required|numeric|min:0.5|max:200',
             'responsavel_nome' => 'nullable|string|max:255', 'responsavel_contato' => 'nullable|string|max:255',
         ], ['titulo.required' => 'Informe o nome da atividade.', 'data_fim.after' => 'O término deve ser depois do início.', 'carga_horaria.required' => 'Informe a carga horária.']);
+
+        // o texto do local acompanha o cadastro (preenchido pelo modelo quando há local_id)
+        $dados['local'] = null;
+
+        return $dados;
     }
 }

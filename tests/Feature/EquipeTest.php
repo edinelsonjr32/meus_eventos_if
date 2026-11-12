@@ -87,7 +87,7 @@ it('edita a atividade: carga horária, fim recalculado, vagas não menores que o
 
     $this->actingAs($this->dono)->get(route('admin.atividades.edit', $a->id))->assertOk()->assertSee('Oficina');
 
-    $this->put(route('admin.atividades.update', $a->id), ['titulo' => 'Oficina 2', 'tipo' => 'minicurso', 'responsavel' => 'Prof. X', 'local' => 'Sala 3', 'data_inicio' => '2026-12-02T09:00', 'carga_horaria' => 6, 'vagas' => 20])->assertRedirect();
+    $this->put(route('admin.atividades.update', $a->id), ['titulo' => 'Oficina 2', 'tipo' => 'minicurso', 'responsavel' => 'Prof. X', 'local_id' => \App\Models\Local::create(['evento_id' => $a->evento_id, 'nome' => 'Sala 3', 'tipo' => 'sala'])->id, 'data_inicio' => '2026-12-02T09:00', 'carga_horaria' => 6, 'vagas' => 20])->assertRedirect();
     $a->refresh();
     expect($a->titulo)->toBe('Oficina 2')->and($a->carga_horaria)->toBe(6)->and($a->responsavel)->toBe('Prof. X')->and($a->local)->toBe('Sala 3')
         ->and($a->data_fim->format('Y-m-d H:i'))->toBe('2026-12-02 15:00')->and($a->vagas)->toBe(20);
