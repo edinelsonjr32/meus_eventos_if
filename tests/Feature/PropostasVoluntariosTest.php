@@ -389,3 +389,44 @@ it('máscaras automáticas estão nas telas de formulário e o telefone do volun
     $this->post(route('voluntariado.store', $ch), $base + ['telefone' => '(93) 91234-5678'])->assertSessionHasNoErrors();
     expect(Voluntario::first()->telefone)->toBe('(93) 91234-5678');
 });
+
+it('criar atividade do evento já cria a demanda de voluntários, que acompanha mudanças e some com a atividade', function () {
+    $this->actingAs($this->admin);
+    $inicio = now()->addDay()->setTime(9, 0)->format('Y-m-d\TH:i');
+
+    $this->post(route('admin.eventos.atividades.store', $this->evento), ['titulo' => 'Palestra Magna', 'tipo' => 'palestra', 'responsavel' => 'Profa. Maria', 'local_id' => $this->sala->id, 'data_inicio' => $inicio, 'carga_horaria' => 2, 'vagas' => 30])->assertSessionHas('success');
+    $a = Atividade::where('titulo', 'Palestra Magna')->first();
+    $d = DemandaVoluntario::where('atividade_id', $a->id)->first();
+    expect($d)->not->toBeNull()->and($d->automatica)->toBeTrue()->and($d->titulo)->toBe('Apoio: Palestra Magna')
+        ->and($d->local_id)->toBe($this->sala->id)->and($d->local)->toBe('Sala 2')->and($d->responsavel_nome)->toBe('Profa. Maria')
+        ->and($d->carga_horaria)->toBe(2.0)->and($d->data_inicio->format('H:i'))->toBe('09:00')->and($d->data_fim->format('H:i'))->toBe('11:00');
+
+    // atividade da aprovação de proposta também gera
+    $p = app(PropostaService::class)->enviar($this->autor, $this->chamada, $this->dados);
+    app(PropostaService::class)->decidir($p, $this->admin, 'aprovada', aprovacao(['data_inicio' => now()->addDays(2)->setTime(9, 0), 'data_fim' => now()->addDays(2)->setTime(13, 0)]));
+    expect(DemandaVoluntario::where('atividade_id', $p->fresh()->atividade_id)->exists())->toBeTrue();
+
+    // mudanças na atividade refletem na demanda (título só se o admin não o renomeou)
+    $this->put(route('admin.atividades.update', $a), ['titulo' => 'Palestra Magna II', 'tipo' => 'palestra', 'responsavel' => 'Prof. João', 'local_id' => $this->lab->id, 'data_inicio' => $inicio, 'carga_horaria' => 3, 'vagas' => 20])->assertSessionHasNoErrors();
+    $d->refresh();
+    expect($d->titulo)->toBe('Apoio: Palestra Magna II')->and($d->local)->toBe('Lab 1 (Bloco A)')->and($d->responsavel_nome)->toBe('Prof. João')->and($d->carga_horaria)->toBe(3.0)->and($d->data_fim->format('H:i'))->toBe('12:00');
+    $d->update(['titulo' => 'Recepção do auditório']);
+    $this->put(route('admin.atividades.update', $a), ['titulo' => 'Outro nome', 'tipo' => 'palestra', 'data_inicio' => $inicio, 'carga_horaria' => 3, 'vagas' => 20, 'local_id' => $this->lab->id])->assertSessionHasNoErrors();
+    expect($d->fresh()->titulo)->toBe('Recepção do auditório');
+
+    // o voluntário vê a atividade já na lista de vincular; excluir a atividade remove a demanda automática
+    $a->delete();
+    expect(DemandaVoluntario::where('atividade_id', $a->id)->count())->toBe(0);
+});
+
+it('"Gerar das atividades do evento" cria só as demandas que faltam', function () {
+    $this->actingAs($this->admin);
+    $ini = now()->addDay()->setTime(9, 0);
+    $a = Atividade::create(['evento_id' => $this->evento->id, 'titulo' => 'Antiga', 'tipo' => 'palestra', 'carga_horaria' => 2, 'data_inicio' => $ini, 'data_fim' => $ini->copy()->addHours(2), 'token_frequencia' => 'tokantiga1']);
+    DemandaVoluntario::where('atividade_id', $a->id)->delete();   // como as atividades criadas antes deste recurso
+
+    $this->post(route('admin.voluntarios.demandas.gerar', $this->evento))->assertSessionHas('success');
+    expect(DemandaVoluntario::where('atividade_id', $a->id)->count())->toBe(1);
+    $this->post(route('admin.voluntarios.demandas.gerar', $this->evento))->assertSessionHas('error');
+    expect(DemandaVoluntario::where('atividade_id', $a->id)->count())->toBe(1);
+});

@@ -50,7 +50,10 @@
             <div class="glass-card" x-data="{ nova: {{ $demandas->isEmpty() ? 'true' : 'false' }} }">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold text-success m-0">Atividades em que voluntários atuam</h6>
-                    <button type="button" class="btn btn-sm btn-primary-custom" @click="nova = !nova"><i class="fa-solid fa-plus"></i> Nova atividade</button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <form action="{{ route('admin.voluntarios.demandas.gerar', $evento->id) }}" method="POST">@csrf<button class="btn btn-sm btn-light border" title="Cria a demanda de voluntários das atividades do evento que ainda não têm uma"><i class="fa-solid fa-wand-magic-sparkles"></i> Gerar das atividades do evento</button></form>
+                        <button type="button" class="btn btn-sm btn-primary-custom" @click="nova = !nova"><i class="fa-solid fa-plus"></i> Nova atividade</button>
+                    </div>
                 </div>
                 <div x-show="nova" x-cloak class="mb-4 p-3 rounded-3 bg-light border">@include('admin.voluntarios._form-demanda', ['acao' => route('admin.voluntarios.demandas.store', $evento->id), 'metodo' => null, 'demanda' => null])</div>
 
@@ -91,7 +94,7 @@
                         <div x-show="editar" x-cloak class="mt-3 p-3 rounded-3 bg-light border">@include('admin.voluntarios._form-demanda', ['acao' => route('admin.voluntarios.demandas.update', [$evento->id, $d->id]), 'metodo' => 'PUT', 'demanda' => $d])</div>
                     </div>
                 @empty
-                    <p class="small text-muted mb-0">Cadastre as atividades (credenciamento, apoio a minicursos, recepção...) e depois vincule os voluntários aprovados.</p>
+                    <p class="small text-muted mb-0">As atividades do evento ganham aqui uma demanda de apoio automaticamente. Cadastre também as demais (credenciamento, apoio a minicursos, recepção...) e depois vincule os voluntários aprovados.</p>
                 @endforelse
             </div>
         </div>

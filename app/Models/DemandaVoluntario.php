@@ -11,9 +11,9 @@ class DemandaVoluntario extends Model
 {
     protected $table = 'demandas_voluntarios';
 
-    protected $fillable = ['evento_id', 'atividade_id', 'titulo', 'descricao', 'data_inicio', 'data_fim', 'local', 'local_id', 'vagas', 'carga_horaria', 'responsavel_nome', 'responsavel_contato'];
+    protected $fillable = ['evento_id', 'atividade_id', 'titulo', 'descricao', 'data_inicio', 'data_fim', 'local', 'local_id', 'vagas', 'carga_horaria', 'responsavel_nome', 'responsavel_contato', 'automatica'];
 
-    protected $casts = ['data_inicio' => 'datetime', 'data_fim' => 'datetime', 'vagas' => 'integer', 'carga_horaria' => 'float'];
+    protected $casts = ['data_inicio' => 'datetime', 'data_fim' => 'datetime', 'vagas' => 'integer', 'carga_horaria' => 'float', 'automatica' => 'boolean'];
 
     protected static function booted(): void
     {
@@ -22,6 +22,45 @@ class DemandaVoluntario extends Model
                 $d->local = Local::find($d->local_id)?->rotulo() ?? $d->local;
             }
         });
+    }
+
+    /** Demanda de apoio gerada para a atividade (idempotente: não duplica se já existir uma ligada a ela). */
+    public static function criarPara(Atividade $a): ?self
+    {
+        if (self::where('atividade_id', $a->id)->exists()) {
+            return null;
+        }
+
+        return self::create([
+            'evento_id' => $a->evento_id, 'atividade_id' => $a->id, 'titulo' => self::tituloPara($a->titulo),
+            'descricao' => 'Apoio à atividade "' . $a->titulo . '" (recepção, organização da sala, controle de presença).',
+            'data_inicio' => $a->data_inicio, 'data_fim' => $a->data_fim, 'local_id' => $a->local_id,
+            'carga_horaria' => max(0.5, (float) $a->carga_horaria), 'responsavel_nome' => $a->responsavel, 'automatica' => true,
+        ]);
+    }
+
+    public static function tituloPara(?string $titulo): string
+    {
+        return mb_substr('Apoio: ' . $titulo, 0, 255);
+    }
+
+    /** Mantém a demanda automática alinhada com a atividade (horário, local, carga horária e responsável). */
+    public static function sincronizarCom(Atividade $a): void
+    {
+        $d = self::where('atividade_id', $a->id)->where('automatica', true)->first();
+        if (!$d) {
+            return;
+        }
+        $campos = [
+            'data_inicio' => $a->data_inicio, 'data_fim' => $a->data_fim, 'local_id' => $a->local_id,
+            'carga_horaria' => max(0.5, (float) $a->carga_horaria), 'responsavel_nome' => $a->responsavel,
+        ];
+        // o título só acompanha se o admin não o renomeou
+        if ($d->titulo === self::tituloPara($a->getOriginal('titulo'))) {
+            $campos['titulo'] = self::tituloPara($a->titulo);
+        }
+        $campos['local'] = null;   // o modelo preenche pelo cadastro de locais
+        $d->update($campos);
     }
 
     public function localCadastrado(): BelongsTo

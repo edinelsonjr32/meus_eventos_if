@@ -133,6 +133,16 @@ class VoluntarioGestaoController extends Controller
         return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('success', 'Voluntário vinculado à atividade.');
     }
 
+    /** Cria a demanda de voluntários das atividades do evento que ainda não têm uma (as novas já nascem com ela). */
+    public function gerarDemandas(Evento $evento)
+    {
+        $this->authorize('gerenciar', $evento);
+
+        $criadas = $evento->atividades()->get()->filter(fn ($a) => DemandaVoluntario::criarPara($a))->count();
+
+        return back()->with('aba', 'atividades')->with($criadas ? 'success' : 'error', $criadas ? "{$criadas} demanda(s) de voluntários criada(s) a partir das atividades do evento." : 'Todas as atividades do evento já têm demanda de voluntários.');
+    }
+
     /** Vincula um voluntário aprovado a uma atividade, a partir do cartão da própria atividade. */
     public function alocarNaDemanda(Request $request, Evento $evento, DemandaVoluntario $demanda)
     {

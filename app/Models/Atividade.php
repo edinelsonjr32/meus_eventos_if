@@ -12,6 +12,25 @@ class Atividade extends Model
     protected static function booted(): void
     {
         // O texto "local" (usado em telas, QR codes e certificados) acompanha sempre o local cadastrado
+        // Toda atividade do evento ganha, ao ser criada, a demanda de voluntários correspondente (e a acompanha depois)
+        static::created(function (Atividade $a) {
+            try {
+                DemandaVoluntario::criarPara($a);
+            } catch (\Throwable $e) {
+                report($e);   // nunca impede a criação da atividade
+            }
+        });
+        static::updated(function (Atividade $a) {
+            if ($a->wasChanged(['titulo', 'data_inicio', 'data_fim', 'local_id', 'carga_horaria', 'responsavel'])) {
+                try {
+                    DemandaVoluntario::sincronizarCom($a);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        });
+        static::deleting(fn (Atividade $a) => DemandaVoluntario::where('atividade_id', $a->id)->where('automatica', true)->delete());
+
         static::saving(function (Atividade $a) {
             if ($a->local_id && ($a->isDirty('local_id') || blank($a->local))) {
                 $a->local = Local::find($a->local_id)?->rotulo() ?? $a->local;

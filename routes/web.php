@@ -352,6 +352,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::put('voluntarios/chamadas/{chamada}', [$v, 'updateChamada'])->name('voluntarios.chamadas.update');
         Route::delete('voluntarios/chamadas/{chamada}', [$v, 'destroyChamada'])->name('voluntarios.chamadas.destroy');
         Route::post('voluntarios/demandas', [$v, 'storeDemanda'])->name('voluntarios.demandas.store');
+        Route::post('voluntarios/demandas/gerar', [$v, 'gerarDemandas'])->name('voluntarios.demandas.gerar');
         Route::put('voluntarios/demandas/{demanda}', [$v, 'updateDemanda'])->name('voluntarios.demandas.update');
         Route::delete('voluntarios/demandas/{demanda}', [$v, 'destroyDemanda'])->name('voluntarios.demandas.destroy');
         Route::post('voluntarios/{voluntario}/decisao', [$v, 'decisao'])->name('voluntarios.decisao');
