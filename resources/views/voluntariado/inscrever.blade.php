@@ -24,17 +24,22 @@
             <div class="mb-3" x-data="{ marcar(dia, tudo) { document.querySelectorAll('[data-dia=\'' + dia + '\']').forEach(c => c.checked = tudo) } }">
                 <label class="small fw-bold">Dias e períodos em que pode ajudar *</label>
                 <div class="form-text mb-2">Marque os períodos livres. A organização só vincula você a atividades que caibam na sua disponibilidade.</div>
-                <style>.disp-grid { display: grid; grid-template-columns: minmax(84px, 1.2fr) repeat(3, 1fr); align-items: center; text-align: center; } .disp-grid > div { padding: .45rem .35rem; border-top: 1px solid #e2e8f0; } .disp-grid > .cab { border-top: 0; background: #f8fafc; font-weight: 600; font-size: .78rem; } .disp-grid > .dia { text-align: left; padding-left: .75rem; }</style>
+                <style>
+                    .disp-grid { display: grid; grid-template-columns: minmax(96px, 1.2fr) repeat(3, 1fr); align-items: stretch; }
+                    .disp-grid > .disp-cel { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: .55rem .35rem; border-top: 1px solid #e2e8f0; text-align: center; }
+                    .disp-grid > .disp-cab { border-top: 0; background: #f8fafc; font-weight: 600; font-size: .78rem; }
+                    .disp-grid > .disp-dia { align-items: flex-start; text-align: left; padding-left: .75rem; }
+                </style>
                 <div class="border rounded-3 overflow-hidden">
                     <div class="disp-grid">
-                        <div class="cab dia">Dia</div>
-                        @foreach($periodos as $p)<div class="cab">{{ $p['rotulo'] }}<div class="fw-normal text-muted" style="font-size:.68rem">{{ $p['faixa'] }}</div></div>@endforeach
+                        <div class="disp-cel disp-cab disp-dia">Dia</div>
+                        @foreach($periodos as $p)<div class="disp-cel disp-cab">{{ $p['rotulo'] }}<div class="fw-normal text-muted" style="font-size:.68rem">{{ $p['faixa'] }}</div></div>@endforeach
                         @foreach($dias as $dia)
                             @php $c = \Illuminate\Support\Carbon::parse($dia); @endphp
-                            <div class="dia"><strong>{{ $c->format('d/m') }}</strong> <span class="text-muted small">{{ $c->translatedFormat('D') }}</span>
+                            <div class="disp-cel disp-dia"><div><strong>{{ $c->format('d/m') }}</strong> <span class="text-muted small">{{ $c->translatedFormat('D') }}</span></div>
                                 <div style="font-size:.72rem"><a href="#" class="text-decoration-none" @click.prevent="marcar('{{ $dia }}', true)">dia todo</a> · <a href="#" class="text-secondary text-decoration-none" @click.prevent="marcar('{{ $dia }}', false)">limpar</a></div></div>
                             @foreach($periodos as $chave => $p)
-                                <div><input type="checkbox" class="form-check-input" style="width:1.3rem;height:1.3rem" name="disponibilidade[{{ $dia }}][]" value="{{ $chave }}" data-dia="{{ $dia }}" aria-label="{{ $c->format('d/m') }} {{ $p['rotulo'] }}" @checked(in_array($chave, $marcados[$dia] ?? [], true))></div>
+                                <div class="disp-cel"><input type="checkbox" class="form-check-input" style="width:1.3rem;height:1.3rem" name="disponibilidade[{{ $dia }}][]" value="{{ $chave }}" data-dia="{{ $dia }}" aria-label="{{ $c->format('d/m') }} {{ $p['rotulo'] }}" @checked(in_array($chave, $marcados[$dia] ?? [], true))></div>
                             @endforeach
                         @endforeach
                     </div>
