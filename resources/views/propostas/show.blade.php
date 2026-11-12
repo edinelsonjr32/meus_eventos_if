@@ -51,7 +51,7 @@
 
         <div class="d-flex flex-wrap gap-2 mb-5">
             @if($proposta->editavel())<a href="{{ route('propostas.edit', $proposta) }}" class="btn btn-outline-warning fw-bold"><i class="fa-solid fa-pen"></i> Editar proposta</a>@endif
-            @if(!in_array($proposta->status, ['aprovada', 'retirada']))
+            @if(!in_array($proposta->status, ['aprovada', 'retirada', 'reprovada']))
                 <form action="{{ route('propostas.retirar', $proposta) }}" method="POST" onsubmit="return confirm('Retirar esta proposta?')">@csrf<button class="btn btn-outline-danger fw-bold"><i class="fa-solid fa-ban"></i> Retirar proposta</button></form>
             @endif
         </div>

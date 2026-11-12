@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SalvarPropostaRequest;
 use App\Models\ChamadaProposta;
 use App\Models\Equipe;
 use App\Models\Evento;
 use App\Models\Proposta;
-use App\Rules\Cpf;
 use App\Services\ParticipanteDaConta;
 use App\Services\PropostaService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /** Área do proponente: enviar, acompanhar e editar propostas de minicurso/oficina; baixar o certificado de ministrante. */
 class PropostaController extends Controller
@@ -42,9 +41,9 @@ class PropostaController extends Controller
         return view('propostas.form', ['chamada' => $chamada->load('evento'), 'proposta' => new Proposta(['tipo' => array_key_first($chamada->tiposAceitos()), 'requer_laboratorio' => false]), 'apoios' => old('apoios', [])]);
     }
 
-    public function store(Request $request, ChamadaProposta $chamada)
+    public function store(SalvarPropostaRequest $request, ChamadaProposta $chamada)
     {
-        $dados = $request->validate($this->regras($chamada), $this->mensagens());
+        $dados = $request->validated();
 
         try {
             $proposta = $this->service->enviar($request->user(), $chamada, $dados, $dados['apoios'] ?? []);
@@ -81,10 +80,10 @@ class PropostaController extends Controller
         ]);
     }
 
-    public function update(Request $request, Proposta $proposta)
+    public function update(SalvarPropostaRequest $request, Proposta $proposta)
     {
         $this->dono($request, $proposta);
-        $dados = $request->validate($this->regras($proposta->chamada), $this->mensagens());
+        $dados = $request->validated();
 
         try {
             $this->service->atualizar($proposta, $dados, $dados['apoios'] ?? []);
@@ -132,30 +131,5 @@ class PropostaController extends Controller
     private function dono(Request $request, Proposta $proposta): void
     {
         abort_unless($proposta->user_id === $request->user()->id, 403);
-    }
-
-    private function regras(ChamadaProposta $chamada): array
-    {
-        return [
-            'tipo' => ['required', Rule::in(array_keys($chamada->tiposAceitos()))],
-            'titulo' => 'required|string|max:200',
-            'resumo' => 'required|string|min:80|max:3000',
-            'objetivos' => 'nullable|string|max:3000', 'publico_alvo' => 'nullable|string|max:255',
-            'conteudo_programatico' => 'nullable|string|max:5000', 'metodologia' => 'nullable|string|max:3000',
-            'carga_horaria_prevista' => 'required|integer|min:1|max:40', 'vagas_sugeridas' => 'required|integer|min:1|max:500',
-            'requer_laboratorio' => 'nullable|boolean', 'espaco_solicitado' => 'nullable|string|max:255',
-            'equipamentos_solicitados' => 'nullable|string|max:2000', 'observacoes' => 'nullable|string|max:2000',
-            'apoios' => 'nullable|array|max:5',
-            'apoios.*.nome' => 'nullable|string|max:255', 'apoios.*.email' => 'nullable|email|max:255', 'apoios.*.cpf' => ['nullable', 'string', 'max:14', new Cpf],
-        ];
-    }
-
-    private function mensagens(): array
-    {
-        return [
-            'resumo.min' => 'O resumo deve ter pelo menos 80 caracteres: descreva o que será ensinado.',
-            'carga_horaria_prevista.max' => 'A carga horária máxima é de 40 horas.',
-            'apoios.max' => 'Informe no máximo 5 pessoas de apoio.',
-        ];
     }
 }

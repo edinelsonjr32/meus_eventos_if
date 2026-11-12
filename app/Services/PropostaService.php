@@ -42,6 +42,12 @@ class PropostaService
             throw new \DomainException("Você atingiu o limite de {$chamada->max_por_usuario} proposta(s) nesta chamada.");
         }
 
+        $duplicada = Proposta::where('chamada_id', $chamada->id)->where('user_id', $user->id)->whereNotIn('status', ['retirada', 'reprovada'])
+            ->whereRaw('LOWER(titulo) = ?', [mb_strtolower(trim($dados['titulo']))])->exists();
+        if ($duplicada) {
+            throw new \DomainException('Você já enviou uma proposta com este título nesta chamada.');
+        }
+
         return DB::transaction(function () use ($user, $chamada, $dados, $apoios, $participante) {
             $proposta = Proposta::create($this->campos($dados) + [
                 'chamada_id' => $chamada->id, 'evento_id' => $chamada->evento_id, 'user_id' => $user->id, 'participante_id' => $participante->id, 'status' => 'enviada',
@@ -58,6 +64,13 @@ class PropostaService
         if (!$proposta->editavel()) {
             throw new \DomainException('Esta proposta não pode mais ser editada.');
         }
+        // Enquanto a organização não pediu ajustes, só dá para editar com a chamada aberta
+        if ($proposta->status !== 'ajustes' && !$proposta->chamada->estaAberta()) {
+            throw new \DomainException('A chamada foi encerrada: a proposta não pode mais ser editada.');
+        }
+        if (!array_key_exists($dados['tipo'], $proposta->chamada->tiposAceitos())) {
+            throw new \DomainException('Tipo de atividade não aceito nesta chamada.');
+        }
 
         DB::transaction(function () use ($proposta, $dados, $apoios) {
             // Reenvio depois de "ajustes solicitados" volta para a fila da organização
@@ -73,6 +86,9 @@ class PropostaService
         if ($proposta->status === 'aprovada') {
             throw new \DomainException('Proposta já aprovada: fale com a organização para cancelar.');
         }
+        if (in_array($proposta->status, ['retirada', 'reprovada'], true)) {
+            throw new \DomainException('Esta proposta já está encerrada.');
+        }
         $proposta->update(['status' => 'retirada']);
     }
 
@@ -86,6 +102,9 @@ class PropostaService
     {
         if (!in_array($decisao, ['em_analise', 'ajustes', 'reprovada', 'aprovada'], true)) {
             throw new \DomainException('Decisão inválida.');
+        }
+        if ($proposta->status === 'retirada') {
+            throw new \DomainException('Esta proposta foi retirada pelo proponente e não pode mais ser decidida.');
         }
         if (in_array($decisao, ['ajustes', 'reprovada'], true) && blank($dados['parecer'] ?? null)) {
             throw new \DomainException('Escreva a mensagem para o proponente.');
@@ -143,6 +162,10 @@ class PropostaService
 
         $atividade = $proposta->atividade_id ? Atividade::find($proposta->atividade_id) : null;
         if ($atividade) {
+            $inscritos = $atividade->inscritos()->count();
+            if ((int) $d['vagas'] < $inscritos) {
+                throw new \DomainException("A capacidade não pode ser menor que o número de inscritos ({$inscritos}).");
+            }
             $atividade->update($campos);
 
             return $atividade;

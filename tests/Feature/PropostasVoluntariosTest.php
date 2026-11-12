@@ -178,3 +178,93 @@ it('telas de gestão abrem para o admin e o evento mostra as chamadas abertas', 
     $this->get(route('admin.eventos.show', $this->evento->id))->assertOk()->assertSee('Minicursos');
     $this->get(route('evento.publico.show', $this->evento->slug))->assertOk()->assertSee('Propor Minicurso/Oficina');
 });
+
+it('valida o formulário de proposta: campos, laboratório, apoios e duplicidade', function () {
+    $this->actingAs($this->autor);
+    $envia = fn (array $extra = []) => $this->post(route('propostas.store', $this->chamada), array_merge($this->dados, $extra));
+
+    $envia(['titulo' => 'ab'])->assertSessionHasErrors('titulo');
+    $envia(['resumo' => 'curto'])->assertSessionHasErrors('resumo');
+    $envia(['carga_horaria_prevista' => 41])->assertSessionHasErrors('carga_horaria_prevista');
+    $envia(['vagas_sugeridas' => 0])->assertSessionHasErrors('vagas_sugeridas');
+    $envia(['tipo' => 'palestra'])->assertSessionHasErrors('tipo');
+    $envia(['requer_laboratorio' => 1, 'espaco_solicitado' => ''])->assertSessionHasErrors('espaco_solicitado');
+
+    // apoio: nome, e-mail e CPF obrigatórios e válidos; sem repetição; proponente não pode ser apoio
+    $envia(['apoios' => [['nome' => 'Fulano', 'email' => 'f@x.com']]])->assertSessionHasErrors('apoios.0.cpf');
+    $envia(['apoios' => [['nome' => 'Fulano', 'email' => 'f@x.com', 'cpf' => '111.111.111-11']]])->assertSessionHasErrors('apoios.0.cpf');
+    $envia(['apoios' => [['nome' => 'Ana', 'email' => 'a@x.com', 'cpf' => '529.982.247-25'], ['nome' => 'Beto', 'email' => 'b@x.com', 'cpf' => '529.982.247-25']]])->assertSessionHasErrors('apoios');
+    $envia(['apoios' => [['nome' => 'Eu mesmo', 'email' => 'outro@x.com', 'cpf' => '111.444.777-35']]])->assertSessionHasErrors('apoios');
+    expect(Proposta::count())->toBe(0);
+
+    // laboratório desmarcado descarta o espaço; título repetido é barrado
+    $envia(['requer_laboratorio' => 0, 'espaco_solicitado' => 'Lab'])->assertSessionHasNoErrors();
+    expect(Proposta::first()->espaco_solicitado)->toBeNull();
+    $envia(['titulo' => 'GIT na prática'])->assertSessionHasErrors('titulo');
+});
+
+it('valida a decisão: campos da aprovação, janela do evento, carga horária e mensagem obrigatória', function () {
+    $p = app(PropostaService::class)->enviar($this->autor, $this->chamada, $this->dados);
+    $this->actingAs($this->admin);
+    $decide = fn (array $d) => $this->post(route('admin.propostas.decisao', [$this->evento, $p]), $d);
+    $dia = $this->evento->data_inicio->copy()->addDay();
+    $ok = ['decisao' => 'aprovada', 'data_inicio' => $dia->copy()->setTime(9, 0)->format('Y-m-d\TH:i'), 'data_fim' => $dia->copy()->setTime(13, 0)->format('Y-m-d\TH:i'), 'local' => 'Bloco A', 'vagas' => 20, 'carga_horaria' => 4];
+
+    $decide(['decisao' => 'aprovada'])->assertSessionHasErrors(['data_inicio', 'data_fim', 'local', 'vagas', 'carga_horaria']);
+    $decide(['decisao' => 'ajustes'])->assertSessionHasErrors('parecer');
+    $decide(['decisao' => 'reprovada', 'parecer' => ''])->assertSessionHasErrors('parecer');
+    $decide(array_merge($ok, ['data_fim' => $ok['data_inicio']]))->assertSessionHasErrors('data_fim');
+    $decide(array_merge($ok, ['carga_horaria' => 10]))->assertSessionHasErrors('carga_horaria');
+    $decide(array_merge($ok, ['data_inicio' => now()->subYear()->format('Y-m-d\TH:i'), 'data_fim' => now()->subYear()->addHours(4)->format('Y-m-d\TH:i')]))->assertSessionHasErrors('data_inicio');
+    expect($p->fresh()->status)->toBe('enviada');
+
+    $decide($ok)->assertSessionHasNoErrors();
+    expect($p->fresh()->status)->toBe('aprovada');
+
+    // capacidade não pode ficar abaixo dos inscritos
+    $a = Atividade::find($p->fresh()->atividade_id);
+    $outro = Participante::create(['nome_completo' => 'Inscrito 2', 'cpf' => '529.982.247-25', 'email' => 'i2@x.com', 'tipo_vinculo' => 'externo']);
+    foreach ([Participante::first()->id, $outro->id] as $pid) {
+        \Illuminate\Support\Facades\DB::table('atividade_inscricoes')->insert(['atividade_id' => $a->id, 'participante_id' => $pid, 'created_at' => now(), 'updated_at' => now()]);
+    }
+    $decide(array_merge($ok, ['vagas' => 1]))->assertSessionHas('error');
+    expect($a->fresh()->vagas)->toBe(20);
+    $decide(array_merge($ok, ['vagas' => 2]))->assertSessionHasNoErrors();
+    expect($a->fresh()->vagas)->toBe(2);
+    $decide(array_merge($ok, ['vagas' => 0]))->assertSessionHasErrors('vagas');
+});
+
+it('proposta retirada não pode ser decidida e apoio só entra no evento com proposta aprovada', function () {
+    $svc = app(PropostaService::class);
+    $p = $svc->enviar($this->autor, $this->chamada, $this->dados, [['nome' => 'Ajudante', 'email' => 'aj@x.com', 'cpf' => '529.982.247-25']]);
+
+    $this->actingAs($this->admin)->post(route('admin.propostas.apoio-evento', [$this->evento, $p->apoios->first()]))->assertSessionHas('error');
+    expect(Inscricao::count())->toBe(0);
+
+    $svc->retirar($p);
+    expect(fn () => $svc->retirar($p->fresh()))->toThrow(DomainException::class);
+    expect(fn () => $svc->decidir($p->fresh(), $this->admin, 'aprovada', aprovacao()))->toThrow(DomainException::class, 'retirada');
+});
+
+it('proponente não edita proposta com a chamada encerrada, exceto quando a organização pediu ajustes', function () {
+    $svc = app(PropostaService::class);
+    $p = $svc->enviar($this->autor, $this->chamada, $this->dados);
+    $this->chamada->update(['fim' => now()->subDay()]);
+    expect(fn () => $svc->atualizar($p->fresh(), ['titulo' => 'Novo'] + $this->dados))->toThrow(DomainException::class, 'encerrada');
+
+    $svc->decidir($p->fresh(), $this->admin, 'ajustes', ['parecer' => 'Ajuste a metodologia']);
+    expect($svc->atualizar($p->fresh(), ['titulo' => 'Novo título'] + $this->dados)->status)->toBe('enviada');
+});
+
+it('valida a chamada: tipo obrigatório, período coerente e descrição em texto simples', function () {
+    $this->actingAs($this->admin);
+    $base = ['titulo' => 'Chamada 2', 'tipos_aceitos' => ['minicurso'], 'max_por_usuario' => 2];
+
+    $this->post(route('admin.propostas.chamadas.store', $this->evento), array_merge($base, ['tipos_aceitos' => []]))->assertSessionHasErrors('tipos_aceitos');
+    $this->post(route('admin.propostas.chamadas.store', $this->evento), array_merge($base, ['inicio' => '2026-12-10T10:00', 'fim' => '2026-12-01T10:00']))->assertSessionHasErrors('fim');
+    $this->post(route('admin.propostas.chamadas.store', $this->evento), array_merge($base, ['max_por_usuario' => '']))->assertSessionHasErrors('max_por_usuario');
+
+    $this->post(route('admin.propostas.chamadas.store', $this->evento), array_merge($base, ['descricao' => "Prazo & regras\n<script>x</script>linha 2"]))->assertSessionHasNoErrors();
+    $c = ChamadaProposta::where('titulo', 'Chamada 2')->first();
+    expect($c->descricao)->toContain('Prazo & regras')->and($c->descricao)->not->toContain('<p>')->and($c->descricao)->not->toContain('<script>');
+});

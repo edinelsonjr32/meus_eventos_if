@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DecidirPropostaRequest;
 use App\Models\ChamadaProposta;
 use App\Models\Evento;
 use App\Models\Proposta;
@@ -79,20 +80,11 @@ class PropostaGestaoController extends Controller
         return view('admin.propostas.show', ['evento' => $evento, 'proposta' => $proposta, 'tipos' => ChamadaProposta::TIPOS]);
     }
 
-    public function decisao(Request $request, Evento $evento, Proposta $proposta)
+    public function decisao(DecidirPropostaRequest $request, Evento $evento, Proposta $proposta)
     {
-        $this->authorize('gerenciar', $evento);
         abort_unless($proposta->evento_id === $evento->id, 404);
 
-        $dados = $request->validate([
-            'decisao' => ['required', Rule::in(['em_analise', 'ajustes', 'reprovada', 'aprovada'])],
-            'parecer' => 'nullable|string|max:3000',
-            'data_inicio' => 'nullable|date', 'data_fim' => 'nullable|date',
-            'local' => 'nullable|string|max:255', 'espaco' => 'nullable|string|max:255',
-            'equipamentos' => 'nullable|string|max:2000', 'observacoes_organizacao' => 'nullable|string|max:2000',
-            'vagas' => 'nullable|integer|min:1|max:2000', 'carga_horaria' => 'nullable|integer|min:1|max:200',
-            'ignorar_conflito' => 'nullable|boolean',
-        ]);
+        $dados = $request->validated();
 
         try {
             $this->service->decidir($proposta, $request->user(), $dados['decisao'], $dados);
@@ -110,6 +102,10 @@ class PropostaGestaoController extends Controller
     {
         $this->authorize('gerenciar', $evento);
         abort_unless($apoio->proposta->evento_id === $evento->id, 404);
+
+        if ($apoio->proposta->status !== 'aprovada') {
+            return back()->with('error', 'Só é possível adicionar a pessoa de apoio ao evento depois que a proposta for aprovada.');
+        }
 
         // CPF/e-mail podem ser completados na hora
         if ($request->filled('cpf') || $request->filled('email')) {
@@ -144,17 +140,16 @@ class PropostaGestaoController extends Controller
     private function validarChamada(Request $request): array
     {
         $dados = $request->validate([
-            'titulo' => 'required|string|max:255', 'descricao' => 'nullable|string|max:20000',
-            'tipos_aceitos' => 'nullable|array', 'tipos_aceitos.*' => Rule::in(array_keys(ChamadaProposta::TIPOS)),
+            'titulo' => 'required|string|min:5|max:255', 'descricao' => 'nullable|string|max:20000',
+            'tipos_aceitos' => 'required|array|min:1', 'tipos_aceitos.*' => Rule::in(array_keys(ChamadaProposta::TIPOS)),
             'inicio' => 'nullable|date', 'fim' => 'nullable|date|after_or_equal:inicio', 'ativa' => 'nullable|boolean',
-            'max_por_usuario' => 'nullable|integer|min:1|max:20',
-        ], ['titulo.required' => 'Informe o título da chamada.', 'fim.after_or_equal' => 'O encerramento deve ser depois da abertura.']);
+            'max_por_usuario' => 'required|integer|min:1|max:20',
+        ], ['titulo.required' => 'Informe o título da chamada.', 'fim.after_or_equal' => 'O encerramento deve ser depois da abertura.', 'max_por_usuario.required' => 'Informe quantas propostas cada pessoa pode enviar.', 'tipos_aceitos.required' => 'Marque ao menos um tipo de atividade aceito.', 'tipos_aceitos.min' => 'Marque ao menos um tipo de atividade aceito.']);
 
-        $dados['descricao'] = \App\Support\HtmlSeguro::limpar($dados['descricao'] ?? null);
-        $dados['tipos_aceitos'] = array_values($dados['tipos_aceitos'] ?? array_keys(ChamadaProposta::TIPOS));
+        $dados['descricao'] = filled($dados['descricao'] ?? null) ? trim(strip_tags($dados['descricao'])) : null;
+        $dados['tipos_aceitos'] = array_values(array_unique($dados['tipos_aceitos']));
         $dados['ativa'] = $request->boolean('ativa', true);
-        $dados['max_por_usuario'] = $dados['max_por_usuario'] ?? 3;
-
+        
         return $dados;
     }
 }

@@ -27,14 +27,14 @@
                 <div class="row g-3">
                     <div class="col-md-4"><label class="small fw-bold">Tipo *</label>
                         <select name="tipo" class="form-select">@foreach($chamada->tiposAceitos() as $valor => $rotulo)<option value="{{ $valor }}" @selected($v('tipo') === $valor)>{{ $rotulo }}</option>@endforeach</select></div>
-                    <div class="col-md-8"><label class="small fw-bold">Título *</label><input type="text" name="titulo" class="form-control" maxlength="200" value="{{ $v('titulo') }}" required></div>
-                    <div class="col-12"><label class="small fw-bold">Resumo da proposta * <span class="fw-normal text-muted">(o que será ensinado e o que o participante vai levar)</span></label><textarea name="resumo" rows="5" class="form-control" minlength="80" required>{{ $v('resumo') }}</textarea></div>
+                    <div class="col-md-8"><label class="small fw-bold">Título *</label><input type="text" name="titulo" class="form-control" minlength="5" maxlength="200" value="{{ $v('titulo') }}" required></div>
+                    <div class="col-12"><label class="small fw-bold">Resumo da proposta * <span class="fw-normal text-muted">(o que será ensinado e o que o participante vai levar)</span></label><textarea name="resumo" rows="5" class="form-control" minlength="80" maxlength="3000" required x-ref="r" @input="$refs.c.textContent = $refs.r.value.length + '/3000 (mínimo 80)'">{{ $v('resumo') }}</textarea><div class="form-text" x-ref="c">{{ mb_strlen((string) $v('resumo')) }}/3000 (mínimo 80)</div></div>
                     <div class="col-md-6"><label class="small fw-bold">Objetivos</label><textarea name="objetivos" rows="3" class="form-control">{{ $v('objetivos') }}</textarea></div>
                     <div class="col-md-6"><label class="small fw-bold">Metodologia</label><textarea name="metodologia" rows="3" class="form-control">{{ $v('metodologia') }}</textarea></div>
                     <div class="col-12"><label class="small fw-bold">Conteúdo programático</label><textarea name="conteudo_programatico" rows="4" class="form-control" placeholder="Tópicos que serão abordados, em ordem">{{ $v('conteudo_programatico') }}</textarea></div>
                     <div class="col-md-6"><label class="small fw-bold">Público-alvo</label><input type="text" name="publico_alvo" class="form-control" maxlength="255" placeholder="Ex.: alunos do ensino médio técnico" value="{{ $v('publico_alvo') }}"></div>
-                    <div class="col-md-3"><label class="small fw-bold">Carga horária (h) *</label><input type="number" name="carga_horaria_prevista" min="1" max="40" class="form-control" value="{{ $v('carga_horaria_prevista') ?: 4 }}" required></div>
-                    <div class="col-md-3"><label class="small fw-bold">Vagas sugeridas *</label><input type="number" name="vagas_sugeridas" min="1" max="500" class="form-control" value="{{ $v('vagas_sugeridas') ?: 30 }}" required></div>
+                    <div class="col-md-3"><label class="small fw-bold">Carga horária (h) *</label><input type="number" name="carga_horaria_prevista" min="1" max="40" step="1" class="form-control" value="{{ $v('carga_horaria_prevista') ?: 4 }}" required></div>
+                    <div class="col-md-3"><label class="small fw-bold">Vagas sugeridas *</label><input type="number" name="vagas_sugeridas" min="1" max="500" step="1" class="form-control" value="{{ $v('vagas_sugeridas') ?: 30 }}" required></div>
                 </div>
             </div>
 
@@ -42,7 +42,7 @@
                 <h6 class="fw-bold text-success mb-3"><span class="badge bg-success me-2">2</span> Espaço e equipamentos</h6>
                 <div class="form-check form-switch mb-3"><input type="hidden" name="requer_laboratorio" value="0"><input class="form-check-input" type="checkbox" role="switch" name="requer_laboratorio" value="1" id="lab" x-model="lab" @checked($v('requer_laboratorio'))><label class="form-check-label fw-bold small" for="lab">Precisa de laboratório ou espaço específico</label></div>
                 <div class="row g-3">
-                    <div class="col-12" x-show="lab" x-cloak><label class="small fw-bold">Qual espaço?</label><input type="text" name="espaco_solicitado" class="form-control" maxlength="255" placeholder="Ex.: Laboratório de Informática, com 30 computadores" value="{{ $v('espaco_solicitado') }}"></div>
+                    <div class="col-12" x-show="lab" x-cloak><label class="small fw-bold">Qual espaço? *</label><input type="text" name="espaco_solicitado" :required="lab" class="form-control" maxlength="255" placeholder="Ex.: Laboratório de Informática, com 30 computadores" value="{{ $v('espaco_solicitado') }}"></div>
                     <div class="col-12"><label class="small fw-bold">Equipamentos e materiais necessários</label><textarea name="equipamentos_solicitados" rows="2" class="form-control" placeholder="Ex.: projetor, caixa de som, kits Arduino (a organização informa o que consegue disponibilizar)">{{ $v('equipamentos_solicitados') }}</textarea></div>
                     <div class="col-12"><label class="small fw-bold">Observações</label><textarea name="observacoes" rows="2" class="form-control" placeholder="Restrições de data/horário, necessidades de acessibilidade...">{{ $v('observacoes') }}</textarea></div>
                 </div>
@@ -50,12 +50,12 @@
 
             <div class="glass-card mb-4">
                 <h6 class="fw-bold text-success mb-1"><span class="badge bg-success me-2">3</span> Pessoas de apoio (ajudantes)</h6>
-                <p class="small text-muted">Opcional. Informe quem vai ajudar na atividade (até 5). A organização poderá adicioná-las como participantes do evento; para isso, informe o e-mail e o CPF.</p>
+                <p class="small text-muted">Opcional. Informe quem vai ajudar na atividade (até 5). Nome, e-mail e CPF são obrigatórios para cada pessoa: a organização poderá adicioná-la como participante do evento.</p>
                 <template x-for="(a, i) in apoios" :key="i">
                     <div class="row g-2 mb-2 align-items-end">
-                        <div class="col-md-4"><label class="small">Nome</label><input type="text" class="form-control form-control-sm" :name="`apoios[${i}][nome]`" x-model="a.nome" maxlength="255"></div>
-                        <div class="col-md-4"><label class="small">E-mail</label><input type="email" class="form-control form-control-sm" :name="`apoios[${i}][email]`" x-model="a.email"></div>
-                        <div class="col-md-3"><label class="small">CPF</label><input type="text" class="form-control form-control-sm" :name="`apoios[${i}][cpf]`" x-model="a.cpf" maxlength="14" placeholder="000.000.000-00"></div>
+                        <div class="col-md-4"><label class="small">Nome *</label><input type="text" class="form-control form-control-sm" :name="`apoios[${i}][nome]`" x-model="a.nome" minlength="3" maxlength="255" required></div>
+                        <div class="col-md-4"><label class="small">E-mail *</label><input type="email" class="form-control form-control-sm" :name="`apoios[${i}][email]`" x-model="a.email" required></div>
+                        <div class="col-md-3"><label class="small">CPF *</label><input type="text" class="form-control form-control-sm" :name="`apoios[${i}][cpf]`" x-model="a.cpf" maxlength="14" placeholder="000.000.000-00" inputmode="numeric" required></div>
                         <div class="col-md-1"><button type="button" class="btn btn-sm btn-light border w-100" @click="apoios.splice(i, 1)" title="Remover"><i class="fa-solid fa-trash"></i></button></div>
                     </div>
                 </template>

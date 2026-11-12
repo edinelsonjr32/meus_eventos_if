@@ -164,7 +164,7 @@ class VoluntarioGestaoController extends Controller
             'vagas' => 'nullable|integer|min:1|max:2000', 'inicio' => 'nullable|date', 'fim' => 'nullable|date|after_or_equal:inicio', 'ativa' => 'nullable|boolean',
         ], ['titulo.required' => 'Informe o título da chamada.', 'fim.after_or_equal' => 'O encerramento deve ser depois da abertura.']);
 
-        $dados['descricao'] = \App\Support\HtmlSeguro::limpar($dados['descricao'] ?? null);
+        $dados['descricao'] = filled($dados['descricao'] ?? null) ? trim(strip_tags($dados['descricao'])) : null;
         $dados['ativa'] = $request->boolean('ativa', true);
 
         return $dados;
