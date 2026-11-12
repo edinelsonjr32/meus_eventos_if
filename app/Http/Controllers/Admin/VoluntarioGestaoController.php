@@ -149,15 +149,34 @@ class VoluntarioGestaoController extends Controller
         $this->authorize('gerenciar', $evento);
         abort_unless($demanda->evento_id === $evento->id, 404);
 
-        $dados = $request->validate(['voluntario_id' => ['required', Rule::exists('voluntarios', 'id')->where('evento_id', $evento->id)], 'ignorar_conflito' => 'nullable|boolean'], ['voluntario_id.required' => 'Escolha o voluntário.']);
+        $request->merge(['voluntario_ids' => array_values(array_filter(array_merge((array) $request->input('voluntario_ids', []), (array) $request->input('voluntario_id', []))))]);
+        $dados = $request->validate([
+            'voluntario_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'voluntario_ids.*' => ['integer', Rule::exists('voluntarios', 'id')->where('evento_id', $evento->id)],
+            'ignorar_conflito' => 'nullable|boolean',
+        ], ['voluntario_ids.required' => 'Escolha ao menos um voluntário.', 'voluntario_ids.min' => 'Escolha ao menos um voluntário.']);
 
-        try {
-            $this->service->alocar(Voluntario::findOrFail($dados['voluntario_id']), $demanda, $request->boolean('ignorar_conflito'));
-        } catch (\DomainException $e) {
-            return back()->with('aba', 'atividades')->with('error', $e->getMessage());
+        // Vários voluntários de uma vez: cada um é verificado (vagas, horário, disponibilidade) e os problemas são listados
+        $ok = 0;
+        $problemas = [];
+        foreach (Voluntario::with('usuario')->whereIn('id', $dados['voluntario_ids'])->get() as $vol) {
+            try {
+                $this->service->alocar($vol, $demanda->fresh(), $request->boolean('ignorar_conflito'));
+                $ok++;
+            } catch (\DomainException $e) {
+                $problemas[] = $vol->usuario->name . ': ' . $e->getMessage();
+            }
         }
 
-        return back()->with('aba', 'atividades')->with('success', 'Voluntário vinculado à atividade.');
+        $resp = back()->with('aba', 'atividades');
+        if ($ok) {
+            $resp->with('success', $ok === 1 ? 'Voluntário vinculado à atividade.' : "{$ok} voluntários vinculados à atividade.");
+        }
+        if ($problemas) {
+            $resp->with('error', implode(' | ', $problemas));
+        }
+
+        return $resp;
     }
 
     public function desalocar(Evento $evento, Voluntario $voluntario, DemandaVoluntario $demanda)

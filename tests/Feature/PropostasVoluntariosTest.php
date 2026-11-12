@@ -430,3 +430,47 @@ it('"Gerar das atividades do evento" cria só as demandas que faltam', function 
     $this->post(route('admin.voluntarios.demandas.gerar', $this->evento))->assertSessionHas('error');
     expect(DemandaVoluntario::where('atividade_id', $a->id)->count())->toBe(1);
 });
+
+it('uma atividade aceita vários voluntários: define a quantidade, vincula vários de uma vez e respeita o limite', function () {
+    $this->actingAs($this->admin);
+    $dia = now()->addDay()->setTime(9, 0);
+    $this->post(route('admin.eventos.atividades.store', $this->evento), ['titulo' => 'Feira', 'tipo' => 'oficina', 'data_inicio' => $dia->format('Y-m-d\TH:i'), 'carga_horaria' => 2, 'vagas' => 40, 'voluntarios_necessarios' => 3])->assertSessionHas('success');
+    $at = Atividade::where('titulo', 'Feira')->first();
+    $d = DemandaVoluntario::where('atividade_id', $at->id)->first();
+    expect($at->voluntarios_necessarios)->toBe(3)->and($d->vagas)->toBe(3);
+
+    // padrão 2 quando o campo não é enviado; 0 = sem limite
+    $this->post(route('admin.eventos.atividades.store', $this->evento), ['titulo' => 'Sem campo', 'tipo' => 'oficina', 'data_inicio' => $dia->copy()->addDay()->format('Y-m-d\TH:i'), 'carga_horaria' => 1, 'vagas' => 10]);
+    expect(DemandaVoluntario::where('titulo', 'Apoio: Sem campo')->value('vagas'))->toBe(2);
+    $this->post(route('admin.eventos.atividades.store', $this->evento), ['titulo' => 'Livre', 'tipo' => 'oficina', 'data_inicio' => $dia->copy()->addDays(2)->format('Y-m-d\TH:i'), 'carga_horaria' => 1, 'vagas' => 10, 'voluntarios_necessarios' => 0]);
+    expect(DemandaVoluntario::where('titulo', 'Apoio: Livre')->value('vagas'))->toBeNull();
+
+    // quatro voluntários aprovados, todos disponíveis no dia
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $svc = app(VoluntarioService::class);
+    $ids = [];
+    foreach (range(1, 4) as $i) {
+        $u = mkUser('user');
+        Participante::create(['user_id' => $u->id, 'nome_completo' => "Voluntário {$i}", 'cpf' => ['935.411.347-80', '529.982.247-25', '390.533.447-05', '168.995.350-09'][$i - 1], 'email' => $u->email, 'tipo_vinculo' => 'externo']);
+        $v = $svc->inscrever($u, $ch, ['motivacao' => 'Quero ajudar', 'disponibilidade' => [$dia->format('Y-m-d') => ['manha']]]);
+        $svc->decidir($v, $this->admin, 'aprovado');
+        $ids[] = $v->id;
+    }
+
+    // vincula 2 de uma vez
+    $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $d]), ['voluntario_ids' => [$ids[0], $ids[1]]])->assertSessionHas('success', '2 voluntários vinculados à atividade.');
+    expect($d->voluntarios()->count())->toBe(2);
+
+    // o terceiro cabe; o quarto estoura o limite de 3 e é informado, sem desfazer os demais
+    $r = $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $d]), ['voluntario_ids' => [$ids[2], $ids[3]]]);
+    $r->assertSessionHas('success')->assertSessionHas('error');
+    expect($d->voluntarios()->count())->toBe(3);
+    $this->get(route('admin.voluntarios.index', $this->evento))->assertOk()->assertSee('3/3 voluntário(s) · completa');
+
+    // sem escolher ninguém
+    $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $d]), [])->assertSessionHasErrors('voluntario_ids');
+
+    // editar a quantidade na atividade atualiza a demanda
+    $this->put(route('admin.atividades.update', $at), ['titulo' => 'Feira', 'tipo' => 'oficina', 'data_inicio' => $dia->format('Y-m-d\TH:i'), 'carga_horaria' => 2, 'vagas' => 40, 'voluntarios_necessarios' => 5])->assertSessionHasNoErrors();
+    expect($d->fresh()->vagas)->toBe(5);
+});

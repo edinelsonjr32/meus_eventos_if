@@ -32,7 +32,7 @@
                         <div class="d-flex flex-wrap justify-content-between gap-2">
                             <div class="min-w-0"><div class="fw-bold texto-quebra">{{ $c->titulo }} <x-badge tipo="chamada" :valor="$c->situacao()" /></div>
                                 <div class="small text-secondary">{{ $c->inicio ? $c->inicio->format('d/m/Y H:i') : 'já aberta' }} → {{ $c->fim ? $c->fim->format('d/m/Y H:i') : 'sem prazo' }} · {{ $c->vagas ? $c->vagas . ' vaga(s)' : 'sem limite de vagas' }} · {{ $c->voluntarios_count }} inscrito(s)</div></div>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 align-items-start">
                                 <button type="button" class="btn btn-sm btn-light border" @click="editar = !editar"><i class="fa-solid fa-pen"></i> Editar</button>
                                 <form action="{{ route('admin.voluntarios.chamadas.destroy', [$evento->id, $c->id]) }}" method="POST" onsubmit="return confirm('Excluir esta chamada?')">@csrf @method('DELETE')<button class="btn btn-sm btn-light border"><i class="fa-solid fa-trash"></i></button></form>
                             </div>
@@ -64,7 +64,7 @@
                                 <div class="fw-bold texto-quebra">{{ $d->titulo }}</div>
                                 <div class="small text-secondary">
                                     @if($d->data_inicio){{ $d->data_inicio->format('d/m H:i') }}@if($d->data_fim) a {{ $d->data_fim->format('H:i') }}@endif · @endif
-                                    @if($d->local){{ $d->local }} · @endif{{ rtrim(rtrim(number_format($d->carga_horaria, 1, ',', ''), '0'), ',') }} h · {{ $d->voluntarios_count }}{{ $d->vagas ? '/' . $d->vagas : '' }} voluntário(s)
+                                    @if($d->local){{ $d->local }} · @endif{{ rtrim(rtrim(number_format($d->carga_horaria, 1, ',', ''), '0'), ',') }} h · {{ $d->voluntarios_count }}{{ $d->vagas ? '/' . $d->vagas : '' }} voluntário(s){{ $d->vagas && $d->voluntarios_count >= $d->vagas ? ' · completa' : '' }}
                                 </div>
                                 @if($d->responsavel_nome)<div class="small"><i class="fa-solid fa-user-tie me-1 text-success"></i> Responsável: <strong>{{ $d->responsavel_nome }}</strong>@if($d->responsavel_contato) · {{ $d->responsavel_contato }}@endif</div>@endif
                                 <div class="mt-2">
@@ -73,20 +73,25 @@
                                     @endforeach
                                     @php $disponiveis = $aprovados->whereNotIn('id', $d->voluntarios->pluck('id')); @endphp
                                     @if($disponiveis->isNotEmpty())
-                                        <form action="{{ route('admin.voluntarios.demandas.alocar', [$evento->id, $d->id]) }}" method="POST" class="d-flex flex-wrap gap-2 mt-2">@csrf
-                                            <select name="voluntario_id" class="form-select form-select-sm" style="max-width:260px" required>
-                                                <option value="">Adicionar voluntário aprovado…</option>
-                                                @foreach($disponiveis as $ap)<option value="{{ $ap->id }}">{{ $ap->usuario->name }}{{ $ap->faltaDisponibilidade($d) ? ' ⚠ fora da disponibilidade' : '' }}</option>@endforeach
-                                            </select>
-                                            <div class="form-check d-flex align-items-center"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="dc{{ $d->id }}"><label class="form-check-label small" for="dc{{ $d->id }}">ignorar conflito de horário/disponibilidade</label></div>
-                                            <button class="btn btn-sm btn-outline-success fw-bold"><i class="fa-solid fa-user-plus"></i> Adicionar</button>
+                                        <form action="{{ route('admin.voluntarios.demandas.alocar', [$evento->id, $d->id]) }}" method="POST" class="mt-2" x-data="{ aberto: false }">@csrf
+                                            <button type="button" class="btn btn-sm btn-outline-success fw-bold" @click="aberto = !aberto"><i class="fa-solid fa-user-plus"></i> Adicionar voluntários</button>
+                                            <div x-show="aberto" x-cloak class="border rounded-3 p-2 mt-2 bg-white" style="max-width:420px">
+                                                <div class="small text-muted mb-1">Marque quantos quiser{{ $d->vagas ? ' (restam ' . max(0, $d->vagas - $d->voluntarios->count()) . ' vaga(s))' : '' }}:</div>
+                                                @foreach($disponiveis as $ap)
+                                                    <div class="form-check"><input class="form-check-input" type="checkbox" name="voluntario_ids[]" value="{{ $ap->id }}" id="v{{ $d->id }}-{{ $ap->id }}"><label class="form-check-label small" for="v{{ $d->id }}-{{ $ap->id }}">{{ $ap->usuario->name }}{{ $ap->faltaDisponibilidade($d) ? ' ⚠ fora da disponibilidade' : '' }}</label></div>
+                                                @endforeach
+                                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                                    <div class="form-check mb-0"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="dc{{ $d->id }}"><label class="form-check-label small" for="dc{{ $d->id }}">ignorar conflito de horário/disponibilidade</label></div>
+                                                    <button class="btn btn-sm btn-primary-custom ms-auto"><i class="fa-solid fa-link"></i> Vincular selecionados</button>
+                                                </div>
+                                            </div>
                                         </form>
                                     @elseif($d->voluntarios->isEmpty())
                                         <div class="small text-muted">Aprove voluntários na aba "Inscritos" para vinculá-los aqui.</div>
                                     @endif
                                 </div>
                             </div>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 align-items-start">
                                 <button type="button" class="btn btn-sm btn-light border" @click="editar = !editar"><i class="fa-solid fa-pen"></i> Editar</button>
                                 <form action="{{ route('admin.voluntarios.demandas.destroy', [$evento->id, $d->id]) }}" method="POST" onsubmit="return confirm('Excluir esta atividade? Os voluntários serão desvinculados.')">@csrf @method('DELETE')<button class="btn btn-sm btn-light border"><i class="fa-solid fa-trash"></i></button></form>
                             </div>

@@ -21,7 +21,7 @@ class Atividade extends Model
             }
         });
         static::updated(function (Atividade $a) {
-            if ($a->wasChanged(['titulo', 'data_inicio', 'data_fim', 'local_id', 'carga_horaria', 'responsavel'])) {
+            if ($a->wasChanged(['titulo', 'data_inicio', 'data_fim', 'local_id', 'carga_horaria', 'responsavel', 'voluntarios_necessarios'])) {
                 try {
                     DemandaVoluntario::sincronizarCom($a);
                 } catch (\Throwable $e) {
@@ -58,6 +58,7 @@ class Atividade extends Model
         'proposta_id',
         'carga_horaria',
         'vagas',
+        'voluntarios_necessarios',
         'data_inicio',
         'data_fim', // <--- Essencial para corrigir o erro SQLSTATE[HY000]
         'token_frequencia'

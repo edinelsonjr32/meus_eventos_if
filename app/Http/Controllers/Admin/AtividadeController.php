@@ -40,6 +40,7 @@ class AtividadeController extends Controller
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
             'vagas' => 'nullable|integer|min:0',
+            'voluntarios_necessarios' => 'nullable|integer|min:0|max:200',
         ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
 
         // CORREÇÃO 1: Cast para (int) para evitar TypeError no Carbon
@@ -63,6 +64,7 @@ class AtividadeController extends Controller
             'data_fim' => $fim, // Agora o Model aceitará este campo
             'carga_horaria' => $horas,
             'vagas' => $validated['vagas'] ?? null,
+            'voluntarios_necessarios' => ($validated['voluntarios_necessarios'] ?? 2) ?: null,
             'token_frequencia' => Str::random(10),
         ]);
 
@@ -115,6 +117,7 @@ class AtividadeController extends Controller
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
             'vagas' => 'nullable|integer|min:0',
+            'voluntarios_necessarios' => 'nullable|integer|min:0|max:200',
         ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
 
         $inscritos = $atividade->inscritos()->count();
@@ -138,6 +141,7 @@ class AtividadeController extends Controller
             'data_fim' => $inicio->copy()->addHours((int) $dados['carga_horaria']),
             'carga_horaria' => (int) $dados['carga_horaria'],
             'vagas' => $dados['vagas'] ?? null,
+            'voluntarios_necessarios' => ($dados['voluntarios_necessarios'] ?? null) ?: null,
         ]);
 
         return redirect()->route('admin.eventos.show', $atividade->evento_id)->with('success', 'Atividade atualizada.');

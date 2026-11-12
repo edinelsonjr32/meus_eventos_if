@@ -156,6 +156,12 @@
                         </div>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">VOLUNTÁRIOS NECESSÁRIOS</label>
+                        <input type="number" name="voluntarios_necessarios" value="2" min="0" max="200" class="form-control" placeholder="0 = sem limite">
+                        <div class="form-text small">A atividade já nasce com uma demanda de voluntários com essa quantidade de vagas (0 = sem limite).</div>
+                    </div>
+
                     <div class="mb-4">
                         <label class="form-label small fw-bold text-secondary">DATA E HORA (INÍCIO)</label>
                         <input type="datetime-local" name="data_inicio" class="form-control" required>

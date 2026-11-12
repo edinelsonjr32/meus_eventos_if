@@ -36,6 +36,7 @@ class DemandaVoluntario extends Model
             'descricao' => 'Apoio à atividade "' . $a->titulo . '" (recepção, organização da sala, controle de presença).',
             'data_inicio' => $a->data_inicio, 'data_fim' => $a->data_fim, 'local_id' => $a->local_id,
             'carga_horaria' => max(0.5, (float) $a->carga_horaria), 'responsavel_nome' => $a->responsavel, 'automatica' => true,
+            'vagas' => $a->voluntarios_necessarios ?: null,
         ]);
     }
 
@@ -55,6 +56,9 @@ class DemandaVoluntario extends Model
             'data_inicio' => $a->data_inicio, 'data_fim' => $a->data_fim, 'local_id' => $a->local_id,
             'carga_horaria' => max(0.5, (float) $a->carga_horaria), 'responsavel_nome' => $a->responsavel,
         ];
+        if ($a->wasChanged('voluntarios_necessarios')) {
+            $campos['vagas'] = $a->voluntarios_necessarios ?: null;
+        }
         // o título só acompanha se o admin não o renomeou
         if ($d->titulo === self::tituloPara($a->getOriginal('titulo'))) {
             $campos['titulo'] = self::tituloPara($a->titulo);

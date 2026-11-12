@@ -52,6 +52,11 @@
                         <input id="vagas" type="number" name="vagas" class="form-control" min="0" value="{{ old('vagas', $atividade->vagas) }}" placeholder="0 = ilimitado">
                         <div class="form-text small">{{ $inscritos }} inscrito(s) hoje.</div>
                     </div>
+                    <div class="col-md-6">
+                        <label class="small fw-bold text-secondary" for="vn">Voluntários necessários</label>
+                        <input id="vn" type="number" name="voluntarios_necessarios" class="form-control" min="0" max="200" value="{{ old('voluntarios_necessarios', $atividade->voluntarios_necessarios) }}" placeholder="0 = sem limite">
+                        <div class="form-text small">Capacidade da demanda de voluntários desta atividade; vários voluntários podem ser vinculados.</div>
+                    </div>
                 </div>
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{{ route('admin.eventos.show', $evento->id) }}" class="btn btn-outline-secondary">Cancelar</a>
