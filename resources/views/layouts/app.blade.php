@@ -417,7 +417,7 @@
             </a>
 
             <a href="{{ route('propostas.minhas') }}" class="nav-link {{ request()->routeIs('propostas.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-chalkboard-user nav-ico"></i> Minhas Propostas
+                <i class="fa-solid fa-chalkboard-user nav-ico"></i> Propostas de Curso/Oficina
             </a>
 
             <a href="{{ route('voluntariado.meu') }}" class="nav-link {{ request()->routeIs('voluntariado.*') ? 'active' : '' }}">

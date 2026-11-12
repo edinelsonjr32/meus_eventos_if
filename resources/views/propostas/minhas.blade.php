@@ -1,6 +1,6 @@
 <x-app-layout>
     <div class="row justify-content-center"><div class="col-xl-10">
-        <h3 class="fw-bold mb-1">Minhas Propostas</h3>
+        <h3 class="fw-bold mb-1">Propostas de Curso/Oficina</h3>
         <p class="text-secondary mb-4">Proponha minicursos e oficinas para os eventos, acompanhe a análise e baixe o certificado de ministrante depois da atividade.</p>
 
         @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif

@@ -37,7 +37,7 @@ it('exige usuário autenticado e participante com CPF para propor', function () 
     expect(fn () => app(PropostaService::class)->enviar($semCadastro, $this->chamada, $this->dados))->toThrow(DomainException::class);
 });
 
-it('envia proposta pelo formulário, lista em Minhas Propostas e respeita o limite por usuário', function () {
+it('envia proposta pelo formulário, lista em Propostas de Curso/Oficina e respeita o limite por usuário', function () {
     $this->actingAs($this->autor)->get(route('propostas.create', $this->chamada))->assertOk();
     $this->post(route('propostas.store', $this->chamada), $this->dados + ['apoios' => [['nome' => 'Ajudante', 'email' => 'aj@x.com', 'cpf' => '529.982.247-25']]])->assertRedirect();
 
