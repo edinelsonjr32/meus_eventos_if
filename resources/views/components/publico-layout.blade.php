@@ -1,4 +1,4 @@
-@props(['titulo' => null, 'descricao' => null, 'marca' => '#059669', 'mascara' => false, 'ativo' => null, 'semMoldura' => false])
+@props(['titulo' => null, 'descricao' => null, 'marca' => '#059669', 'mascara' => false, 'ativo' => null, 'semMoldura' => false, 'imagem' => null, 'url' => null, 'tipo' => 'website', 'noindex' => false, 'jsonld' => null])
 {{--
   Moldura das páginas públicas (home, página do evento, Trabalhos Publicados): menu fixo, tokens de cor e rodapé completo.
   Uso: <x-publico-layout titulo="..." :marca="$cor"> ...conteúdo... </x-publico-layout>
@@ -9,8 +9,33 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $titulo ? $titulo . ' · ' : '' }}{{ config('app.name', 'Meus Eventos IF') }}</title>
-    @if($descricao)<meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags($descricao), 200) }}">@endif
+    @php
+        // SEO e pré-visualização de links (WhatsApp, Telegram, redes sociais): título, descrição, imagem e endereço canônico
+        $siteNome = config('app.name', 'Meus Eventos IF');
+        $descPadrao = 'Portal de eventos acadêmicos do IFPA Campus Óbidos: programação, inscrições, presença por QR Code, submissão de trabalhos, minicursos, voluntariado e certificados verificáveis.';
+        $descSeo = \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/u', ' ', $descricao ? \App\Support\HtmlSeguro::paraTexto($descricao) : $descPadrao)) ?: $descPadrao, 200);
+        $tituloSeo = $titulo ? $titulo . ' · ' . $siteNome : $siteNome . ' — Eventos acadêmicos do IFPA Campus Óbidos';
+        $absoluta = fn ($u) => $u ? (\Illuminate\Support\Str::startsWith($u, ['http://', 'https://']) ? $u : url($u)) : null;
+        $imagemSeo = $absoluta($imagem) ?: asset('og-padrao.png');
+        $canonica = $url ?: strtok(url()->current(), '?');
+    @endphp
+    <title>{{ $tituloSeo }}</title>
+    <meta name="description" content="{{ $descSeo }}">
+    <link rel="canonical" href="{{ $canonica }}">
+    <meta name="robots" content="{{ $noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' }}">
+    <meta property="og:site_name" content="{{ $siteNome }}">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:type" content="{{ $tipo }}">
+    <meta property="og:title" content="{{ $titulo ?: $siteNome . ' — Eventos acadêmicos do IFPA Campus Óbidos' }}">
+    <meta property="og:description" content="{{ $descSeo }}">
+    <meta property="og:url" content="{{ $canonica }}">
+    <meta property="og:image" content="{{ $imagemSeo }}">
+    <meta property="og:image:alt" content="{{ $titulo ?: $siteNome }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $titulo ?: $siteNome }}">
+    <meta name="twitter:description" content="{{ $descSeo }}">
+    <meta name="twitter:image" content="{{ $imagemSeo }}">
+    @if($jsonld)<script type="application/ld+json">{!! json_encode($jsonld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>@endif
     <meta name="theme-color" content="#064e3b">
     {{ $meta ?? '' }}
 

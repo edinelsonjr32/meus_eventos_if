@@ -1,5 +1,5 @@
 {{-- Telas de autenticação: mesmo menu, tipografia e rodapé das páginas públicas, com painel de marca ao lado do formulário --}}
-<x-publico-layout titulo="Acesso à plataforma" ativo="" :sem-moldura="true">
+<x-publico-layout titulo="Entrar ou criar conta" descricao="Acesse o Meus Eventos IF com sua conta para se inscrever em eventos, registrar presença, submeter trabalhos e baixar certificados do IFPA Campus Óbidos." ativo="" :sem-moldura="true" :noindex="true">
     <x-slot:estilos>
         <style>
             body { background: radial-gradient(900px 380px at 90% -5%, rgba(16,185,129,.10), transparent 70%), var(--bg); }

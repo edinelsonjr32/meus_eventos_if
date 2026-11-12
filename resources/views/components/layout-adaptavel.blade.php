@@ -1,9 +1,9 @@
-@props(['titulo' => null])
+@props(['titulo' => null, 'descricao' => null, 'imagem' => null, 'url' => null])
 {{-- Usa o layout da área logada para quem está logado e a moldura pública para visitantes (formulários abertos com aviso de login). --}}
 @auth
     <x-app-layout>{{ $slot }}</x-app-layout>
 @else
-    <x-publico-layout :titulo="$titulo" ativo="">
+    <x-publico-layout :titulo="$titulo" :descricao="$descricao" :imagem="$imagem" :url="$url" ativo="">
         <x-slot:estilos>
             <style>
                 body { background: radial-gradient(900px 380px at 90% -5%, rgba(16,185,129,.10), transparent 70%), var(--bg, #f8fafc); }

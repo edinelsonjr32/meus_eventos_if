@@ -10,9 +10,22 @@
     $mesmoDia = $evento->data_inicio->isSameDay($evento->data_fim);
     $periodo = $mesmoDia ? $evento->data_inicio->format('d/m/Y') : $evento->data_inicio->format('d/m') . ' a ' . $evento->data_fim->format('d/m/Y');
     $primeiroDia = $cronogramaPorDia->keys()->first();
+    // SEO / pré-visualização do link: período e local + começo da descrição do evento
+    $textoDescricao = \App\Support\HtmlSeguro::paraTexto($evento->descricao);
+    $descSeo = trim($periodo . ' · ' . $evento->local . '. ' . ($textoDescricao !== '' ? $textoDescricao : 'Programação, inscrição e informações do evento.'));
+    $imagemSeo = $bannerUrl ?: $logoUrl;
+    $jsonLd = [
+        '@context' => 'https://schema.org', '@type' => 'Event', 'name' => $evento->titulo,
+        'startDate' => $evento->data_inicio->toIso8601String(), 'endDate' => $evento->data_fim->toIso8601String(),
+        'eventStatus' => 'https://schema.org/EventScheduled', 'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+        'location' => ['@type' => 'Place', 'name' => $evento->local, 'address' => $evento->local],
+        'description' => \Illuminate\Support\Str::limit($textoDescricao !== '' ? preg_replace('/\s+/u', ' ', $textoDescricao) : $evento->titulo, 300),
+        'organizer' => ['@type' => 'Organization', 'name' => 'IFPA Campus Óbidos', 'url' => url('/')],
+        'url' => route('evento.publico.show', $evento->slug),
+    ] + ($imagemSeo ? ['image' => [\Illuminate\Support\Str::startsWith($imagemSeo, 'http') ? $imagemSeo : url($imagemSeo)]] : []);
     $fmtHoras = fn ($h) => rtrim(rtrim(number_format($h, 1, ',', ''), '0'), ',') . 'h';
 @endphp
-<x-publico-layout :titulo="$evento->titulo" :descricao="strip_tags($evento->descricao ?? 'Programação, inscrição e informações do evento.')" :marca="$cor" :mascara="true">
+<x-publico-layout :titulo="$evento->titulo" :descricao="$descSeo" :imagem="$imagemSeo" :url="route('evento.publico.show', $evento->slug)" :jsonld="$jsonLd" :marca="$cor" :mascara="true">
     <x-slot:estilos>
         <style>
             .ev-hero { position: relative; color: #fff; padding: 3.2rem 0 5.2rem; background: linear-gradient(135deg, var(--brand-deep), var(--brand-dark) 55%, var(--brand)); overflow: hidden; }

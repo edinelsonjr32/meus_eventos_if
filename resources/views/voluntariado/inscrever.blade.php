@@ -1,4 +1,4 @@
-<x-layout-adaptavel titulo="Seja voluntário(a)">
+<x-layout-adaptavel :titulo="$chamada->titulo" :descricao="\App\Support\HtmlSeguro::paraTexto($chamada->descricao) ?: ('Inscreva-se como voluntário(a) em ' . $chamada->evento->titulo . '.')" :imagem="$chamada->evento->bannerPublicoUrl() ?: $chamada->evento->logoPublicaUrl()" :url="route('voluntariado.create', $chamada)">
     <div class="row justify-content-center"><div class="col-xl-8">
         <div class="d-flex align-items-center gap-3 mb-4">
             <a href="{{ auth()->check() ? route('voluntariado.meu') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>

@@ -25,6 +25,8 @@ use App\Http\Controllers\ProfileController;
 */
 
 // Ícone do site (favicon)
+Route::get('/robots.txt', [\App\Http\Controllers\Publico\SeoController::class, 'robots'])->name('seo.robots');
+Route::get('/sitemap.xml', [\App\Http\Controllers\Publico\SeoController::class, 'sitemap'])->name('seo.sitemap');
 Route::get('/icone.svg', [\App\Http\Controllers\IconeController::class, 'svg'])->name('icone.svg');
 Route::get('/icone.png', [\App\Http\Controllers\IconeController::class, 'png'])->name('icone.png');
 

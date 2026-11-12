@@ -51,7 +51,7 @@
         'modoGestao' => $modoGestao,
     ];
 @endphp
-<x-layout-adaptavel titulo="Submissão de trabalhos">
+<x-layout-adaptavel :titulo="'Submissão de trabalhos — ' . $evento->titulo" :descricao="\App\Support\HtmlSeguro::paraTexto($config->chamada_intro) ?: ('Submeta seu trabalho acadêmico para ' . $evento->titulo . '.')" :imagem="$evento->bannerPublicoUrl() ?: $evento->logoPublicaUrl()" :url="route('trabalhos.create', $evento->slug)">
     <div class="row justify-content-center">
         <div class="col-xl-9">
 
