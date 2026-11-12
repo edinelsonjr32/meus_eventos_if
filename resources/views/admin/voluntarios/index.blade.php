@@ -11,7 +11,7 @@
     @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
     @if($errors->any()) <div class="alert alert-danger"><ul class="mb-0 ps-3">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div> @endif
 
-    <div x-data="{ aba: '{{ $errors->any() ? 'atividades' : 'inscritos' }}' }">
+    <div x-data="{ aba: '{{ session('aba', $errors->any() ? 'atividades' : 'inscritos') }}' }">
         <ul class="nav nav-pills mb-3 gap-1">
             <li class="nav-item"><button type="button" class="nav-link" :class="{ 'active': aba === 'inscritos' }" @click="aba = 'inscritos'" style="color:inherit"><i class="fa-solid fa-users me-1"></i> Inscritos ({{ $voluntarios->count() }})</button></li>
             <li class="nav-item"><button type="button" class="nav-link" :class="{ 'active': aba === 'atividades' }" @click="aba = 'atividades'" style="color:inherit"><i class="fa-solid fa-list-check me-1"></i> Atividades dos voluntários ({{ $demandas->count() }})</button></li>
@@ -64,7 +64,24 @@
                                     @if($d->local){{ $d->local }} · @endif{{ rtrim(rtrim(number_format($d->carga_horaria, 1, ',', ''), '0'), ',') }} h · {{ $d->voluntarios_count }}{{ $d->vagas ? '/' . $d->vagas : '' }} voluntário(s)
                                 </div>
                                 @if($d->responsavel_nome)<div class="small"><i class="fa-solid fa-user-tie me-1 text-success"></i> Responsável: <strong>{{ $d->responsavel_nome }}</strong>@if($d->responsavel_contato) · {{ $d->responsavel_contato }}@endif</div>@endif
-                                @if($d->voluntarios->isNotEmpty())<div class="mt-1">@foreach($d->voluntarios as $vol)<span class="sb sb-aluno me-1">{{ $vol->usuario->name }}</span>@endforeach</div>@endif
+                                <div class="mt-2">
+                                    @foreach($d->voluntarios as $vol)
+                                        <form action="{{ route('admin.voluntarios.desalocar', [$evento->id, $vol->id, $d->id]) }}" method="POST" class="d-inline">@csrf @method('DELETE')<input type="hidden" name="aba" value="atividades"><span class="sb sb-aluno me-1">{{ $vol->usuario->name }} <button class="btn p-0 border-0 bg-transparent ms-1" title="Remover da atividade" style="line-height:1"><i class="fa-solid fa-xmark"></i></button></span></form>
+                                    @endforeach
+                                    @php $disponiveis = $aprovados->whereNotIn('id', $d->voluntarios->pluck('id')); @endphp
+                                    @if($disponiveis->isNotEmpty())
+                                        <form action="{{ route('admin.voluntarios.demandas.alocar', [$evento->id, $d->id]) }}" method="POST" class="d-flex flex-wrap gap-2 mt-2">@csrf
+                                            <select name="voluntario_id" class="form-select form-select-sm" style="max-width:260px" required>
+                                                <option value="">Adicionar voluntário aprovado…</option>
+                                                @foreach($disponiveis as $ap)<option value="{{ $ap->id }}">{{ $ap->usuario->name }}</option>@endforeach
+                                            </select>
+                                            <div class="form-check d-flex align-items-center"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="dc{{ $d->id }}"><label class="form-check-label small" for="dc{{ $d->id }}">ignorar conflito de horário</label></div>
+                                            <button class="btn btn-sm btn-outline-success fw-bold"><i class="fa-solid fa-user-plus"></i> Adicionar</button>
+                                        </form>
+                                    @elseif($d->voluntarios->isEmpty())
+                                        <div class="small text-muted">Aprove voluntários na aba "Inscritos" para vinculá-los aqui.</div>
+                                    @endif
+                                </div>
                             </div>
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-sm btn-light border" @click="editar = !editar"><i class="fa-solid fa-pen"></i> Editar</button>
@@ -95,7 +112,7 @@
 
             @forelse($voluntarios as $vol)
                 @php $equipe = $certificados->get($vol->participante_id); @endphp
-                <div class="glass-card mb-3" x-data="{ aberto: false }">
+                <div class="glass-card mb-3" id="vol-{{ $vol->id }}" x-data="{ aberto: {{ session('abrir') == $vol->id ? 'true' : 'false' }} }">
                     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                         <div class="min-w-0">
                             <div class="fw-bold texto-quebra">{{ $vol->usuario->name }} <x-badge tipo="voluntario" :valor="$vol->status" /></div>

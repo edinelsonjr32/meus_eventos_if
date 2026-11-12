@@ -268,3 +268,49 @@ it('valida a chamada: tipo obrigatório, período coerente e descrição em text
     $c = ChamadaProposta::where('titulo', 'Chamada 2')->first();
     expect($c->descricao)->toContain('Prazo & regras')->and($c->descricao)->not->toContain('<p>')->and($c->descricao)->not->toContain('<script>');
 });
+
+it('proposta já decidida mostra o botão "Mudar status" e esconde o formulário até clicar', function () {
+    $svc = app(PropostaService::class);
+    $p = $svc->enviar($this->autor, $this->chamada, $this->dados);
+    $this->actingAs($this->admin);
+
+    // pendente: formulário direto, sem botão
+    $this->get(route('admin.propostas.show', [$this->evento, $p]))->assertOk()->assertDontSee('Mudar status')->assertSee('Registrar decisão');
+
+    $svc->decidir($p, $this->admin, 'aprovada', aprovacao());
+    $this->get(route('admin.propostas.show', [$this->evento, $p]))->assertOk()->assertSee('Mudar status')->assertSee('aberto: false', false);
+
+    $svc->decidir($p->fresh(), $this->admin, 'reprovada', ['parecer' => 'Fora do escopo']);
+    $this->get(route('admin.propostas.show', [$this->evento, $p]))->assertSee('Mudar status');
+
+    $svc->retirar(Proposta::find($p->id)->fill(['status' => 'enviada']));
+    $this->get(route('admin.propostas.show', [$this->evento, $p]))->assertDontSee('Registrar decisão')->assertSee('retirada pelo proponente');
+});
+
+it('admin vincula voluntário aprovado a uma atividade pelo cartão da atividade e a lista mostra o vínculo', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $svc = app(VoluntarioService::class);
+    $v = $svc->inscrever($this->autor, $ch, ['motivacao' => 'Quero ajudar no evento', 'disponibilidade' => 'Manhã']);
+    $d = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Recepção', 'vagas' => 2, 'carga_horaria' => 3]);
+    $this->actingAs($this->admin);
+
+    // ainda não aprovado: não é oferecido e a ação é recusada
+    $this->get(route('admin.voluntarios.index', $this->evento))->assertOk()->assertSee('Aprove voluntários');
+    $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $d]), ['voluntario_id' => $v->id])->assertSessionHas('error');
+
+    $svc->decidir($v, $this->admin, 'aprovado');
+    $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $d]), ['voluntario_id' => $v->id])->assertSessionHas('success')->assertSessionHas('aba', 'atividades');
+    expect($d->voluntarios()->count())->toBe(1);
+
+    // pelo cartão do voluntário o card permanece aberto
+    $outra = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Apoio', 'carga_horaria' => 2]);
+    $this->post(route('admin.voluntarios.alocar', [$this->evento, $v]), ['demanda_id' => $outra->id])->assertSessionHas('abrir', $v->id);
+
+    $this->delete(route('admin.voluntarios.desalocar', [$this->evento, $v, $d]), ['aba' => 'atividades'])->assertSessionHas('success');
+    expect($d->voluntarios()->count())->toBe(0);
+
+    // voluntário de outro evento não entra
+    $outroEv = mkEvento($this->admin);
+    $dOutro = DemandaVoluntario::create(['evento_id' => $outroEv->id, 'titulo' => 'X', 'carga_horaria' => 1]);
+    $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $dOutro]), ['voluntario_id' => $v->id])->assertNotFound();
+});

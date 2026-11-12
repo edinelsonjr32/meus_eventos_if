@@ -351,6 +351,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::put('voluntarios/demandas/{demanda}', [$v, 'updateDemanda'])->name('voluntarios.demandas.update');
         Route::delete('voluntarios/demandas/{demanda}', [$v, 'destroyDemanda'])->name('voluntarios.demandas.destroy');
         Route::post('voluntarios/{voluntario}/decisao', [$v, 'decisao'])->name('voluntarios.decisao');
+        Route::post('voluntarios/demandas/{demanda}/alocar', [$v, 'alocarNaDemanda'])->name('voluntarios.demandas.alocar');
         Route::post('voluntarios/{voluntario}/alocar', [$v, 'alocar'])->name('voluntarios.alocar');
         Route::delete('voluntarios/{voluntario}/demandas/{demanda}', [$v, 'desalocar'])->name('voluntarios.desalocar');
         Route::post('voluntarios/{voluntario}/certificado', [$v, 'certificado'])->name('voluntarios.certificado');

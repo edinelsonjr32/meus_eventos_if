@@ -83,10 +83,22 @@
             @endif
 
             {{-- Decisão --}}
-            <div class="glass-card" x-data="{ decisao: '{{ old('decisao', $proposta->status === 'aprovada' ? 'aprovada' : 'aprovada') }}' }">
+            @php $decidida = in_array($proposta->status, ['aprovada', 'reprovada', 'ajustes'], true); @endphp
+            <div class="glass-card" x-data="{ decisao: '{{ old('decisao', 'aprovada') }}', aberto: {{ ($errors->any() || old('decisao') || !$decidida) && $proposta->status !== 'retirada' ? 'true' : 'false' }} }">
                 <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-gavel me-1"></i> Decisão da organização</h6>
-                @if($proposta->parecer && $proposta->status !== 'enviada')<div class="alert alert-light border small texto-quebra"><strong>Última mensagem enviada:</strong><br>{{ $proposta->parecer }}</div>@endif
 
+                @if($proposta->status === 'retirada')
+                    <div class="alert alert-secondary small mb-0"><i class="fa-solid fa-ban me-1"></i> Proposta retirada pelo proponente: não há decisão a tomar.</div>
+                @else
+                    @if($decidida)
+                        <div class="small mb-3">Situação atual: <x-badge tipo="proposta" :valor="$proposta->status" />@if($proposta->decidido_em) <span class="text-muted ms-1">em {{ $proposta->decidido_em->format('d/m/Y H:i') }}</span>@endif</div>
+                    @endif
+                    @if($proposta->parecer && $proposta->status !== 'enviada')<div class="alert alert-light border small texto-quebra"><strong>Última mensagem enviada:</strong><br>{{ $proposta->parecer }}</div>@endif
+
+                    @if($decidida)
+                        <div x-show="!aberto"><button type="button" class="btn btn-outline-primary w-100 fw-bold" @click="aberto = true"><i class="fa-solid fa-arrows-rotate me-1"></i> Mudar status</button></div>
+                    @endif
+                    <div x-show="aberto" x-cloak>
                 <form action="{{ route('admin.propostas.decisao', [$evento->id, $proposta->id]) }}" method="POST">
                     @csrf
                     <select name="decisao" class="form-select mb-3" x-model="decisao">
@@ -115,6 +127,9 @@
                     <textarea name="parecer" rows="3" class="form-control form-control-sm mb-3" placeholder="Orientações, ajustes pedidos ou motivo da decisão">{{ old('parecer') }}</textarea>
                     <button class="btn btn-primary-custom w-100 fw-bold" onclick="return confirm('Registrar a decisão? O proponente será avisado por e-mail.')">Registrar decisão</button>
                 </form>
+                    @if($decidida)<button type="button" class="btn btn-link btn-sm text-secondary w-100 mt-1" @click="aberto = false">Cancelar</button>@endif
+                    </div>
+                @endif
             </div>
         </div>
     </div>

@@ -35,6 +35,7 @@ class VoluntarioGestaoController extends Controller
             'chamadas' => $evento->chamadasVoluntarios()->withCount('voluntarios')->latest()->get(),
             'voluntarios' => $voluntarios,
             'demandas' => $evento->demandasVoluntarios()->withCount('voluntarios')->with('voluntarios.usuario')->orderBy('data_inicio')->get(),
+            'aprovados' => Voluntario::with('usuario')->where('evento_id', $evento->id)->where('status', 'aprovado')->get()->sortBy(fn ($v) => $v->usuario->name)->values(),
             'atividades' => $evento->atividades()->orderBy('data_inicio')->get(),
             'contagem' => Voluntario::where('evento_id', $evento->id)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'status' => $status, 'certificados' => $certificados,
@@ -47,7 +48,7 @@ class VoluntarioGestaoController extends Controller
         $this->authorize('gerenciar', $evento);
         $evento->chamadasVoluntarios()->create($this->validarChamada($request) + ['criado_por' => $request->user()->id]);
 
-        return back()->with('success', 'Chamada de voluntários criada.');
+        return back()->with('aba', 'chamadas')->with('success', 'Chamada de voluntários criada.');
     }
 
     public function updateChamada(Request $request, Evento $evento, ChamadaVoluntario $chamada)
@@ -56,7 +57,7 @@ class VoluntarioGestaoController extends Controller
         abort_unless($chamada->evento_id === $evento->id, 404);
         $chamada->update($this->validarChamada($request));
 
-        return back()->with('success', 'Chamada atualizada.');
+        return back()->with('aba', 'chamadas')->with('success', 'Chamada atualizada.');
     }
 
     public function destroyChamada(Evento $evento, ChamadaVoluntario $chamada)
@@ -64,11 +65,11 @@ class VoluntarioGestaoController extends Controller
         $this->authorize('gerenciar', $evento);
         abort_unless($chamada->evento_id === $evento->id, 404);
         if ($chamada->voluntarios()->exists()) {
-            return back()->with('error', 'Esta chamada já tem inscritos. Desative-a em vez de excluir.');
+            return back()->with('aba', 'chamadas')->with('error', 'Esta chamada já tem inscritos. Desative-a em vez de excluir.');
         }
         $chamada->delete();
 
-        return back()->with('success', 'Chamada excluída.');
+        return back()->with('aba', 'chamadas')->with('success', 'Chamada excluída.');
     }
 
     // ---------- Seleção ----------
@@ -82,10 +83,10 @@ class VoluntarioGestaoController extends Controller
         try {
             $this->service->decidir($voluntario, $request->user(), $dados['status'], $dados['parecer'] ?? null);
         } catch (\DomainException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Situação do voluntário atualizada.');
+        return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('success', 'Situação do voluntário atualizada.');
     }
 
     // ---------- Demandas (atividades dos voluntários) ----------
@@ -94,7 +95,7 @@ class VoluntarioGestaoController extends Controller
         $this->authorize('gerenciar', $evento);
         $evento->demandasVoluntarios()->create($this->validarDemanda($request, $evento));
 
-        return back()->with('success', 'Atividade de voluntários criada.');
+        return back()->with('aba', 'atividades')->with('success', 'Atividade de voluntários criada.');
     }
 
     public function updateDemanda(Request $request, Evento $evento, DemandaVoluntario $demanda)
@@ -103,7 +104,7 @@ class VoluntarioGestaoController extends Controller
         abort_unless($demanda->evento_id === $evento->id, 404);
         $demanda->update($this->validarDemanda($request, $evento));
 
-        return back()->with('success', 'Atividade atualizada.');
+        return back()->with('aba', 'atividades')->with('success', 'Atividade atualizada.');
     }
 
     public function destroyDemanda(Evento $evento, DemandaVoluntario $demanda)
@@ -112,7 +113,7 @@ class VoluntarioGestaoController extends Controller
         abort_unless($demanda->evento_id === $evento->id, 404);
         $demanda->delete();
 
-        return back()->with('success', 'Atividade excluída (os voluntários foram desvinculados).');
+        return back()->with('aba', 'atividades')->with('success', 'Atividade excluída (os voluntários foram desvinculados).');
     }
 
     public function alocar(Request $request, Evento $evento, Voluntario $voluntario)
@@ -125,10 +126,27 @@ class VoluntarioGestaoController extends Controller
         try {
             $this->service->alocar($voluntario, DemandaVoluntario::findOrFail($dados['demanda_id']), $request->boolean('ignorar_conflito'));
         } catch (\DomainException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Voluntário vinculado à atividade.');
+        return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('success', 'Voluntário vinculado à atividade.');
+    }
+
+    /** Vincula um voluntário aprovado a uma atividade, a partir do cartão da própria atividade. */
+    public function alocarNaDemanda(Request $request, Evento $evento, DemandaVoluntario $demanda)
+    {
+        $this->authorize('gerenciar', $evento);
+        abort_unless($demanda->evento_id === $evento->id, 404);
+
+        $dados = $request->validate(['voluntario_id' => ['required', Rule::exists('voluntarios', 'id')->where('evento_id', $evento->id)], 'ignorar_conflito' => 'nullable|boolean'], ['voluntario_id.required' => 'Escolha o voluntário.']);
+
+        try {
+            $this->service->alocar(Voluntario::findOrFail($dados['voluntario_id']), $demanda, $request->boolean('ignorar_conflito'));
+        } catch (\DomainException $e) {
+            return back()->with('aba', 'atividades')->with('error', $e->getMessage());
+        }
+
+        return back()->with('aba', 'atividades')->with('success', 'Voluntário vinculado à atividade.');
     }
 
     public function desalocar(Evento $evento, Voluntario $voluntario, DemandaVoluntario $demanda)
@@ -137,7 +155,7 @@ class VoluntarioGestaoController extends Controller
         abort_unless($voluntario->evento_id === $evento->id && $demanda->evento_id === $evento->id, 404);
         $this->service->desalocar($voluntario, $demanda);
 
-        return back()->with('success', 'Voluntário removido da atividade.');
+        return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('success', 'Voluntário removido da atividade.');
     }
 
     // ---------- Certificado ----------
@@ -151,10 +169,10 @@ class VoluntarioGestaoController extends Controller
         try {
             $this->service->emitirCertificado($voluntario, $request->user(), $request->filled('carga_horaria') ? (int) $request->carga_horaria : null);
         } catch (\DomainException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Certificado de voluntário gerado.');
+        return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('success', 'Certificado de voluntário gerado.');
     }
 
     private function validarChamada(Request $request): array
