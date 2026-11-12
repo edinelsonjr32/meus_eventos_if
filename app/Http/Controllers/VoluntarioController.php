@@ -33,15 +33,16 @@ class VoluntarioController extends Controller
             return redirect()->route('voluntariado.meu')->with('error', 'Complete seu cadastro (CPF) em "Minha Conta" antes de se inscrever.');
         }
 
-        return view('voluntariado.inscrever', ['chamada' => $chamada->load('evento'), 'participante' => $this->contas->daConta($request->user())]);
+        return view('voluntariado.inscrever', ['chamada' => $chamada->load('evento'), 'participante' => $this->contas->daConta($request->user()), 'dias' => $chamada->evento->diasDeVoluntariado()]);
     }
 
     public function store(Request $request, ChamadaVoluntario $chamada)
     {
         $dados = $request->validate([
-            'motivacao' => 'required|string|min:20|max:2000', 'disponibilidade' => 'required|string|max:1000',
+            'motivacao' => 'required|string|min:20|max:2000',
+            'disponibilidade' => 'required|array|min:1', 'disponibilidade.*' => 'array', 'disponibilidade.*.*' => [\Illuminate\Validation\Rule::in(array_keys(\App\Models\Voluntario::PERIODOS))],
             'habilidades' => 'nullable|string|max:1000', 'telefone' => 'nullable|string|max:30',
-        ], ['motivacao.required' => 'Conte por que você quer ser voluntário(a).', 'motivacao.min' => 'Escreva um pouco mais (pelo menos 20 caracteres).', 'disponibilidade.required' => 'Informe os dias e horários em que você pode ajudar.']);
+        ], ['motivacao.required' => 'Conte por que você quer ser voluntário(a).', 'motivacao.min' => 'Escreva um pouco mais (pelo menos 20 caracteres).', 'disponibilidade.required' => 'Marque os dias e períodos em que você pode ajudar.', 'disponibilidade.min' => 'Marque ao menos um dia e período em que você pode ajudar.', 'disponibilidade.*.*.in' => 'Período de disponibilidade inválido.']);
 
         try {
             $this->service->inscrever($request->user(), $chamada, $dados);

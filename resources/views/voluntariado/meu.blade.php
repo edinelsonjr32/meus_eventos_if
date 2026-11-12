@@ -36,6 +36,7 @@
                     <div class="min-w-0"><div class="fw-bold texto-quebra">{{ $i->evento->titulo }}</div><div class="small text-secondary">{{ $i->chamada->titulo }} · inscrita em {{ $i->created_at->format('d/m/Y') }}</div></div>
                     <x-badge tipo="voluntario" :valor="$i->status" />
                 </div>
+                @if($i->disponibilidadeResumo())<div class="small text-secondary mt-2"><i class="fa-regular fa-calendar-check me-1"></i> <strong>Sua disponibilidade:</strong> {{ $i->disponibilidadeResumo() }}</div>@endif
                 @if($i->parecer)<div class="alert alert-light border small mt-3 mb-0 texto-quebra"><strong>Mensagem da organização:</strong> {{ $i->parecer }}</div>@endif
 
                 @if($i->status === 'aprovado')

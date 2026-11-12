@@ -28,8 +28,15 @@ class VoluntarioService
             throw new \DomainException('Complete seu cadastro (CPF) em "Minha Conta" antes de se inscrever como voluntário.');
         }
 
+        $disponibilidade = $this->normalizarDisponibilidade($dados['disponibilidade'] ?? []);
+        $diasValidos = $chamada->evento->diasDeVoluntariado()->all();
+        $disponibilidade = array_intersect_key($disponibilidade, array_flip($diasValidos));
+        if ($disponibilidade === []) {
+            throw new \DomainException('Marque ao menos um dia e período em que você pode ajudar.');
+        }
+
         $campos = [
-            'motivacao' => $dados['motivacao'] ?? null, 'disponibilidade' => $dados['disponibilidade'] ?? null,
+            'motivacao' => $dados['motivacao'] ?? null, 'disponibilidade' => null, 'disponibilidade_dias' => $disponibilidade,
             'habilidades' => $dados['habilidades'] ?? null, 'telefone' => $dados['telefone'] ?? null,
         ];
 
@@ -44,6 +51,21 @@ class VoluntarioService
         }
 
         return Voluntario::create($campos + ['chamada_id' => $chamada->id, 'evento_id' => $chamada->evento_id, 'user_id' => $user->id, 'participante_id' => $participante->id, 'status' => 'inscrito']);
+    }
+
+    /** Mantém só dias com períodos válidos: ["2026-11-12" => ["manha", "tarde"]]. */
+    public function normalizarDisponibilidade(mixed $entrada): array
+    {
+        $saida = [];
+        foreach ((array) $entrada as $dia => $periodos) {
+            $validos = array_values(array_intersect(array_keys(Voluntario::PERIODOS), (array) $periodos));
+            if ($validos && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $dia)) {
+                $saida[$dia] = $validos;
+            }
+        }
+        ksort($saida);
+
+        return $saida;
     }
 
     public function desistir(Voluntario $voluntario): void
@@ -99,6 +121,12 @@ class VoluntarioService
         }
         if ($demanda->vagas !== null && $demanda->voluntarios()->count() >= $demanda->vagas) {
             throw new \DomainException('Todas as vagas desta atividade já estão preenchidas.');
+        }
+
+        if (!$ignorarConflito) {
+            if ($faltas = $voluntario->faltaDisponibilidade($demanda)) {
+                throw new \DomainException('Fora da disponibilidade informada pelo voluntário: ele não marcou ' . implode(', ', $faltas) . '. Marque "ignorar conflito" para vincular mesmo assim.');
+            }
         }
 
         if (!$ignorarConflito && $demanda->data_inicio && $demanda->data_fim) {

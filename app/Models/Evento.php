@@ -211,6 +211,28 @@ class Evento extends Model
         return $this->hasMany(Local::class)->orderBy('nome');
     }
 
+    /** Dias em que o voluntário pode marcar disponibilidade: período do evento + dias das demandas de voluntários (máx. 31). */
+    public function diasDeVoluntariado(): \Illuminate\Support\Collection
+    {
+        $dias = collect();
+        if ($this->data_inicio) {
+            $fim = ($this->data_fim ?? $this->data_inicio)->copy()->startOfDay();
+            for ($d = $this->data_inicio->copy()->startOfDay(); $d->lte($fim) && $dias->count() < 31; $d->addDay()) {
+                $dias->push($d->format('Y-m-d'));
+            }
+        }
+
+        return $dias->merge($this->demandasVoluntarios()->whereNotNull('data_inicio')->get()->flatMap(function ($dm) {
+            $fim = ($dm->data_fim ?? $dm->data_inicio)->copy()->startOfDay();
+            $r = [];
+            for ($d = $dm->data_inicio->copy()->startOfDay(); $d->lte($fim) && count($r) < 7; $d->addDay()) {
+                $r[] = $d->format('Y-m-d');
+            }
+
+            return $r;
+        }))->unique()->sort()->values();
+    }
+
     public function chamadasPropostas()
     {
         return $this->hasMany(ChamadaProposta::class);

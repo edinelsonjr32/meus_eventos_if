@@ -66,16 +66,16 @@
                                 @if($d->responsavel_nome)<div class="small"><i class="fa-solid fa-user-tie me-1 text-success"></i> Responsável: <strong>{{ $d->responsavel_nome }}</strong>@if($d->responsavel_contato) · {{ $d->responsavel_contato }}@endif</div>@endif
                                 <div class="mt-2">
                                     @foreach($d->voluntarios as $vol)
-                                        <form action="{{ route('admin.voluntarios.desalocar', [$evento->id, $vol->id, $d->id]) }}" method="POST" class="d-inline">@csrf @method('DELETE')<input type="hidden" name="aba" value="atividades"><span class="sb sb-aluno me-1">{{ $vol->usuario->name }} <button class="btn p-0 border-0 bg-transparent ms-1" title="Remover da atividade" style="line-height:1"><i class="fa-solid fa-xmark"></i></button></span></form>
+                                        <form action="{{ route('admin.voluntarios.desalocar', [$evento->id, $vol->id, $d->id]) }}" method="POST" class="d-inline">@csrf @method('DELETE')<input type="hidden" name="aba" value="atividades"><span class="sb sb-aluno me-1" title="{{ $vol->faltaDisponibilidade($d) ? 'Fora da disponibilidade informada' : '' }}">{{ $vol->usuario->name }}{{ $vol->faltaDisponibilidade($d) ? ' ⚠' : '' }} <button class="btn p-0 border-0 bg-transparent ms-1" title="Remover da atividade" style="line-height:1"><i class="fa-solid fa-xmark"></i></button></span></form>
                                     @endforeach
                                     @php $disponiveis = $aprovados->whereNotIn('id', $d->voluntarios->pluck('id')); @endphp
                                     @if($disponiveis->isNotEmpty())
                                         <form action="{{ route('admin.voluntarios.demandas.alocar', [$evento->id, $d->id]) }}" method="POST" class="d-flex flex-wrap gap-2 mt-2">@csrf
                                             <select name="voluntario_id" class="form-select form-select-sm" style="max-width:260px" required>
                                                 <option value="">Adicionar voluntário aprovado…</option>
-                                                @foreach($disponiveis as $ap)<option value="{{ $ap->id }}">{{ $ap->usuario->name }}</option>@endforeach
+                                                @foreach($disponiveis as $ap)<option value="{{ $ap->id }}">{{ $ap->usuario->name }}{{ $ap->faltaDisponibilidade($d) ? ' ⚠ fora da disponibilidade' : '' }}</option>@endforeach
                                             </select>
-                                            <div class="form-check d-flex align-items-center"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="dc{{ $d->id }}"><label class="form-check-label small" for="dc{{ $d->id }}">ignorar conflito de horário</label></div>
+                                            <div class="form-check d-flex align-items-center"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="dc{{ $d->id }}"><label class="form-check-label small" for="dc{{ $d->id }}">ignorar conflito de horário/disponibilidade</label></div>
                                             <button class="btn btn-sm btn-outline-success fw-bold"><i class="fa-solid fa-user-plus"></i> Adicionar</button>
                                         </form>
                                     @elseif($d->voluntarios->isEmpty())
@@ -124,7 +124,7 @@
                     <div x-show="aberto" x-cloak class="mt-3">
                         <div class="row g-3 small">
                             <div class="col-md-4"><div class="fw-bold text-secondary">Motivação</div><div class="texto-quebra">{{ $vol->motivacao ?: '—' }}</div></div>
-                            <div class="col-md-4"><div class="fw-bold text-secondary">Disponibilidade</div><div class="texto-quebra">{{ $vol->disponibilidade ?: '—' }}</div></div>
+                            <div class="col-md-4"><div class="fw-bold text-secondary">Disponibilidade</div><div class="texto-quebra">{{ $vol->disponibilidadeResumo() ?: '—' }}</div></div>
                             <div class="col-md-4"><div class="fw-bold text-secondary">Habilidades</div><div class="texto-quebra">{{ $vol->habilidades ?: '—' }}</div></div>
                         </div>
                         <hr>
@@ -154,9 +154,9 @@
                                         <form action="{{ route('admin.voluntarios.alocar', [$evento->id, $vol->id]) }}" method="POST" class="d-flex flex-wrap gap-2 mt-2">@csrf
                                             <select name="demanda_id" class="form-select form-select-sm" style="max-width:260px" required>
                                                 <option value="">Vincular a uma atividade…</option>
-                                                @foreach($demandas->whereNotIn('id', $vol->demandas->pluck('id')) as $d)<option value="{{ $d->id }}">{{ $d->titulo }}@if($d->data_inicio) ({{ $d->data_inicio->format('d/m H:i') }})@endif</option>@endforeach
+                                                @foreach($demandas->whereNotIn('id', $vol->demandas->pluck('id')) as $d)<option value="{{ $d->id }}">{{ $d->titulo }}{{ $d->data_inicio ? ' (' . $d->data_inicio->format('d/m H:i') . ')' : '' }}{{ $vol->faltaDisponibilidade($d) ? ' ⚠ fora da disponibilidade' : '' }}</option>@endforeach
                                             </select>
-                                            <div class="form-check d-flex align-items-center"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="ci{{ $vol->id }}"><label class="form-check-label small" for="ci{{ $vol->id }}">ignorar conflito de horário</label></div>
+                                            <div class="form-check d-flex align-items-center"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="ci{{ $vol->id }}"><label class="form-check-label small" for="ci{{ $vol->id }}">ignorar conflito de horário/disponibilidade</label></div>
                                             <button class="btn btn-sm btn-outline-success fw-bold"><i class="fa-solid fa-link"></i> Vincular</button>
                                         </form>
                                     @endif

@@ -141,13 +141,13 @@ it('voluntário se inscreve, é aprovado, vinculado a demanda (sem choque de hor
     $svc = app(VoluntarioService::class);
 
     $this->actingAs($this->autor)->get(route('voluntariado.create', $ch))->assertOk();
-    $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar na organização do evento', 'disponibilidade' => 'Manhãs'])->assertRedirect();
+    $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar na organização do evento', 'disponibilidade' => [now()->format('Y-m-d') => ['manha', 'tarde']]])->assertRedirect();
     $v = Voluntario::first();
     expect($v->status)->toBe('inscrito');
-    expect(fn () => $svc->inscrever($this->autor, $ch, ['motivacao' => 'x', 'disponibilidade' => 'y']))->toThrow(DomainException::class);
+    expect(fn () => $svc->inscrever($this->autor, $ch, ['motivacao' => 'x', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]]))->toThrow(DomainException::class);
 
-    $d1 = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Credenciamento', 'data_inicio' => now()->subDay()->setTime(8, 0), 'data_fim' => now()->subDay()->setTime(12, 0), 'local' => 'Hall', 'vagas' => 2, 'carga_horaria' => 4, 'responsavel_nome' => 'Servidor Fulano', 'responsavel_contato' => '9999']);
-    $d2 = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Apoio sala', 'data_inicio' => now()->subDay()->setTime(10, 0), 'data_fim' => now()->subDay()->setTime(14, 0), 'vagas' => 2, 'carga_horaria' => 4]);
+    $d1 = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Credenciamento', 'data_inicio' => now()->setTime(8, 0), 'data_fim' => now()->setTime(12, 0), 'local' => 'Hall', 'vagas' => 2, 'carga_horaria' => 4, 'responsavel_nome' => 'Servidor Fulano', 'responsavel_contato' => '9999']);
+    $d2 = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Apoio sala', 'data_inicio' => now()->setTime(10, 0), 'data_fim' => now()->setTime(14, 0), 'vagas' => 2, 'carga_horaria' => 4]);
 
     expect(fn () => $svc->alocar($v, $d1))->toThrow(DomainException::class, 'aprovados');
     $svc->decidir($v, $this->admin, 'aprovado');
@@ -168,8 +168,8 @@ it('respeita o limite de vagas da chamada de voluntários e remove vínculos ao 
     $outro = mkUser('user');
     Participante::create(['user_id' => $outro->id, 'nome_completo' => 'Outro', 'cpf' => '529.982.247-25', 'email' => $outro->email, 'tipo_vinculo' => 'externo']);
 
-    $v1 = $svc->inscrever($this->autor, $ch, ['motivacao' => 'a', 'disponibilidade' => 'b']);
-    $v2 = $svc->inscrever($outro, $ch, ['motivacao' => 'a', 'disponibilidade' => 'b']);
+    $v1 = $svc->inscrever($this->autor, $ch, ['motivacao' => 'a', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]]);
+    $v2 = $svc->inscrever($outro, $ch, ['motivacao' => 'a', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]]);
     $svc->decidir($v1, $this->admin, 'aprovado');
     expect(fn () => $svc->decidir($v2, $this->admin, 'aprovado'))->toThrow(DomainException::class);
 
@@ -297,7 +297,7 @@ it('proposta já decidida mostra o botão "Mudar status" e esconde o formulário
 it('admin vincula voluntário aprovado a uma atividade pelo cartão da atividade e a lista mostra o vínculo', function () {
     $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
     $svc = app(VoluntarioService::class);
-    $v = $svc->inscrever($this->autor, $ch, ['motivacao' => 'Quero ajudar no evento', 'disponibilidade' => 'Manhã']);
+    $v = $svc->inscrever($this->autor, $ch, ['motivacao' => 'Quero ajudar no evento', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]]);
     $d = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Recepção', 'vagas' => 2, 'carga_horaria' => 3]);
     $this->actingAs($this->admin);
 
@@ -320,4 +320,56 @@ it('admin vincula voluntário aprovado a uma atividade pelo cartão da atividade
     $outroEv = mkEvento($this->admin);
     $dOutro = DemandaVoluntario::create(['evento_id' => $outroEv->id, 'titulo' => 'X', 'carga_horaria' => 1]);
     $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $dOutro]), ['voluntario_id' => $v->id])->assertNotFound();
+});
+
+it('disponibilidade é escolhida em dias e períodos (não texto): valida, filtra dias inválidos e mostra o resumo', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $hoje = now()->format('Y-m-d');
+    $this->actingAs($this->autor)->get(route('voluntariado.create', $ch))->assertOk()->assertSee('name="disponibilidade[' . $hoje . '][]"', false)->assertDontSee('<textarea name="disponibilidade"', false);
+
+    $envia = fn (array $d) => $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar no evento todo'] + $d);
+    $envia([])->assertSessionHasErrors('disponibilidade');
+    $envia(['disponibilidade' => 'toda manhã'])->assertSessionHasErrors('disponibilidade');
+    $envia(['disponibilidade' => [$hoje => ['madrugada']]])->assertSessionHasErrors('disponibilidade.*.*');
+    expect(Voluntario::count())->toBe(0);
+
+    // dia fora do evento é descartado; se sobrar nada, recusa
+    $envia(['disponibilidade' => ['2030-01-01' => ['manha']]])->assertSessionHas('error');
+    $envia(['disponibilidade' => [$hoje => ['tarde', 'manha'], '2030-01-01' => ['noite']]])->assertSessionHas('success');
+
+    $v = Voluntario::first();
+    expect($v->disponibilidade_dias)->toBe([$hoje => ['manha', 'tarde']]);
+    $this->get(route('voluntariado.meu'))->assertSee('Sua disponibilidade')->assertSee(now()->format('d/m') . ': manhã, tarde');
+});
+
+it('vincular voluntário a demanda fora da disponibilidade informada é barrado, a menos que o admin ignore', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $svc = app(VoluntarioService::class);
+    $hoje = now()->format('Y-m-d');
+    $v = $svc->inscrever($this->autor, $ch, ['motivacao' => 'Quero ajudar', 'disponibilidade' => [$hoje => ['manha'], now()->addDay()->format('Y-m-d') => ['tarde']]]);
+    $svc->decidir($v, $this->admin, 'aprovado');
+    $mk = fn (string $t, $ini, $fim) => DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => $t, 'data_inicio' => $ini, 'data_fim' => $fim, 'carga_horaria' => 2]);
+
+    // dentro: manhã de hoje; fronteira exata (12h) não invade a tarde
+    $svc->alocar($v->fresh(), $mk('Manhã ok', now()->setTime(9, 0), now()->setTime(12, 0)));
+    // tarde de hoje: não marcada
+    $tarde = $mk('Tarde hoje', now()->setTime(14, 0), now()->setTime(16, 0));
+    expect(fn () => $svc->alocar($v->fresh(), $tarde))->toThrow(DomainException::class, 'Fora da disponibilidade');
+    // atravessa manhã e tarde de hoje
+    $meio = $mk('Cruza', now()->setTime(11, 0), now()->setTime(13, 0));
+    expect(fn () => $svc->alocar($v->fresh(), $meio))->toThrow(DomainException::class, now()->format('d/m') . ' (tarde)');
+    // outro dia: tarde marcada, manhã não
+    expect(fn () => $svc->alocar($v->fresh(), $mk('Amanhã manhã', now()->addDay()->setTime(8, 0), now()->addDay()->setTime(10, 0))))->toThrow(DomainException::class);
+    $svc->alocar($v->fresh(), $mk('Amanhã tarde', now()->addDay()->setTime(14, 0), now()->addDay()->setTime(16, 0)));
+    // demanda sem horário não tem o que comparar
+    $svc->alocar($v->fresh(), DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Sem horário', 'carga_horaria' => 1]));
+
+    // admin ignora conscientemente
+    $svc->alocar($v->fresh(), $tarde, true);
+    expect($v->fresh()->demandas()->count())->toBe(4);
+
+    // a tela sinaliza as opções fora da disponibilidade
+    $outra = $mk('Noite', now()->setTime(19, 0), now()->setTime(21, 0));
+    $this->actingAs($this->admin)->get(route('admin.voluntarios.index', $this->evento))->assertSee('Noite (' . now()->format('d/m') . ' 19:00) ⚠ fora da disponibilidade', false);
+    $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $outra]), ['voluntario_id' => $v->id])->assertSessionHas('error');
 });
