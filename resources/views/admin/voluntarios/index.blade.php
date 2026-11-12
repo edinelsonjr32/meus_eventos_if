@@ -67,29 +67,7 @@
                                     @if($d->local){{ $d->local }} · @endif{{ rtrim(rtrim(number_format($d->carga_horaria, 1, ',', ''), '0'), ',') }} h · {{ $d->voluntarios_count }}{{ $d->vagas ? '/' . $d->vagas : '' }} voluntário(s){{ $d->vagas && $d->voluntarios_count >= $d->vagas ? ' · completa' : '' }}
                                 </div>
                                 @if($d->responsavel_nome)<div class="small"><i class="fa-solid fa-user-tie me-1 text-success"></i> Responsável: <strong>{{ $d->responsavel_nome }}</strong>@if($d->responsavel_contato) · {{ $d->responsavel_contato }}@endif</div>@endif
-                                <div class="mt-2">
-                                    @foreach($d->voluntarios as $vol)
-                                        <form action="{{ route('admin.voluntarios.desalocar', [$evento->id, $vol->id, $d->id]) }}" method="POST" class="d-inline">@csrf @method('DELETE')<input type="hidden" name="aba" value="atividades"><span class="sb sb-aluno me-1" title="{{ $vol->faltaDisponibilidade($d) ? 'Fora da disponibilidade informada' : '' }}">{{ $vol->usuario->name }}{{ $vol->faltaDisponibilidade($d) ? ' ⚠' : '' }} <button class="btn p-0 border-0 bg-transparent ms-1" title="Remover da atividade" style="line-height:1"><i class="fa-solid fa-xmark"></i></button></span></form>
-                                    @endforeach
-                                    @php $disponiveis = $aprovados->whereNotIn('id', $d->voluntarios->pluck('id')); @endphp
-                                    @if($disponiveis->isNotEmpty())
-                                        <form action="{{ route('admin.voluntarios.demandas.alocar', [$evento->id, $d->id]) }}" method="POST" class="mt-2" x-data="{ aberto: false }">@csrf
-                                            <button type="button" class="btn btn-sm btn-outline-success fw-bold" @click="aberto = !aberto"><i class="fa-solid fa-user-plus"></i> Adicionar voluntários</button>
-                                            <div x-show="aberto" x-cloak class="border rounded-3 p-2 mt-2 bg-white" style="max-width:420px">
-                                                <div class="small text-muted mb-1">Marque quantos quiser{{ $d->vagas ? ' (restam ' . max(0, $d->vagas - $d->voluntarios->count()) . ' vaga(s))' : '' }}:</div>
-                                                @foreach($disponiveis as $ap)
-                                                    <div class="form-check"><input class="form-check-input" type="checkbox" name="voluntario_ids[]" value="{{ $ap->id }}" id="v{{ $d->id }}-{{ $ap->id }}"><label class="form-check-label small" for="v{{ $d->id }}-{{ $ap->id }}">{{ $ap->usuario->name }}{{ $ap->faltaDisponibilidade($d) ? ' ⚠ fora da disponibilidade' : '' }}</label></div>
-                                                @endforeach
-                                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
-                                                    <div class="form-check mb-0"><input class="form-check-input me-1" type="checkbox" name="ignorar_conflito" value="1" id="dc{{ $d->id }}"><label class="form-check-label small" for="dc{{ $d->id }}">ignorar conflito de horário/disponibilidade</label></div>
-                                                    <button class="btn btn-sm btn-primary-custom ms-auto"><i class="fa-solid fa-link"></i> Vincular selecionados</button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    @elseif($d->voluntarios->isEmpty())
-                                        <div class="small text-muted">Aprove voluntários na aba "Inscritos" para vinculá-los aqui.</div>
-                                    @endif
-                                </div>
+                                @include('admin.voluntarios._vinculos', ['d' => $d, 'evento' => $evento, 'aprovados' => $aprovados])
                             </div>
                             <div class="d-flex gap-2 align-items-start">
                                 <button type="button" class="btn btn-sm btn-light border" @click="editar = !editar"><i class="fa-solid fa-pen"></i> Editar</button>

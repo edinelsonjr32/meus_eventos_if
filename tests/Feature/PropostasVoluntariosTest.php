@@ -474,3 +474,27 @@ it('uma atividade aceita vários voluntários: define a quantidade, vincula vár
     $this->put(route('admin.atividades.update', $at), ['titulo' => 'Feira', 'tipo' => 'oficina', 'data_inicio' => $dia->format('Y-m-d\TH:i'), 'carga_horaria' => 2, 'vagas' => 40, 'voluntarios_necessarios' => 5])->assertSessionHasNoErrors();
     expect($d->fresh()->vagas)->toBe(5);
 });
+
+it('a tela de edição da atividade permite ver, adicionar e remover os voluntários vinculados', function () {
+    $this->actingAs($this->admin);
+    $dia = now()->addDay()->setTime(9, 0);
+    $this->post(route('admin.eventos.atividades.store', $this->evento), ['titulo' => 'Mostra', 'tipo' => 'oficina', 'data_inicio' => $dia->format('Y-m-d\TH:i'), 'carga_horaria' => 2, 'vagas' => 20, 'voluntarios_necessarios' => 2]);
+    $at = Atividade::where('titulo', 'Mostra')->first();
+    $d = DemandaVoluntario::where('atividade_id', $at->id)->first();
+
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $svc = app(VoluntarioService::class);
+    $v = $svc->inscrever($this->autor, $ch, ['motivacao' => 'Quero ajudar', 'disponibilidade' => [$dia->format('Y-m-d') => ['manha']]]);
+    $svc->decidir($v, $this->admin, 'aprovado');
+
+    $this->get(route('admin.atividades.edit', $at))->assertOk()->assertSee('Voluntários da atividade')->assertSee('Adicionar voluntários')->assertSee('Nenhum voluntário vinculado');
+    $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $d]), ['voluntario_ids' => [$v->id]])->assertSessionHas('success');
+    $this->get(route('admin.atividades.edit', $at))->assertSee('Remover')->assertSee($this->autor->name);
+
+    $this->delete(route('admin.voluntarios.desalocar', [$this->evento, $v, $d]))->assertSessionHas('success');
+    expect($d->voluntarios()->count())->toBe(0);
+
+    // atividade antiga sem demanda oferece criá-la
+    $d->delete();
+    $this->get(route('admin.atividades.edit', $at))->assertSee('Criar demanda de voluntários');
+});

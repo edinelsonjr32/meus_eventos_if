@@ -63,6 +63,19 @@
                     <button class="btn btn-success fw-bold px-4"><i class="fa-regular fa-floppy-disk"></i> Salvar alterações</button>
                 </div>
             </form>
+
+            {{-- Voluntários desta atividade --}}
+            <div class="glass-card bg-white mt-4">
+                <h6 class="fw-bold text-success mb-1"><i class="fa-solid fa-hand-holding-heart me-1"></i> Voluntários da atividade</h6>
+                @if($demanda)
+                    <p class="small text-muted mb-2">Vincule, remova ou troque os voluntários que apoiam esta atividade. Cada vínculo é conferido contra vagas, horário e a disponibilidade informada.</p>
+                    @include('admin.voluntarios._vinculos', ['d' => $demanda, 'evento' => $evento, 'aprovados' => $aprovados])
+                    <div class="small mt-2"><a href="{{ route('admin.voluntarios.index', $evento->id) }}">Gerenciar inscrições e demandas de voluntários</a></div>
+                @else
+                    <p class="small text-muted mb-2">Esta atividade ainda não tem demanda de voluntários.</p>
+                    <form action="{{ route('admin.voluntarios.demandas.gerar', $evento->id) }}" method="POST">@csrf<button class="btn btn-sm btn-outline-success fw-bold"><i class="fa-solid fa-wand-magic-sparkles"></i> Criar demanda de voluntários</button></form>
+                @endif
+            </div>
         </div>
     </div>
 </x-app-layout>

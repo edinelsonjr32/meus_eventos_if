@@ -97,6 +97,8 @@ class AtividadeController extends Controller
             'atividade' => $atividade,
             'evento' => $atividade->evento,
             'tipos' => self::TIPOS,
+            'demanda' => \App\Models\DemandaVoluntario::with('voluntarios.usuario')->where('atividade_id', $atividade->id)->first(),
+            'aprovados' => \App\Models\Voluntario::with('usuario')->where('evento_id', $atividade->evento_id)->where('status', 'aprovado')->get()->sortBy(fn ($v) => $v->usuario->name)->values(),
             'locais' => $atividade->evento->locais()->where(fn ($q) => $q->where('ativo', true)->orWhere('id', $atividade->local_id))->get(),
             'inscritos' => $atividade->inscritos()->count(),
             'equipe' => $atividade->evento->equipe()->with('participante')->get()->pluck('participante.nome_completo')->filter()->unique()->sort()->values(),
