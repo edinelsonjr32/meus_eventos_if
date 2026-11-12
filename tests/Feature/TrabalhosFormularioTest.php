@@ -423,6 +423,8 @@ it('edital da chamada (abertura e regulamento) usa editor de texto: HTML limpo, 
     // o formulário de submissão mostra a formatação
     $this->config->fresh()->update(['ativo' => true, 'submissao_inicio' => now()->subDay(), 'submissao_fim' => now()->addDay()]);
     $this->get(route('trabalhos.create', $this->evento->slug))->assertOk()->assertSee('<h2>Prazos</h2>', false)->assertSee('<li>Regra 1</li>', false);
+    // a página pública do evento (seção da chamada) também mostra a formatação do edital e o regulamento
+    $this->get(route('evento.publico.show', $this->evento->slug))->assertOk()->assertSee('<h2>Prazos</h2>', false)->assertSee('<li>Regra 1</li>', false)->assertSee('Regulamento e orientações de submissão');
 
     // limite conta só o texto visível: muitas tags não estouram, texto demais sim
     $this->put($url, array_merge($base, ['chamada_intro' => '<p>' . str_repeat('a', 5001) . '</p>']))->assertSessionHasErrors('chamada_intro');

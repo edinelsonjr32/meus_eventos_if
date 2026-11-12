@@ -64,6 +64,8 @@
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--ink-2); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
         h1, h2, h3, h4, h5 { color: var(--ink); letter-spacing: -.02em; }
         .container { max-width: 1180px; }
+        /* Texto formatado pelo editor (descrições, editais) */
+        .conteudo-rico { overflow-wrap: anywhere; } .conteudo-rico p { margin-bottom: .6rem; } .conteudo-rico ul, .conteudo-rico ol { padding-left: 1.25rem; margin-bottom: .6rem; } .conteudo-rico blockquote { border-left: 3px solid #cbd5e1; padding-left: .75rem; color: #475569; margin: .6rem 0; } .conteudo-rico > :last-child { margin-bottom: 0; } .conteudo-rico table { width: 100%; border-collapse: collapse; margin: .6rem 0; } .conteudo-rico td, .conteudo-rico th { border: 1px solid #cbd5e1; padding: .35rem .5rem; } .conteudo-rico h2 { font-size: 1.25rem; margin: .8rem 0 .4rem; } .conteudo-rico h3 { font-size: 1.1rem; margin: .7rem 0 .35rem; } .conteudo-rico h4 { font-size: 1rem; margin: .6rem 0 .3rem; } .conteudo-rico a { text-decoration: underline; }
 
         /* Menu */
         .pub-nav { position: sticky; top: 0; z-index: 1000; background: rgba(255,255,255,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
