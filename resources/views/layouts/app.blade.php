@@ -189,7 +189,7 @@
         }
 
         /* Texto livre (pareceres, mensagens): respeita as quebras e nunca estoura o cartão */
-        .conteudo-rico p { margin-bottom: .5rem; } .conteudo-rico ul, .conteudo-rico ol { padding-left: 1.25rem; margin-bottom: .5rem; } .conteudo-rico blockquote { border-left: 3px solid #cbd5e1; padding-left: .75rem; color: #475569; margin: .5rem 0; } .conteudo-rico > :last-child { margin-bottom: 0; } .conteudo-rico { overflow-wrap: anywhere; }
+        .conteudo-rico p { margin-bottom: .5rem; } .conteudo-rico ul, .conteudo-rico ol { padding-left: 1.25rem; margin-bottom: .5rem; } .conteudo-rico blockquote { border-left: 3px solid #cbd5e1; padding-left: .75rem; color: #475569; margin: .5rem 0; } .conteudo-rico > :last-child { margin-bottom: 0; } .conteudo-rico { overflow-wrap: anywhere; } .conteudo-rico table { width: 100%; border-collapse: collapse; margin: .5rem 0; } .conteudo-rico td, .conteudo-rico th { border: 1px solid #cbd5e1; padding: .35rem .5rem; } .conteudo-rico h2 { font-size: 1.25rem; margin: .75rem 0 .4rem; } .conteudo-rico h3 { font-size: 1.1rem; margin: .65rem 0 .35rem; } .conteudo-rico h4 { font-size: 1rem; margin: .6rem 0 .3rem; }
         .texto-quebra { white-space: pre-line; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
         .glass-card, .glass-card details { min-width: 0; }
 

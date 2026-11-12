@@ -600,6 +600,18 @@ class TrabalhoGestaoController extends Controller
     {
         $this->authorize('gerirTrabalhos', $evento);
 
+        // Edital e regulamento têm formatação (editor): HTML limpo no servidor (sem imagens/scripts); o tamanho conta o texto visível
+        $request->merge([
+            'chamada_intro' => \App\Support\HtmlSeguro::limparSemImagens($request->input('chamada_intro')),
+            'regras_texto' => \App\Support\HtmlSeguro::limparSemImagens($request->input('regras_texto')),
+        ]);
+        $tamanhoMax = fn (int $max, string $rotulo) => function ($a, $v, $fail) use ($max, $rotulo) {
+            $n = \App\Support\HtmlSeguro::tamanho((string) $v);
+            if ($n > $max) {
+                $fail("{$rotulo} pode ter no máximo {$max} caracteres de texto (atual: {$n}).");
+            }
+        };
+
         $dados = $request->validate([
             'acao' => ['nullable', Rule::in(['salvar', 'publicar'])],
             'ativo' => ['nullable', 'boolean'],
@@ -629,9 +641,9 @@ class TrabalhoGestaoController extends Controller
             'avaliacao_cega' => ['nullable', 'boolean'],
             'tipos_permitidos' => ['required', 'array', 'min:1'],
             'tipos_permitidos.*' => [Rule::in(array_keys(TrabalhoConfig::TIPOS))],
-            'regras_texto' => ['nullable', 'string', 'max:10000'],
+            'regras_texto' => ['nullable', 'string', 'max:100000', $tamanhoMax(10000, 'O regulamento')],
             'chamada_tema' => ['nullable', 'string', 'max:255'],
-            'chamada_intro' => ['nullable', 'string', 'max:5000'],
+            'chamada_intro' => ['nullable', 'string', 'max:50000', $tamanhoMax(5000, 'O texto de abertura')],
             'template_url' => ['nullable', 'url', 'max:500'],
             'exige_resumo' => ['nullable', 'boolean'],
             'exige_palavras_chave' => ['nullable', 'boolean'],

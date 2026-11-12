@@ -402,3 +402,29 @@ it('trabalho de um evento excluído continua abrindo em Meus Trabalhos e na pág
     $this->actingAs($this->usuario)->get(route('trabalhos.index'))->assertOk()->assertSee('Trabalho de evento apagado')->assertSee('X Semana de Ciência e Tecnologia');
     $this->get(route('trabalhos.show', $t))->assertOk()->assertSee('Trabalho de evento apagado');
 });
+
+it('edital da chamada (abertura e regulamento) usa editor de texto: HTML limpo, tabelas e títulos mantidos, imagens e scripts removidos, tamanho pelo texto visível', function () {
+    $gestor = mkUser();
+    mkPapel($gestor, $this->evento, 'gestor_trabalhos');
+    $base = ['max_autores' => 10, 'max_arquivo_mb' => 10, 'resumo_min_palavras' => 50, 'resumo_max_palavras' => 250, 'tipos_permitidos' => ['pesquisa'],
+        'avaliadores_por_trabalho' => 2, 'nota_minima_aprovacao' => 7, 'divergencia_maxima' => 3];
+    $url = route('gestao.trabalhos.config.update', $this->evento);
+    $this->actingAs($gestor);
+
+    // a página de configuração oferece o editor nos dois campos
+    $this->get(route('gestao.trabalhos.config', $this->evento))->assertOk()->assertSee('data-modo="intermediario"', false)->assertSee('name="chamada_intro"', false)->assertSee('name="regras_texto"', false);
+
+    $html = '<h2>Prazos</h2><table><tbody><tr><td>Envio</td><td>10/12</td></tr></tbody></table><p>Leia o <strong>edital</strong>.</p><script>x()</script><img src="https://x.test/a.png"><p onclick="x()">Fim</p>';
+    $this->put($url, array_merge($base, ['chamada_intro' => $html, 'regras_texto' => '<ul><li>Regra 1</li></ul>']))->assertSessionHasNoErrors();
+    $c = $this->config->fresh();
+    expect($c->chamada_intro)->toContain('<h2>Prazos</h2>')->toContain('<td>Envio</td>')->toContain('<strong>edital</strong>')->not->toContain('<script')->not->toContain('<img')->not->toContain('onclick')
+        ->and($c->regras_texto)->toContain('<li>Regra 1</li>');
+
+    // o formulário de submissão mostra a formatação
+    $this->config->fresh()->update(['ativo' => true, 'submissao_inicio' => now()->subDay(), 'submissao_fim' => now()->addDay()]);
+    $this->get(route('trabalhos.create', $this->evento->slug))->assertOk()->assertSee('<h2>Prazos</h2>', false)->assertSee('<li>Regra 1</li>', false);
+
+    // limite conta só o texto visível: muitas tags não estouram, texto demais sim
+    $this->put($url, array_merge($base, ['chamada_intro' => '<p>' . str_repeat('a', 5001) . '</p>']))->assertSessionHasErrors('chamada_intro');
+    $this->put($url, array_merge($base, ['chamada_intro' => str_repeat('<strong>a</strong>', 400)]))->assertSessionHasNoErrors();
+});

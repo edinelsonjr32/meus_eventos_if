@@ -73,8 +73,8 @@
                         <input type="text" name="chamada_tema" class="form-control" maxlength="255" value="{{ old('chamada_tema', $config->chamada_tema) }}" placeholder="Ex.: Planeta Amazônia: cultura das águas para enfrentar as mudanças climáticas">
                     </div>
                     <div class="mb-3">
-                        <label class="small fw-bold text-secondary">Texto de abertura</label>
-                        <textarea name="chamada_intro" rows="5" class="form-control" placeholder="Vazio usa o texto padrão: 'Este formulário destina-se à submissão de trabalhos para o evento ...'">{{ old('chamada_intro', $config->chamada_intro) }}</textarea>
+                        <label class="small fw-bold text-secondary">Texto de abertura (edital da chamada)</label>
+                        <x-editor-rico name="chamada_intro" :value="old('chamada_intro', $config->chamada_intro)" modo="intermediario" :altura="220" placeholder="Vazio usa o texto padrão: 'Este formulário destina-se à submissão de trabalhos para o evento ...'" />
                     </div>
                     <div>
                         <label class="small fw-bold text-secondary">Link do template do trabalho</label>
@@ -219,8 +219,8 @@
                 </div>
 
                 <div class="glass-card bg-white mb-4">
-                    <h6 class="fw-bold text-success mb-3">Regulamento (exibido no formulário)</h6>
-                    <textarea name="regras_texto" rows="8" class="form-control">{{ old('regras_texto', $config->regras_texto) }}</textarea>
+                    <h6 class="fw-bold text-success mb-3">Regulamento e orientações do edital (exibido no formulário)</h6>
+                    <x-editor-rico name="regras_texto" :value="old('regras_texto', $config->regras_texto)" modo="intermediario" :altura="320" placeholder="Orientações de submissão, regulamento, prazos, critérios..." />
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 justify-content-end mb-5">

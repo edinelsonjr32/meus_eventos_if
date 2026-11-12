@@ -43,6 +43,18 @@ class HtmlSeguro
         return self::limpar($limpo);
     }
 
+    /** Como limpar(), mas sem imagens: mantém títulos, listas, links e tabelas (editais e regulamentos). */
+    public static function limparSemImagens(?string $html): ?string
+    {
+        $limpo = self::limpar($html);
+        if ($limpo === null) {
+            return null;
+        }
+        $limpo = preg_replace(['~<img\b[^>]*>~i', '~</?(figure|figcaption)\b[^>]*>~i'], '', $limpo);
+
+        return self::limpar($limpo);
+    }
+
     /** Texto puro (sem tags nem entidades), com quebras de linha entre parágrafos: para contar caracteres ou guardar como texto. */
     public static function paraTexto(?string $html): string
     {

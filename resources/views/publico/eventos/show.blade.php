@@ -212,7 +212,7 @@
                     <section class="cartao ev-bloco" id="trabalhos">
                         <h2><i class="fa-solid fa-file-lines"></i> Chamada de trabalhos</h2>
                         @if($cfg->chamada_tema)<p class="fw-semibold mb-2" style="color: var(--brand-dark);">Tema: “{{ $cfg->chamada_tema }}”</p>@endif
-                        <p class="text-muted">{{ $cfg->chamada_intro ? \Illuminate\Support\Str::limit(strip_tags($cfg->chamada_intro), 320) : 'Envie o seu trabalho acadêmico para avaliação da comissão. Os aprovados e apresentados são publicados nos Trabalhos Publicados.' }}</p>
+                        <p class="text-muted">{{ $cfg->chamada_intro ? \Illuminate\Support\Str::limit(\App\Support\HtmlSeguro::paraTexto($cfg->chamada_intro), 320) : 'Envie o seu trabalho acadêmico para avaliação da comissão. Os aprovados e apresentados são publicados nos Trabalhos Publicados.' }}</p>
 
                         <div class="row g-3 mb-3">
                             <div class="col-sm-6"><div class="info-linha"><i class="fa-regular fa-calendar-check"></i><div><small>Período de submissão</small>{{ $cfg->submissao_inicio ? $cfg->submissao_inicio->format('d/m/Y') : 'já aberto' }} @if($cfg->submissao_fim) a {{ $cfg->submissao_fim->format('d/m/Y') }} @endif</div></div></div>

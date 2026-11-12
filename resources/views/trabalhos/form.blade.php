@@ -82,7 +82,7 @@
             {{-- Abertura (igual ao formulário original) --}}
             <div class="glass-card bg-white mb-4 @if($modoGestao) d-none @endif">
                 @if($config->chamada_intro)
-                    <div style="white-space: pre-line;">{{ $config->chamada_intro }}</div>
+                    <div class="conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($config->chamada_intro) !!}</div>
                 @else
                     <p>Este formulário destina-se à submissão de trabalhos para o evento <strong>{{ $evento->titulo }}</strong>@if($tema), que terá como tema <em>"{{ $tema }}"</em>@endif.</p>
                     <p>Se você tem uma proposta que se alinha a esse tema, preencha o formulário com os detalhes de seu trabalho. As propostas serão analisadas pela comissão organizadora e os selecionados terão a oportunidade de compartilhar seu conhecimento e experiência durante o evento.</p>
@@ -93,7 +93,7 @@
                 @if($config->regras_texto)
                     <details class="mb-2">
                         <summary class="fw-bold">Orientações de submissão e regulamento</summary>
-                        <div class="mt-2 small" style="white-space: pre-line;">{{ $config->regras_texto }}</div>
+                        <div class="mt-2 small conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($config->regras_texto) !!}</div>
                     </details>
                 @endif
                 <div class="small text-danger">* Indica uma pergunta obrigatória</div>

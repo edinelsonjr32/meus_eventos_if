@@ -5,8 +5,8 @@
 --}}
 @php $id = 'editor-' . $name; @endphp
 <div class="editor-rico" data-upload="{{ $uploadUrl }}" data-altura="{{ $altura }}" data-modo="{{ $modo }}">
-    <textarea name="{{ $name }}" id="{{ $id }}" class="form-control" rows="{{ $modo === 'simples' ? 5 : 10 }}" placeholder="{{ $placeholder }}">{{ $value }}</textarea>
-    @if($dica && $modo !== 'simples')<div class="editor-aviso small text-muted mt-2"><i class="fa-regular fa-lightbulb me-1"></i> Dica: arraste ou cole uma imagem direto no texto. Imagens até 4 MB (JPG, PNG, WebP ou GIF).</div>@endif
+    <textarea name="{{ $name }}" id="{{ $id }}" class="form-control" rows="{{ $modo === 'completo' ? 10 : 5 }}" placeholder="{{ $placeholder }}">{{ $value }}</textarea>
+    @if($dica && $modo === 'completo')<div class="editor-aviso small text-muted mt-2"><i class="fa-regular fa-lightbulb me-1"></i> Dica: arraste ou cole uma imagem direto no texto. Imagens até 4 MB (JPG, PNG, WebP ou GIF).</div>@endif
     <div class="alert alert-warning small mt-2 d-none editor-falha">Não foi possível carregar o editor de texto. Você ainda pode escrever no campo acima (texto simples).</div>
 </div>
 
@@ -30,8 +30,12 @@
 
                 var token = document.querySelector('meta[name="csrf-token"]');
                 var simples = caixa.dataset.modo === 'simples';
+                var intermediario = caixa.dataset.modo === 'intermediario';   // sem imagens nem código-fonte, com títulos e tabelas (editais, regulamentos)
                 var config = {
-                    toolbar: simples ? {
+                    toolbar: intermediario ? {
+                        items: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', 'underline', 'strikethrough', '|', 'fontColor', 'alignment', '|', 'bulletedList', 'numberedList', 'outdent', 'indent', '|', 'link', 'insertTable', 'blockQuote', 'horizontalLine', '|', 'removeFormat'],
+                        shouldNotGroupWhenFull: true
+                    } : simples ? {
                         items: ['undo', 'redo', '|', 'bold', 'italic', 'underline', '|', 'bulletedList', 'numberedList', '|', 'link', 'blockQuote', '|', 'removeFormat'],
                         shouldNotGroupWhenFull: true
                     } : {
