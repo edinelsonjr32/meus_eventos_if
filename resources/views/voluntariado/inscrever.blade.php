@@ -41,7 +41,7 @@
                 </div>
             </div>
             <div class="mb-3"><label class="small fw-bold">Habilidades ou experiências úteis</label><textarea name="habilidades" rows="2" class="form-control" placeholder="Ex.: fotografia, informática, atendimento ao público">{{ old('habilidades') }}</textarea></div>
-            <div class="mb-4"><label class="small fw-bold">Telefone / WhatsApp</label><input type="text" name="telefone" class="form-control" maxlength="30" value="{{ old('telefone') }}"></div>
+            <div class="mb-4"><label class="small fw-bold">Telefone / WhatsApp</label><input type="text" name="telefone" class="form-control" maxlength="15" value="{{ old('telefone') }}"></div>
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">
                 <a href="{{ route('voluntariado.meu') }}" class="btn btn-light fw-bold">Cancelar</a>
                 <button class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-hand-holding-heart me-1"></i> Enviar inscrição</button>

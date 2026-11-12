@@ -147,7 +147,7 @@ it('voluntário se inscreve, é aprovado, vinculado a demanda (sem choque de hor
     expect(fn () => $svc->inscrever($this->autor, $ch, ['motivacao' => 'x', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]]))->toThrow(DomainException::class);
 
     $d1 = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Credenciamento', 'data_inicio' => now()->setTime(8, 0), 'data_fim' => now()->setTime(12, 0), 'local' => 'Hall', 'vagas' => 2, 'carga_horaria' => 4, 'responsavel_nome' => 'Servidor Fulano', 'responsavel_contato' => '9999']);
-    $d2 = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Apoio sala', 'data_inicio' => now()->setTime(10, 0), 'data_fim' => now()->setTime(14, 0), 'vagas' => 2, 'carga_horaria' => 4]);
+    $d2 = DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Apoio sala', 'data_inicio' => now()->setTime(10, 0), 'data_fim' => now()->setTime(12, 0), 'vagas' => 2, 'carga_horaria' => 4]);
 
     expect(fn () => $svc->alocar($v, $d1))->toThrow(DomainException::class, 'aprovados');
     $svc->decidir($v, $this->admin, 'aprovado');
@@ -356,20 +356,36 @@ it('vincular voluntário a demanda fora da disponibilidade informada é barrado,
     $tarde = $mk('Tarde hoje', now()->setTime(14, 0), now()->setTime(16, 0));
     expect(fn () => $svc->alocar($v->fresh(), $tarde))->toThrow(DomainException::class, 'Fora da disponibilidade');
     // atravessa manhã e tarde de hoje
-    $meio = $mk('Cruza', now()->setTime(11, 0), now()->setTime(13, 0));
+    $meio = $mk('Cruza', now()->setTime(11, 0), now()->setTime(15, 0));
     expect(fn () => $svc->alocar($v->fresh(), $meio))->toThrow(DomainException::class, now()->format('d/m') . ' (tarde)');
     // outro dia: tarde marcada, manhã não
     expect(fn () => $svc->alocar($v->fresh(), $mk('Amanhã manhã', now()->addDay()->setTime(8, 0), now()->addDay()->setTime(10, 0))))->toThrow(DomainException::class);
     $svc->alocar($v->fresh(), $mk('Amanhã tarde', now()->addDay()->setTime(14, 0), now()->addDay()->setTime(16, 0)));
+    // trecho no almoço (12–14h) ou depois das 22h está fora do horário de disponibilidade
+    expect(fn () => $svc->alocar($v->fresh(), $mk('Almoço', now()->setTime(12, 0), now()->setTime(14, 0))))->toThrow(DomainException::class, 'fora do horário de disponibilidade');
+    expect(fn () => $svc->alocar($v->fresh(), $mk('Madrugada', now()->setTime(6, 0), now()->setTime(8, 0))))->toThrow(DomainException::class, 'fora do horário');
     // demanda sem horário não tem o que comparar
     $svc->alocar($v->fresh(), DemandaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Sem horário', 'carga_horaria' => 1]));
 
     // admin ignora conscientemente
     $svc->alocar($v->fresh(), $tarde, true);
     expect($v->fresh()->demandas()->count())->toBe(4);
+    expect(Voluntario::PERIODOS['manha']['faixa'])->toBe('08h–12h')->and(Voluntario::PERIODOS['tarde']['faixa'])->toBe('14h–18h')->and(Voluntario::PERIODOS['noite']['faixa'])->toBe('18h–22h');
 
     // a tela sinaliza as opções fora da disponibilidade
     $outra = $mk('Noite', now()->setTime(19, 0), now()->setTime(21, 0));
     $this->actingAs($this->admin)->get(route('admin.voluntarios.index', $this->evento))->assertSee('Noite (' . now()->format('d/m') . ' 19:00) ⚠ fora da disponibilidade', false);
     $this->post(route('admin.voluntarios.demandas.alocar', [$this->evento, $outra]), ['voluntario_id' => $v->id])->assertSessionHas('error');
+});
+
+it('máscaras automáticas estão nas telas de formulário e o telefone do voluntário exige DDD', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $this->actingAs($this->autor);
+    $this->get(route('voluntariado.create', $ch))->assertOk()->assertSee('__mascarasAutomaticas', false);
+    $this->get(route('evento.publico.show', $this->evento->slug))->assertOk()->assertSee('__mascarasAutomaticas', false);
+
+    $base = ['motivacao' => 'Quero ajudar no evento todo', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]];
+    $this->post(route('voluntariado.store', $ch), $base + ['telefone' => '12345'])->assertSessionHasErrors('telefone');
+    $this->post(route('voluntariado.store', $ch), $base + ['telefone' => '(93) 91234-5678'])->assertSessionHasNoErrors();
+    expect(Voluntario::first()->telefone)->toBe('(93) 91234-5678');
 });

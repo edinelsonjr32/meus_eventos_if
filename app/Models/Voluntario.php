@@ -17,11 +17,11 @@ class Voluntario extends Model
         'desistente' => 'Desistente',
     ];
 
-    /** Períodos do dia que o voluntário pode marcar (início e fim em horas, o fim é exclusivo). */
+    /** Horário comercial de disponibilidade (08–12, 14–18, 18–22); o fim é exclusivo. Fora dessas faixas ninguém pode se declarar disponível. */
     public const PERIODOS = [
-        'manha' => ['rotulo' => 'Manhã', 'faixa' => '06h–12h', 'de' => 6, 'ate' => 12],
-        'tarde' => ['rotulo' => 'Tarde', 'faixa' => '12h–18h', 'de' => 12, 'ate' => 18],
-        'noite' => ['rotulo' => 'Noite', 'faixa' => '18h–24h', 'de' => 18, 'ate' => 24],
+        'manha' => ['rotulo' => 'Manhã', 'faixa' => '08h–12h', 'de' => 8, 'ate' => 12],
+        'tarde' => ['rotulo' => 'Tarde', 'faixa' => '14h–18h', 'de' => 14, 'ate' => 18],
+        'noite' => ['rotulo' => 'Noite', 'faixa' => '18h–22h', 'de' => 18, 'ate' => 22],
     ];
 
     protected $fillable = ['chamada_id', 'evento_id', 'user_id', 'participante_id', 'motivacao', 'disponibilidade', 'disponibilidade_dias', 'habilidades', 'telefone', 'status', 'parecer', 'decidido_por', 'decidido_em'];
@@ -81,12 +81,21 @@ class Voluntario extends Model
         $faltas = [];
 
         for ($dia = $inicio->copy()->startOfDay(); $dia->lt($fim); $dia->addDay()) {
+            $total = max(0, $inicio->copy()->max($dia)->diffInMinutes($fim->copy()->min($dia->copy()->addDay()), false));
+            $coberto = 0;
             foreach (self::PERIODOS as $chave => $p) {
                 $de = $dia->copy()->addHours($p['de']);
                 $ate = $dia->copy()->addHours($p['ate']);
-                if ($inicio->lt($ate) && $fim->gt($de) && !in_array($chave, $this->disponibilidade_dias[$dia->format('Y-m-d')] ?? [], true)) {
-                    $faltas[] = $dia->format('d/m') . ' (' . mb_strtolower($p['rotulo']) . ')';
+                if ($inicio->lt($ate) && $fim->gt($de)) {
+                    $coberto += $inicio->copy()->max($de)->diffInMinutes($fim->copy()->min($ate));
+                    if (!in_array($chave, $this->disponibilidade_dias[$dia->format('Y-m-d')] ?? [], true)) {
+                        $faltas[] = $dia->format('d/m') . ' (' . mb_strtolower($p['rotulo']) . ')';
+                    }
                 }
+            }
+            // trecho da demanda fora do horário comercial: o voluntário não tem como ter marcado disponibilidade
+            if ($total - $coberto > 0) {
+                $faltas[] = $dia->format('d/m') . ' (fora do horário de disponibilidade: ' . collect(self::PERIODOS)->pluck('faixa')->implode(', ') . ')';
             }
         }
 

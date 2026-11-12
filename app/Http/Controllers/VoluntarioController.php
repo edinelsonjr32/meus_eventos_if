@@ -41,7 +41,8 @@ class VoluntarioController extends Controller
         $dados = $request->validate([
             'motivacao' => 'required|string|min:20|max:2000',
             'disponibilidade' => 'required|array|min:1', 'disponibilidade.*' => 'array', 'disponibilidade.*.*' => [\Illuminate\Validation\Rule::in(array_keys(\App\Models\Voluntario::PERIODOS))],
-            'habilidades' => 'nullable|string|max:1000', 'telefone' => 'nullable|string|max:30',
+            'habilidades' => 'nullable|string|max:1000',
+            'telefone' => ['nullable', 'string', 'max:20', function ($a, $v, $fail) { if ($v !== null && !in_array(strlen(preg_replace('/\D/', '', $v)), [10, 11], true)) { $fail('Informe o telefone com DDD, por exemplo (93) 91234-5678.'); } }],
         ], ['motivacao.required' => 'Conte por que você quer ser voluntário(a).', 'motivacao.min' => 'Escreva um pouco mais (pelo menos 20 caracteres).', 'disponibilidade.required' => 'Marque os dias e períodos em que você pode ajudar.', 'disponibilidade.min' => 'Marque ao menos um dia e período em que você pode ajudar.', 'disponibilidade.*.*.in' => 'Período de disponibilidade inválido.']);
 
         try {

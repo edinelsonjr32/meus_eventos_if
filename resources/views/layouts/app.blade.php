@@ -597,5 +597,6 @@
         document.querySelectorAll('#sidebar a.nav-link').forEach(a => a.addEventListener('click', () => document.getElementById('sidebar').classList.remove('active')));
     </script>
     <x-feedback />
+    <x-mascaras />
 </body>
 </html>
