@@ -38,15 +38,18 @@
 
         <div class="glass-card mb-4">
             <h6 class="fw-bold text-success mb-3">Resumo</h6>
-            <p class="texto-quebra">{{ $proposta->resumo }}</p>
+            <div class="conteudo-rico mb-3">{!! \App\Support\HtmlSeguro::paraExibir($proposta->resumo) !!}</div>
             <dl class="row small mb-0">
                 <dt class="col-sm-4 text-secondary">Carga horária prevista</dt><dd class="col-sm-8">{{ $proposta->carga_horaria_prevista }} h</dd>
                 <dt class="col-sm-4 text-secondary">Vagas sugeridas</dt><dd class="col-sm-8">{{ $proposta->vagas_sugeridas }}</dd>
                 <dt class="col-sm-4 text-secondary">Público-alvo</dt><dd class="col-sm-8">{{ $proposta->publico_alvo ?: '—' }}</dd>
                 <dt class="col-sm-4 text-secondary">Laboratório/espaço</dt><dd class="col-sm-8">{{ $proposta->requer_laboratorio ? 'Sim' : 'Não' }}@if($proposta->espaco_solicitado) · {{ $proposta->espaco_solicitado }}@endif</dd>
-                <dt class="col-sm-4 text-secondary">Equipamentos</dt><dd class="col-sm-8 texto-quebra">{{ $proposta->equipamentos_solicitados ?: '—' }}</dd>
+                <dt class="col-sm-4 text-secondary">Equipamentos</dt><dd class="col-sm-8 conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->equipamentos_solicitados) ?: '—' !!}</dd>
                 <dt class="col-sm-4 text-secondary">Pessoas de apoio</dt><dd class="col-sm-8">{{ $proposta->apoios->isEmpty() ? '—' : $proposta->apoios->pluck('nome')->implode(', ') }}</dd>
             </dl>
+            @foreach(['objetivos' => 'Objetivos', 'conteudo_programatico' => 'Conteúdo programático', 'metodologia' => 'Metodologia', 'observacoes' => 'Observações'] as $campo => $rotulo)
+                @if($proposta->$campo)<div class="mt-3"><div class="small fw-bold text-secondary">{{ $rotulo }}</div><div class="small conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->$campo) !!}</div></div>@endif
+            @endforeach
         </div>
 
         <div class="d-flex flex-wrap gap-2 mb-5">

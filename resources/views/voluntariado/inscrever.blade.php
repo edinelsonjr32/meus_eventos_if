@@ -2,7 +2,7 @@
     <div class="row justify-content-center"><div class="col-xl-8">
         <div class="d-flex align-items-center gap-3 mb-4">
             <a href="{{ auth()->check() ? route('voluntariado.meu') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
-            <div><h3 class="fw-bold m-0">Quero ser voluntário(a)</h3><small class="text-secondary">{{ $chamada->evento->titulo }} · {{ $chamada->titulo }}</small></div>
+            <div class="min-w-0"><h3 class="fw-bold m-0 texto-quebra">{{ $chamada->titulo }}</h3><small class="text-secondary">Inscrição de voluntário(a) · {{ $chamada->evento->titulo }}</small></div>
         </div>
 
         <x-aviso-login acao="se inscrever como voluntário(a)" />
@@ -11,8 +11,8 @@
 
         @if($chamada->descricao || $chamada->requisitos)
             <div class="glass-card mb-4 small">
-                @if($chamada->descricao)<div class="texto-quebra mb-2">{{ $chamada->descricao }}</div>@endif
-                @if($chamada->requisitos)<div><strong>Requisitos:</strong> <span class="texto-quebra">{{ $chamada->requisitos }}</span></div>@endif
+                @if($chamada->descricao)<div class="conteudo-rico mb-2">{!! \App\Support\HtmlSeguro::paraExibir($chamada->descricao) !!}</div>@endif
+                @if($chamada->requisitos)<div class="mt-2"><strong>Requisitos:</strong><div class="conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($chamada->requisitos) !!}</div></div>@endif
                 <div class="mt-2 text-muted">{{ $chamada->vagas ? $chamada->vagas . ' vaga(s)' : 'Sem limite de vagas' }}{{ $chamada->fim ? ' · inscrições até ' . $chamada->fim->format('d/m/Y H:i') : '' }}</div>
             </div>
         @endif
@@ -21,7 +21,7 @@
             @csrf
             @auth<div class="alert alert-light border small"><i class="fa-solid fa-user-check me-1 text-success"></i> Inscrevendo como <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}).</div>@endauth
             <fieldset @disabled(!auth()->check()) style="border:0;padding:0;margin:0;min-width:0">
-            <div class="mb-3"><label class="small fw-bold">Por que você quer ser voluntário(a)? *</label><textarea name="motivacao" rows="4" class="form-control" required>{{ old('motivacao') }}</textarea></div>
+            <div class="mb-3"><label class="small fw-bold">Por que você quer ser voluntário(a)? *</label><x-editor-rico name="motivacao" :value="old('motivacao')" modo="simples" :altura="130" placeholder="Conte por que você quer ser voluntário(a) (mínimo de 20 caracteres)" /></div>
             @php $marcados = old('disponibilidade', []); $periodos = \App\Models\Voluntario::PERIODOS; @endphp
             <div class="mb-3" x-data="{ marcar(dia, tudo) { document.querySelectorAll('[data-dia=\'' + dia + '\']').forEach(c => c.checked = tudo) } }">
                 <label class="small fw-bold">Dias e períodos em que pode ajudar *</label>
@@ -47,7 +47,7 @@
                     </div>
                 </div>
             </div>
-            <div class="mb-3"><label class="small fw-bold">Habilidades ou experiências úteis</label><textarea name="habilidades" rows="2" class="form-control" placeholder="Ex.: fotografia, informática, atendimento ao público">{{ old('habilidades') }}</textarea></div>
+            <div class="mb-3"><label class="small fw-bold">Habilidades ou experiências úteis</label><x-editor-rico name="habilidades" :value="old('habilidades')" modo="simples" :altura="100" placeholder="Ex.: fotografia, informática, atendimento ao público" /></div>
             <div class="mb-4"><label class="small fw-bold">Telefone / WhatsApp</label><input type="text" name="telefone" class="form-control" maxlength="15" value="{{ old('telefone') }}"></div>
             </fieldset>
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">

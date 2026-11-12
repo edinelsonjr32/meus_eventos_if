@@ -12,6 +12,7 @@
                 .btn-primary-custom { background: var(--brand-dark, #047857); color: #fff; border: 0; border-radius: 10px; padding: .55rem 1rem; font-weight: 600; }
                 .btn-primary-custom:hover { background: var(--brand-deep, #064e3b); color: #fff; }
                 .texto-quebra { white-space: pre-line; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
+                .conteudo-rico p { margin-bottom: .5rem; } .conteudo-rico ul, .conteudo-rico ol { padding-left: 1.25rem; margin-bottom: .5rem; } .conteudo-rico blockquote { border-left: 3px solid #cbd5e1; padding-left: .75rem; color: #475569; margin: .5rem 0; } .conteudo-rico > :last-child { margin-bottom: 0; } .conteudo-rico { overflow-wrap: anywhere; }
                 [x-cloak] { display: none !important; }
             </style>
         </x-slot:estilos>

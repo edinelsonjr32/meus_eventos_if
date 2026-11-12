@@ -18,7 +18,7 @@
                         <div class="small text-secondary">{{ $c->evento->titulo }}</div>
                         <div class="fw-bold texto-quebra">{{ $c->titulo }}</div>
                         <div class="small text-muted mb-2"><i class="fa-regular fa-calendar me-1"></i> {{ $c->fim ? 'até ' . $c->fim->format('d/m/Y H:i') : 'sem prazo definido' }} · aceita {{ implode(' e ', $c->tiposAceitos()) }}</div>
-                        @if($c->descricao)<p class="small texto-quebra mb-3">{{ \Illuminate\Support\Str::limit(strip_tags($c->descricao), 220) }}</p>@endif
+                        @if($c->descricao)<p class="small texto-quebra mb-3">{{ \Illuminate\Support\Str::limit(\App\Support\HtmlSeguro::paraTexto($c->descricao), 220) }}</p>@endif
                         <a href="{{ route('propostas.create', $c) }}" class="btn btn-primary-custom btn-sm mt-auto"><i class="fa-solid fa-paper-plane"></i> Enviar proposta</a>
                     </div>
                 </div>

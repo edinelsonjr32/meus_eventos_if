@@ -208,11 +208,12 @@ class VoluntarioGestaoController extends Controller
     private function validarChamada(Request $request): array
     {
         $dados = $request->validate([
-            'titulo' => 'required|string|max:255', 'descricao' => 'nullable|string|max:20000', 'requisitos' => 'nullable|string|max:3000',
+            'titulo' => 'required|string|max:255', 'descricao' => 'nullable|string|max:20000', 'requisitos' => 'nullable|string|max:30000',
             'vagas' => 'nullable|integer|min:1|max:2000', 'inicio' => 'nullable|date', 'fim' => 'nullable|date|after_or_equal:inicio', 'ativa' => 'nullable|boolean',
         ], ['titulo.required' => 'Informe o título da chamada.', 'fim.after_or_equal' => 'O encerramento deve ser depois da abertura.']);
 
-        $dados['descricao'] = filled($dados['descricao'] ?? null) ? trim(strip_tags($dados['descricao'])) : null;
+        $dados['descricao'] = \App\Support\HtmlSeguro::limparSimples($dados['descricao'] ?? null);
+        $dados['requisitos'] = \App\Support\HtmlSeguro::limparSimples($dados['requisitos'] ?? null);
         $dados['ativa'] = $request->boolean('ativa', true);
 
         return $dados;

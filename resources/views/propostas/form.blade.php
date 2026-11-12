@@ -8,7 +8,7 @@
     <div class="row justify-content-center"><div class="col-xl-9">
         <div class="d-flex align-items-center gap-3 mb-4">
             <a href="{{ auth()->check() ? route('propostas.minhas') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
-            <div><h3 class="fw-bold m-0">{{ $editando ? 'Editar proposta' : 'Nova proposta' }}</h3><small class="text-secondary">{{ $chamada->evento->titulo }} · {{ $chamada->titulo }}</small></div>
+            <div class="min-w-0"><h3 class="fw-bold m-0 texto-quebra">{{ $chamada->titulo }}</h3><small class="text-secondary">{{ $editando ? 'Editar proposta' : 'Submissão de proposta de minicurso ou oficina' }} · {{ $chamada->evento->titulo }}</small></div>
         </div>
 
         <x-aviso-login acao="preencher e enviar sua proposta" />
@@ -17,7 +17,7 @@
         @if($editando && $proposta->status === 'ajustes')
             <div class="alert alert-warning"><i class="fa-solid fa-pen me-1"></i> A organização pediu ajustes: <span class="texto-quebra">{{ $proposta->parecer }}</span></div>
         @endif
-        @if($chamada->descricao)<div class="glass-card mb-4 small texto-quebra">{{ $chamada->descricao }}</div>@endif
+        @if($chamada->descricao)<div class="glass-card mb-4 small conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($chamada->descricao) !!}</div>@endif
 
         <form action="{{ $acao }}" method="POST" x-data="{ lab: {{ $v('requer_laboratorio') ? 'true' : 'false' }}, apoios: {{ \Illuminate\Support\Js::from($lista) }} }">
             @csrf
@@ -30,10 +30,10 @@
                     <div class="col-md-4"><label class="small fw-bold">Tipo *</label>
                         <select name="tipo" class="form-select">@foreach($chamada->tiposAceitos() as $valor => $rotulo)<option value="{{ $valor }}" @selected($v('tipo') === $valor)>{{ $rotulo }}</option>@endforeach</select></div>
                     <div class="col-md-8"><label class="small fw-bold">Título *</label><input type="text" name="titulo" class="form-control" minlength="5" maxlength="200" value="{{ $v('titulo') }}" required></div>
-                    <div class="col-12"><label class="small fw-bold">Resumo da proposta * <span class="fw-normal text-muted">(o que será ensinado e o que o participante vai levar)</span></label><textarea name="resumo" rows="5" class="form-control" minlength="80" maxlength="3000" required x-ref="r" @input="$refs.c.textContent = $refs.r.value.length + '/3000 (mínimo 80)'">{{ $v('resumo') }}</textarea><div class="form-text" x-ref="c">{{ mb_strlen((string) $v('resumo')) }}/3000 (mínimo 80)</div></div>
-                    <div class="col-md-6"><label class="small fw-bold">Objetivos</label><textarea name="objetivos" rows="3" class="form-control">{{ $v('objetivos') }}</textarea></div>
-                    <div class="col-md-6"><label class="small fw-bold">Metodologia</label><textarea name="metodologia" rows="3" class="form-control">{{ $v('metodologia') }}</textarea></div>
-                    <div class="col-12"><label class="small fw-bold">Conteúdo programático</label><textarea name="conteudo_programatico" rows="4" class="form-control" placeholder="Tópicos que serão abordados, em ordem">{{ $v('conteudo_programatico') }}</textarea></div>
+                    <div class="col-12"><label class="small fw-bold">Resumo da proposta * <span class="fw-normal text-muted">(o que será ensinado e o que o participante vai levar; mínimo de 80 caracteres)</span></label><x-editor-rico name="resumo" :value="$v('resumo')" modo="simples" :altura="170" placeholder="Descreva o que será ensinado e o que o participante vai levar (mínimo de 80 caracteres)." /></div>
+                    <div class="col-md-6"><label class="small fw-bold">Objetivos</label><x-editor-rico name="objetivos" :value="$v('objetivos')" modo="simples" :altura="110" placeholder="Objetivos de aprendizagem" /></div>
+                    <div class="col-md-6"><label class="small fw-bold">Metodologia</label><x-editor-rico name="metodologia" :value="$v('metodologia')" modo="simples" :altura="110" placeholder="Como a atividade será conduzida" /></div>
+                    <div class="col-12"><label class="small fw-bold">Conteúdo programático</label><x-editor-rico name="conteudo_programatico" :value="$v('conteudo_programatico')" modo="simples" :altura="150" placeholder="Tópicos que serão abordados, em ordem" /></div>
                     <div class="col-md-6"><label class="small fw-bold">Público-alvo</label><input type="text" name="publico_alvo" class="form-control" maxlength="255" placeholder="Ex.: alunos do ensino médio técnico" value="{{ $v('publico_alvo') }}"></div>
                     <div class="col-md-3"><label class="small fw-bold">Carga horária (h) *</label><input type="number" name="carga_horaria_prevista" min="1" max="40" step="1" class="form-control" value="{{ $v('carga_horaria_prevista') ?: 4 }}" required></div>
                     <div class="col-md-3"><label class="small fw-bold">Vagas sugeridas *</label><input type="number" name="vagas_sugeridas" min="1" max="500" step="1" class="form-control" value="{{ $v('vagas_sugeridas') ?: 30 }}" required></div>
@@ -45,8 +45,8 @@
                 <div class="form-check form-switch mb-3"><input type="hidden" name="requer_laboratorio" value="0"><input class="form-check-input" type="checkbox" role="switch" name="requer_laboratorio" value="1" id="lab" x-model="lab" @checked($v('requer_laboratorio'))><label class="form-check-label fw-bold small" for="lab">Precisa de laboratório ou espaço específico</label></div>
                 <div class="row g-3">
                     <div class="col-12" x-show="lab" x-cloak><label class="small fw-bold">Qual espaço? *</label><input type="text" name="espaco_solicitado" :required="lab" class="form-control" maxlength="255" placeholder="Ex.: Laboratório de Informática, com 30 computadores" value="{{ $v('espaco_solicitado') }}"></div>
-                    <div class="col-12"><label class="small fw-bold">Equipamentos e materiais necessários</label><textarea name="equipamentos_solicitados" rows="2" class="form-control" placeholder="Ex.: projetor, caixa de som, kits Arduino (a organização informa o que consegue disponibilizar)">{{ $v('equipamentos_solicitados') }}</textarea></div>
-                    <div class="col-12"><label class="small fw-bold">Observações</label><textarea name="observacoes" rows="2" class="form-control" placeholder="Restrições de data/horário, necessidades de acessibilidade...">{{ $v('observacoes') }}</textarea></div>
+                    <div class="col-12"><label class="small fw-bold">Equipamentos e materiais necessários</label><x-editor-rico name="equipamentos_solicitados" :value="$v('equipamentos_solicitados')" modo="simples" :altura="90" placeholder="Ex.: projetor, caixa de som, kits Arduino (a organização informa o que consegue disponibilizar)" /></div>
+                    <div class="col-12"><label class="small fw-bold">Observações</label><x-editor-rico name="observacoes" :value="$v('observacoes')" modo="simples" :altura="90" placeholder="Restrições de data/horário, necessidades de acessibilidade..." /></div>
                 </div>
             </div>
 

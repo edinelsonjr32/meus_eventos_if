@@ -53,12 +53,29 @@ class VoluntarioController extends Controller
 
     public function store(Request $request, ChamadaVoluntario $chamada)
     {
+        // Campos com formatação (editor): HTML limpo no servidor; o tamanho conta o texto visível
+        $request->merge([
+            'motivacao' => \App\Support\HtmlSeguro::limparSimples($request->input('motivacao')),
+            'habilidades' => \App\Support\HtmlSeguro::limparSimples($request->input('habilidades')),
+        ]);
+        $texto = fn (int $min, int $max, string $rotulo) => function ($a, $v, $fail) use ($min, $max, $rotulo) {
+            $n = \App\Support\HtmlSeguro::tamanho((string) $v);
+            if ($n === 0 && $min === 0) {
+                return;
+            }
+            if ($n < $min) {
+                $fail("{$rotulo} deve ter pelo menos {$min} caracteres.");
+            } elseif ($n > $max) {
+                $fail("{$rotulo} pode ter no máximo {$max} caracteres (atual: {$n}).");
+            }
+        };
+
         $dados = $request->validate([
-            'motivacao' => 'required|string|min:20|max:2000',
+            'motivacao' => ['required', 'string', 'max:20000', $texto(20, 2000, 'A motivação')],
             'disponibilidade' => 'required|array|min:1', 'disponibilidade.*' => 'array', 'disponibilidade.*.*' => [\Illuminate\Validation\Rule::in(array_keys(\App\Models\Voluntario::PERIODOS))],
-            'habilidades' => 'nullable|string|max:1000',
+            'habilidades' => ['nullable', 'string', 'max:10000', $texto(0, 1000, 'As habilidades')],
             'telefone' => ['nullable', 'string', 'max:20', function ($a, $v, $fail) { if ($v !== null && !in_array(strlen(preg_replace('/\D/', '', $v)), [10, 11], true)) { $fail('Informe o telefone com DDD, por exemplo (93) 91234-5678.'); } }],
-        ], ['motivacao.required' => 'Conte por que você quer ser voluntário(a).', 'motivacao.min' => 'Escreva um pouco mais (pelo menos 20 caracteres).', 'disponibilidade.required' => 'Marque os dias e períodos em que você pode ajudar.', 'disponibilidade.min' => 'Marque ao menos um dia e período em que você pode ajudar.', 'disponibilidade.*.*.in' => 'Período de disponibilidade inválido.']);
+        ], ['motivacao.required' => 'Conte por que você quer ser voluntário(a).', 'disponibilidade.required' => 'Marque os dias e períodos em que você pode ajudar.', 'disponibilidade.min' => 'Marque ao menos um dia e período em que você pode ajudar.', 'disponibilidade.*.*.in' => 'Período de disponibilidade inválido.']);
 
         try {
             $this->service->inscrever($request->user(), $chamada, $dados);

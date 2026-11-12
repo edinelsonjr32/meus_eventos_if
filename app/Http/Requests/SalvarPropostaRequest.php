@@ -7,11 +7,15 @@ use App\Models\Proposta;
 use App\Rules\Cpf;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Support\HtmlSeguro;
 use Illuminate\Validation\Rule;
 
 /** Validação do formulário de proposta (envio e edição) feito pelo proponente. */
 class SalvarPropostaRequest extends FormRequest
 {
+    /** Campos de texto formatado (editor): o tamanho conta o texto visível, não as tags. */
+    public const RICOS = ['resumo', 'objetivos', 'conteudo_programatico', 'metodologia', 'equipamentos_solicitados', 'observacoes'];
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -38,9 +42,15 @@ class SalvarPropostaRequest extends FormRequest
                 ];
             })->values()->all();
 
+        // Campos com formatação (editor de texto): HTML limpo no servidor, sem imagens nem scripts
+        $ricos = [];
+        foreach (self::RICOS as $campo) {
+            $ricos[$campo] = HtmlSeguro::limparSimples($this->input($campo));
+        }
+
         $lab = $this->boolean('requer_laboratorio');
 
-        $this->merge([
+        $this->merge($ricos + [
             'apoios' => $apoios,
             'requer_laboratorio' => $lab,
             // sem laboratório, o campo de espaço não faz sentido
@@ -53,22 +63,38 @@ class SalvarPropostaRequest extends FormRequest
         return [
             'tipo' => ['required', Rule::in(array_keys($this->chamada()->tiposAceitos()))],
             'titulo' => ['required', 'string', 'min:5', 'max:200'],
-            'resumo' => ['required', 'string', 'min:80', 'max:3000'],
-            'objetivos' => ['nullable', 'string', 'max:3000'],
+            'resumo' => ['required', 'string', 'max:30000', $this->texto(80, 3000, 'O resumo')],
+            'objetivos' => ['nullable', 'string', 'max:30000', $this->texto(0, 3000, 'Os objetivos')],
             'publico_alvo' => ['nullable', 'string', 'max:255'],
-            'conteudo_programatico' => ['nullable', 'string', 'max:5000'],
-            'metodologia' => ['nullable', 'string', 'max:3000'],
+            'conteudo_programatico' => ['nullable', 'string', 'max:50000', $this->texto(0, 5000, 'O conteúdo programático')],
+            'metodologia' => ['nullable', 'string', 'max:30000', $this->texto(0, 3000, 'A metodologia')],
             'carga_horaria_prevista' => ['required', 'integer', 'min:1', 'max:40'],
             'vagas_sugeridas' => ['required', 'integer', 'min:1', 'max:500'],
             'requer_laboratorio' => ['boolean'],
             'espaco_solicitado' => ['nullable', 'required_if:requer_laboratorio,true', 'string', 'max:255'],
-            'equipamentos_solicitados' => ['nullable', 'string', 'max:2000'],
-            'observacoes' => ['nullable', 'string', 'max:2000'],
+            'equipamentos_solicitados' => ['nullable', 'string', 'max:20000', $this->texto(0, 2000, 'Os equipamentos')],
+            'observacoes' => ['nullable', 'string', 'max:20000', $this->texto(0, 2000, 'As observações')],
             'apoios' => ['nullable', 'array', 'max:5'],
             'apoios.*.nome' => ['required', 'string', 'min:3', 'max:255'],
             'apoios.*.email' => ['required', 'email:rfc', 'max:255'],
             'apoios.*.cpf' => ['required', 'string', 'size:14', new Cpf],
         ];
+    }
+
+    /** Regra de tamanho sobre o texto visível (sem tags HTML). */
+    private function texto(int $min, int $max, string $rotulo): \Closure
+    {
+        return function (string $atributo, mixed $valor, \Closure $falha) use ($min, $max, $rotulo) {
+            $n = HtmlSeguro::tamanho((string) $valor);
+            if ($n === 0 && $min === 0) {
+                return;
+            }
+            if ($n < $min) {
+                $falha("{$rotulo} deve ter pelo menos {$min} caracteres" . ($min >= 80 ? ': descreva o que será ensinado.' : '.'));
+            } elseif ($n > $max) {
+                $falha("{$rotulo} pode ter no máximo {$max} caracteres (atual: {$n}).");
+            }
+        };
     }
 
     public function messages(): array
@@ -79,8 +105,6 @@ class SalvarPropostaRequest extends FormRequest
             'titulo.required' => 'Informe o título da proposta.',
             'titulo.min' => 'O título deve ter pelo menos 5 caracteres.',
             'resumo.required' => 'Escreva o resumo da proposta.',
-            'resumo.min' => 'O resumo deve ter pelo menos 80 caracteres: descreva o que será ensinado.',
-            'resumo.max' => 'O resumo pode ter no máximo 3000 caracteres.',
             'carga_horaria_prevista.required' => 'Informe a carga horária prevista.',
             'carga_horaria_prevista.integer' => 'A carga horária deve ser um número inteiro de horas.',
             'carga_horaria_prevista.min' => 'A carga horária mínima é de 1 hora.',

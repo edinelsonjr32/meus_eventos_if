@@ -4,8 +4,8 @@
     @if($metodo) @method($metodo) @endif
     <div class="col-md-8"><label class="small fw-bold">Título da chamada *</label><input type="text" name="titulo" class="form-control" maxlength="255" value="{{ old('titulo', $c?->titulo ?? 'Chamada de voluntários') }}" required></div>
     <div class="col-md-4"><label class="small fw-bold">Vagas (em branco = sem limite)</label><input type="number" name="vagas" min="1" class="form-control" value="{{ old('vagas', $c?->vagas) }}"></div>
-    <div class="col-12"><label class="small fw-bold">Descrição / o que o voluntário fará</label><textarea name="descricao" rows="3" class="form-control">{{ old('descricao', $c?->descricao) }}</textarea></div>
-    <div class="col-12"><label class="small fw-bold">Requisitos</label><textarea name="requisitos" rows="2" class="form-control" placeholder="Ex.: ser aluno do campus, disponibilidade nos dois dias...">{{ old('requisitos', $c?->requisitos) }}</textarea></div>
+    <div class="col-12"><label class="small fw-bold">Descrição / o que o voluntário fará</label><x-editor-rico name="descricao" :value="old('descricao', $c?->descricao)" modo="simples" :altura="160" placeholder="" /></div>
+    <div class="col-12"><label class="small fw-bold">Requisitos</label><x-editor-rico name="requisitos" :value="old('requisitos', $c?->requisitos)" modo="simples" :altura="110" placeholder="Ex.: ser aluno do campus, disponibilidade nos dois dias..." /></div>
     <div class="col-md-3"><label class="small fw-bold">Abre em</label><input type="datetime-local" name="inicio" class="form-control" value="{{ old('inicio', $c?->inicio?->format('Y-m-d\TH:i')) }}"></div>
     <div class="col-md-3"><label class="small fw-bold">Encerra em</label><input type="datetime-local" name="fim" class="form-control" value="{{ old('fim', $c?->fim?->format('Y-m-d\TH:i')) }}"></div>
     <div class="col-md-6 d-flex flex-wrap justify-content-between align-items-end gap-2">

@@ -263,7 +263,7 @@ it('proponente não edita proposta com a chamada encerrada, exceto quando a orga
     expect($svc->atualizar($p->fresh(), ['titulo' => 'Novo título'] + $this->dados)->status)->toBe('enviada');
 });
 
-it('valida a chamada: tipo obrigatório, período coerente e descrição em texto simples', function () {
+it('valida a chamada: tipo obrigatório, período coerente e descrição com formatação limpa', function () {
     $this->actingAs($this->admin);
     $base = ['titulo' => 'Chamada 2', 'tipos_aceitos' => ['minicurso'], 'max_por_usuario' => 2];
 
@@ -273,7 +273,8 @@ it('valida a chamada: tipo obrigatório, período coerente e descrição em text
 
     $this->post(route('admin.propostas.chamadas.store', $this->evento), array_merge($base, ['descricao' => "Prazo & regras\n<script>x</script>linha 2"]))->assertSessionHasNoErrors();
     $c = ChamadaProposta::where('titulo', 'Chamada 2')->first();
-    expect($c->descricao)->toContain('Prazo & regras')->and($c->descricao)->not->toContain('<p>')->and($c->descricao)->not->toContain('<script>');
+    // descrição é texto formatado (editor): HTML limpo, sem scripts nem imagens
+    expect($c->descricao)->toContain('Prazo &amp; regras')->and($c->descricao)->not->toContain('<script>');
 });
 
 it('proposta já decidida mostra o botão "Mudar status" e esconde o formulário até clicar', function () {
@@ -552,3 +553,48 @@ it('visitante vê os formulários com aviso de login (campos bloqueados) e volta
     // logado: formulário liberado, sem aviso nem bloqueio
     $this->get($urlV)->assertOk()->assertDontSee('Entre ou crie sua conta')->assertDontSee('<fieldset disabled', false);
 });
+
+
+it('campos de texto formatado (editor): HTML é limpo, imagens e scripts saem e o tamanho conta o texto visível', function () {
+    $this->actingAs($this->autor);
+    $envia = fn (array $extra = []) => $this->post(route('propostas.store', $this->chamada), array_merge($this->dados, $extra));
+
+    // 80 caracteres só de tags/atributos não valem: conta o texto visível
+    $envia(['resumo' => '<p><strong>curto</strong></p>' . str_repeat('<span style="color:red"></span>', 20)])->assertSessionHasErrors('resumo');
+    $envia(['resumo' => '<p>' . str_repeat('a', 3001) . '</p>'])->assertSessionHasErrors('resumo');
+
+    $html = '<p>' . str_repeat('Aprender versionamento com <strong>Git</strong>. ', 3) . '</p><ul><li>Item um</li></ul><script>alert(1)</script><img src="https://x.test/a.png" onerror="x()"><a href="javascript:alert(1)">mal</a>';
+    $envia(['resumo' => $html, 'objetivos' => '<p onclick="x()">Objetivo <em>claro</em></p>'])->assertSessionHasNoErrors();
+    $p = Proposta::first();
+    expect($p->resumo)->toContain('<strong>Git</strong>')->toContain('<li>Item um</li>')->not->toContain('<script')->not->toContain('<img')->not->toContain('javascript:')
+        ->and($p->objetivos)->toContain('<em>claro</em>')->not->toContain('onclick');
+
+    // exibido com formatação para o proponente e para o admin; a atividade recebe o resumo como texto simples
+    $this->get(route('propostas.show', $p))->assertSee('<strong>Git</strong>', false)->assertDontSee('<script>alert', false);
+    $this->actingAs($this->admin)->get(route('admin.propostas.show', [$this->evento, $p]))->assertSee('<strong>Git</strong>', false)->assertSee('Objetivo <em>claro</em>', false);
+    app(PropostaService::class)->decidir($p, $this->admin, 'aprovada', aprovacao());
+    expect(Atividade::find($p->fresh()->atividade_id)->descricao)->not->toContain('<')->toContain('Aprender versionamento com Git');
+});
+
+it('voluntário: motivação e habilidades aceitam texto formatado, validando o texto visível', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $this->actingAs($this->autor);
+    $hoje = now()->format('Y-m-d');
+    $envia = fn (array $d) => $this->post(route('voluntariado.store', $ch), $d + ['disponibilidade' => [$hoje => ['manha']]]);
+
+    $envia(['motivacao' => '<p><strong>oi</strong></p>'])->assertSessionHasErrors('motivacao');
+    $envia(['motivacao' => '<p>' . str_repeat('x', 2001) . '</p>'])->assertSessionHasErrors('motivacao');
+    $envia(['motivacao' => '<p>Quero <strong>muito</strong> ajudar no evento</p><script>x()</script>', 'habilidades' => '<ul><li>Fotografia</li></ul>'])->assertSessionHasNoErrors();
+
+    $v = Voluntario::first();
+    expect($v->motivacao)->toContain('<strong>muito</strong>')->not->toContain('<script')->and($v->habilidades)->toContain('<li>Fotografia</li>');
+    $this->actingAs($this->admin)->get(route('admin.voluntarios.index', $this->evento))->assertSee('<strong>muito</strong>', false);
+});
+
+it('formulários usam o editor de texto e o visitante o vê somente leitura', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $this->get(route('propostas.create', $this->chamada))->assertOk()->assertSee('data-modo="simples"', false)->assertSee('name="resumo"', false)->assertSee('enableReadOnlyMode', false);
+    $this->get(route('voluntariado.create', $ch))->assertOk()->assertSee('data-modo="simples"', false)->assertSee('name="motivacao"', false);
+    $this->actingAs($this->admin)->get(route('admin.voluntarios.index', $this->evento))->assertOk()->assertSee('name="requisitos"', false);
+}
+);

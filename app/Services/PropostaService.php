@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\CandidaturaDecididaMail;
 use App\Models\Atividade;
 use App\Models\Local;
+use App\Support\HtmlSeguro;
 use App\Models\ChamadaProposta;
 use App\Models\Equipe;
 use App\Models\Evento;
@@ -162,7 +163,7 @@ class PropostaService
 
         $proponente = $proposta->participante?->nome_completo ?: $proposta->proponente->name;
         $campos = [
-            'titulo' => $proposta->titulo, 'descricao' => $proposta->resumo, 'tipo' => $proposta->tipo, 'responsavel' => $proponente,
+            'titulo' => $proposta->titulo, 'descricao' => HtmlSeguro::paraTexto($proposta->resumo), 'tipo' => $proposta->tipo, 'responsavel' => $proponente,
             'local_id' => $local->id, 'local' => $local->rotulo(), 'espaco' => null, 'equipamentos' => $d['equipamentos'] ?? null, 'observacoes_organizacao' => $d['observacoes_organizacao'] ?? null,
             'carga_horaria' => (int) $d['carga_horaria'], 'vagas' => (int) $d['vagas'], 'data_inicio' => $inicio, 'data_fim' => $fim, 'proposta_id' => $proposta->id,
         ];
@@ -261,11 +262,11 @@ class PropostaService
     private function campos(array $d): array
     {
         return [
-            'tipo' => $d['tipo'], 'titulo' => trim($d['titulo']), 'resumo' => trim($d['resumo']),
-            'objetivos' => $d['objetivos'] ?? null, 'publico_alvo' => $d['publico_alvo'] ?? null, 'conteudo_programatico' => $d['conteudo_programatico'] ?? null, 'metodologia' => $d['metodologia'] ?? null,
+            'tipo' => $d['tipo'], 'titulo' => trim($d['titulo']), 'resumo' => HtmlSeguro::limparSimples($d['resumo']) ?? trim($d['resumo']),
+            'objetivos' => HtmlSeguro::limparSimples($d['objetivos'] ?? null), 'publico_alvo' => $d['publico_alvo'] ?? null, 'conteudo_programatico' => HtmlSeguro::limparSimples($d['conteudo_programatico'] ?? null), 'metodologia' => HtmlSeguro::limparSimples($d['metodologia'] ?? null),
             'carga_horaria_prevista' => (int) $d['carga_horaria_prevista'], 'vagas_sugeridas' => (int) $d['vagas_sugeridas'],
             'requer_laboratorio' => (bool) ($d['requer_laboratorio'] ?? false), 'espaco_solicitado' => $d['espaco_solicitado'] ?? null,
-            'equipamentos_solicitados' => $d['equipamentos_solicitados'] ?? null, 'observacoes' => $d['observacoes'] ?? null,
+            'equipamentos_solicitados' => HtmlSeguro::limparSimples($d['equipamentos_solicitados'] ?? null), 'observacoes' => HtmlSeguro::limparSimples($d['observacoes'] ?? null),
         ];
     }
 

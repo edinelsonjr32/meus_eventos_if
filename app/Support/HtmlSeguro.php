@@ -31,6 +31,36 @@ class HtmlSeguro
         return $visivel === '' ? null : $limpo;
     }
 
+    /** Como limpar(), mas sem imagens, figuras e tabelas: para textos de formulários de usuários (sem envio de arquivos). */
+    public static function limparSimples(?string $html): ?string
+    {
+        $limpo = self::limpar($html);
+        if ($limpo === null) {
+            return null;
+        }
+        $limpo = preg_replace(['~<img\b[^>]*>~i', '~</?(figure|figcaption|table|thead|tbody|tr|th|td)\b[^>]*>~i'], '', $limpo);
+
+        return self::limpar($limpo);
+    }
+
+    /** Texto puro (sem tags nem entidades), com quebras de linha entre parágrafos: para contar caracteres ou guardar como texto. */
+    public static function paraTexto(?string $html): string
+    {
+        if ($html === null || trim($html) === '') {
+            return '';
+        }
+        $t = preg_replace(['~<br\s*/?>~i', '~</(p|div|h[1-6]|li|blockquote|tr)>~i'], "\n", $html);
+        $t = html_entity_decode(strip_tags((string) $t), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return trim(preg_replace("/\n{3,}/", "\n\n", str_replace("\u{00A0}", ' ', $t)));
+    }
+
+    /** Número de caracteres do texto visível (ignora tags). */
+    public static function tamanho(?string $html): int
+    {
+        return mb_strlen(self::paraTexto($html));
+    }
+
     /** Texto simples antigo (sem tags) mantém as quebras de linha; HTML é limpo. Pronto para exibir com {!! !!}. */
     public static function paraExibir(?string $texto): string
     {

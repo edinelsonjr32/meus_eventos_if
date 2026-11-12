@@ -189,6 +189,7 @@
         }
 
         /* Texto livre (pareceres, mensagens): respeita as quebras e nunca estoura o cartão */
+        .conteudo-rico p { margin-bottom: .5rem; } .conteudo-rico ul, .conteudo-rico ol { padding-left: 1.25rem; margin-bottom: .5rem; } .conteudo-rico blockquote { border-left: 3px solid #cbd5e1; padding-left: .75rem; color: #475569; margin: .5rem 0; } .conteudo-rico > :last-child { margin-bottom: 0; } .conteudo-rico { overflow-wrap: anywhere; }
         .texto-quebra { white-space: pre-line; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
         .glass-card, .glass-card details { min-width: 0; }
 

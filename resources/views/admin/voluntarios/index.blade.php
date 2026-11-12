@@ -109,9 +109,9 @@
 
                     <div x-show="aberto" x-cloak class="mt-3">
                         <div class="row g-3 small">
-                            <div class="col-md-4"><div class="fw-bold text-secondary">Motivação</div><div class="texto-quebra">{{ $vol->motivacao ?: '—' }}</div></div>
+                            <div class="col-md-4"><div class="fw-bold text-secondary">Motivação</div><div class="conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($vol->motivacao) ?: '—' !!}</div></div>
                             <div class="col-md-4"><div class="fw-bold text-secondary">Disponibilidade</div><div class="texto-quebra">{{ $vol->disponibilidadeResumo() ?: '—' }}</div></div>
-                            <div class="col-md-4"><div class="fw-bold text-secondary">Habilidades</div><div class="texto-quebra">{{ $vol->habilidades ?: '—' }}</div></div>
+                            <div class="col-md-4"><div class="fw-bold text-secondary">Habilidades</div><div class="conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($vol->habilidades) ?: '—' !!}</div></div>
                         </div>
                         <hr>
                         <div class="row g-3">

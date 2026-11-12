@@ -1,12 +1,12 @@
-@props(['name' => 'descricao', 'value' => '', 'uploadUrl' => null, 'altura' => 340, 'placeholder' => 'Escreva aqui. Use a barra acima para formatar o texto e inserir imagens, tabelas e links.'])
+@props(['name' => 'descricao', 'value' => '', 'uploadUrl' => null, 'altura' => 340, 'modo' => 'completo', 'dica' => true, 'placeholder' => 'Escreva aqui. Use a barra acima para formatar o texto e inserir imagens, tabelas e links.'])
 {{--
   Editor de texto rico (WYSIWYG) completo: títulos, negrito/itálico/sublinhado, cores, alinhamento, listas, recuo, citação,
   links, tabelas, linha horizontal e imagens (envio para o servidor, arrastar/colar). O HTML é limpo no servidor ao salvar.
 --}}
 @php $id = 'editor-' . $name; @endphp
-<div class="editor-rico" data-upload="{{ $uploadUrl }}" data-altura="{{ $altura }}">
-    <textarea name="{{ $name }}" id="{{ $id }}" class="form-control" rows="10" placeholder="{{ $placeholder }}">{{ $value }}</textarea>
-    <div class="editor-aviso small text-muted mt-2"><i class="fa-regular fa-lightbulb me-1"></i> Dica: arraste ou cole uma imagem direto no texto. Imagens até 4 MB (JPG, PNG, WebP ou GIF).</div>
+<div class="editor-rico" data-upload="{{ $uploadUrl }}" data-altura="{{ $altura }}" data-modo="{{ $modo }}">
+    <textarea name="{{ $name }}" id="{{ $id }}" class="form-control" rows="{{ $modo === 'simples' ? 5 : 10 }}" placeholder="{{ $placeholder }}">{{ $value }}</textarea>
+    @if($dica && $modo !== 'simples')<div class="editor-aviso small text-muted mt-2"><i class="fa-regular fa-lightbulb me-1"></i> Dica: arraste ou cole uma imagem direto no texto. Imagens até 4 MB (JPG, PNG, WebP ou GIF).</div>@endif
     <div class="alert alert-warning small mt-2 d-none editor-falha">Não foi possível carregar o editor de texto. Você ainda pode escrever no campo acima (texto simples).</div>
 </div>
 
@@ -29,8 +29,12 @@
                 caixa.style.setProperty('--alt-editor', (caixa.dataset.altura || 340) + 'px');
 
                 var token = document.querySelector('meta[name="csrf-token"]');
+                var simples = caixa.dataset.modo === 'simples';
                 var config = {
-                    toolbar: {
+                    toolbar: simples ? {
+                        items: ['undo', 'redo', '|', 'bold', 'italic', 'underline', '|', 'bulletedList', 'numberedList', '|', 'link', 'blockQuote', '|', 'removeFormat'],
+                        shouldNotGroupWhenFull: true
+                    } : {
                         items: ['undo', 'redo', '|', 'heading', '|', 'bold', 'italic', 'underline', 'strikethrough', 'subscript', 'superscript', '|',
                                 'fontSize', 'fontColor', 'fontBackgroundColor', '|', 'alignment', '|', 'bulletedList', 'numberedList', 'outdent', 'indent', '|',
                                 'link', 'insertImage', 'insertTable', 'blockQuote', 'horizontalLine', '|', 'removeFormat', 'sourceEditing'],
@@ -81,6 +85,8 @@
                 }
 
                 CKEDITOR.ClassicEditor.create(area, config).then(function (editor) {
+                    // Campo desabilitado (ex.: visitante sem login): editor somente leitura
+                    if (area.disabled || area.closest('fieldset[disabled]')) editor.enableReadOnlyMode('desabilitado');
                     // O formulário envia o conteúdo atual do editor
                     var form = area.closest('form');
                     if (form) form.addEventListener('submit', function () { area.value = editor.getData(); });

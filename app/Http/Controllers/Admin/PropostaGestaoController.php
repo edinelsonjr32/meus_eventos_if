@@ -146,7 +146,7 @@ class PropostaGestaoController extends Controller
             'max_por_usuario' => 'required|integer|min:1|max:20',
         ], ['titulo.required' => 'Informe o título da chamada.', 'fim.after_or_equal' => 'O encerramento deve ser depois da abertura.', 'max_por_usuario.required' => 'Informe quantas propostas cada pessoa pode enviar.', 'tipos_aceitos.required' => 'Marque ao menos um tipo de atividade aceito.', 'tipos_aceitos.min' => 'Marque ao menos um tipo de atividade aceito.']);
 
-        $dados['descricao'] = filled($dados['descricao'] ?? null) ? trim(strip_tags($dados['descricao'])) : null;
+        $dados['descricao'] = \App\Support\HtmlSeguro::limparSimples($dados['descricao'] ?? null);
         $dados['tipos_aceitos'] = array_values(array_unique($dados['tipos_aceitos']));
         $dados['ativa'] = $request->boolean('ativa', true);
         

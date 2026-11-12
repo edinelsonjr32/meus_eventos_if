@@ -16,7 +16,7 @@
                     <div class="small text-secondary">{{ $c->evento->titulo }}</div>
                     <div class="fw-bold texto-quebra">{{ $c->titulo }}</div>
                     <div class="small text-muted mb-2">{{ $c->vagas ? $c->vagas . ' vaga(s)' : 'sem limite de vagas' }}{{ $c->fim ? ' · até ' . $c->fim->format('d/m/Y H:i') : '' }}</div>
-                    @if($c->descricao)<p class="small texto-quebra mb-3">{{ \Illuminate\Support\Str::limit(strip_tags($c->descricao), 200) }}</p>@endif
+                    @if($c->descricao)<p class="small texto-quebra mb-3">{{ \Illuminate\Support\Str::limit(\App\Support\HtmlSeguro::paraTexto($c->descricao), 200) }}</p>@endif
                     @if($inscricoes->where('chamada_id', $c->id)->where('status', '!=', 'desistente')->isNotEmpty())
                         <span class="small text-success fw-bold mt-auto"><i class="fa-solid fa-circle-check me-1"></i> Você já está inscrito(a)</span>
                     @else

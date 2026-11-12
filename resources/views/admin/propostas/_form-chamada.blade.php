@@ -12,7 +12,7 @@
     </div>
     <div class="col-12">
         <label class="small fw-bold">Orientações aos proponentes</label>
-        <textarea name="descricao" rows="3" class="form-control" placeholder="Prazos, critérios, carga horária aceita, o que a organização oferece (laboratório, projetor...)">{{ old('descricao', $c?->descricao) }}</textarea>
+        <x-editor-rico name="descricao" :value="old('descricao', $c?->descricao)" modo="simples" :altura="160" placeholder="Prazos, critérios, carga horária aceita, o que a organização oferece (laboratório, projetor...)" />
     </div>
     <div class="col-md-6">
         <label class="small fw-bold d-block">Tipos aceitos</label>
