@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Equipe extends Model
 {
     /** Funções da equipe de organização (chave = valor gravado). */
-    public const FUNCOES = ['Organizador', 'Coordenador', 'Monitor', 'Apoio Técnico', 'Palestrante', 'Voluntário', 'Secretaria'];
+    public const FUNCOES = ['Organizador', 'Coordenador', 'Monitor', 'Apoio Técnico', 'Palestrante', 'Ministrante', 'Voluntário', 'Secretaria'];
 
     public const CARGA_PADRAO = 20;
 
@@ -17,6 +17,7 @@ class Equipe extends Model
         'participante_id',
         'funcao', // Ex: Coordenador, Monitor, Apoio
         'carga_horaria_trabalho',
+        'detalhe',
         'hash_validacao',
         'certificado_emitido_em',
         'certificado_emitido_por',

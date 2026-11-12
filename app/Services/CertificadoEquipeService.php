@@ -14,6 +14,20 @@ class CertificadoEquipeService
 {
     public const CORPO_PADRAO = 'Certificamos que <b>{PARTICIPANTE}</b>, inscrito(a) sob o CPF nº <b>{CPF}</b>, atuou como <b>{FUNCAO}</b> na equipe de organização do evento <b>{EVENTO}</b>, realizado em {DATA_EVENTO}, perfazendo uma carga horária total de <b>{CARGA_HORARIA} horas</b>.';
 
+    public const CORPO_MINISTRANTE = 'Certificamos que <b>{PARTICIPANTE}</b>, inscrito(a) sob o CPF nº <b>{CPF}</b>, atuou como <b>ministrante</b> no evento <b>{EVENTO}</b>, realizado em {DATA_EVENTO}, conduzindo: {DETALHE}, com carga horária total de <b>{CARGA_HORARIA} horas</b>.';
+
+    public const CORPO_VOLUNTARIO = 'Certificamos que <b>{PARTICIPANTE}</b>, inscrito(a) sob o CPF nº <b>{CPF}</b>, atuou como <b>voluntário(a)</b> no evento <b>{EVENTO}</b>, realizado em {DATA_EVENTO}, nas seguintes atividades: {DETALHE}, perfazendo uma carga horária total de <b>{CARGA_HORARIA} horas</b>.';
+
+    /** Texto padrão do certificado conforme a função (o evento pode definir um texto próprio para todos). */
+    public static function corpoPadraoDa(?string $funcao): string
+    {
+        return match ($funcao) {
+            'Ministrante' => self::CORPO_MINISTRANTE,
+            'Voluntário' => self::CORPO_VOLUNTARIO,
+            default => self::CORPO_PADRAO,
+        };
+    }
+
     private const TAGS_PERMITIDAS = '<b><strong><i><em><u><br>';
 
     /** Emite (idempotente) o certificado do membro; mantém o código se já foi emitido. */
@@ -67,12 +81,13 @@ class CertificadoEquipeService
             '{EVENTO}' => e($evento->titulo),
             '{DATA_EVENTO}' => e($evento->data_inicio?->format('d/m/Y') ?? ''),
             '{CARGA_HORARIA}' => e((string) $membro->carga_horaria_trabalho),
+            '{DETALHE}' => e((string) ($membro->detalhe ?: 'atividades do evento')),
             '{DATA_EMISSAO}' => e(($membro->certificado_emitido_em ?? now())->format('d/m/Y')),
         ];
 
         return [
             'cabecalho' => $evento->cert_cabecalho ?: "Ministério da Educação\nSecretaria de Educação Profissional e Tecnológica\nInstituto Federal do Pará - Campus Óbidos",
-            'corpo' => str_replace(array_keys($valores), array_values($valores), strip_tags($evento->cert_equipe_corpo ?: self::CORPO_PADRAO, self::TAGS_PERMITIDAS)),
+            'corpo' => str_replace(array_keys($valores), array_values($valores), strip_tags($evento->cert_equipe_corpo ?: self::corpoPadraoDa($membro->funcao), self::TAGS_PERMITIDAS)),
             'rodape' => (string) $evento->cert_rodape,
         ];
     }
@@ -100,6 +115,19 @@ class CertificadoEquipeService
             'urlValidacao' => route('certificado.equipe.validar', $membro->hash_validacao),
             'emitidoEm' => $membro->certificado_emitido_em,
         ])->setPaper('a4', 'landscape')->setOptions(['isRemoteEnabled' => false, 'defaultFont' => 'Arial', 'isHtml5ParserEnabled' => true]);
+    }
+
+    /**
+     * Cria (ou atualiza) o vínculo de equipe da pessoa com a função dada e emite o certificado (idempotente: mantém o código).
+     * Se o certificado já foi emitido, a carga horária e o detalhe passam a refletir os dados atuais.
+     */
+    public function emitirParaFuncao(Evento $evento, \App\Models\Participante $participante, string $funcao, int $cargaHoraria, ?string $detalhe, ?User $gestor = null): Equipe
+    {
+        $membro = Equipe::firstOrNew(['evento_id' => $evento->id, 'participante_id' => $participante->id, 'funcao' => $funcao]);
+        $membro->fill(['carga_horaria_trabalho' => max(1, $cargaHoraria), 'detalhe' => $detalhe])->save();
+        $this->emitir($membro, $gestor);
+
+        return $membro->fresh();
     }
 
     public function nomeArquivo(Equipe $membro): string

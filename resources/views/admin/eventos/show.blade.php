@@ -24,6 +24,14 @@
                 <i class="fa-solid fa-inbox me-1"></i> Trabalhos
             </a>
 
+            <a href="{{ route('admin.propostas.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
+                <i class="fa-solid fa-chalkboard-user me-1"></i> Minicursos
+            </a>
+
+            <a href="{{ route('admin.voluntarios.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
+                <i class="fa-solid fa-hand-holding-heart me-1"></i> Voluntários
+            </a>
+
             <a href="{{ route('admin.eventos.papeis.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
                 <i class="fa-solid fa-user-shield me-1"></i> Papéis
             </a>

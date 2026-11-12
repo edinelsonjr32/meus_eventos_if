@@ -119,6 +119,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/trabalhos/{trabalho}/versao-final', [\App\Http\Controllers\TrabalhoController::class, 'enviarVersaoFinal'])->name('trabalhos.versao-final');
     Route::post('/trabalhos/{trabalho}/retirar', [\App\Http\Controllers\TrabalhoController::class, 'retirar'])->name('trabalhos.retirar');
 
+    // --- PROPOSTAS DE MINICURSO/OFICINA (proponente) ---
+    Route::get('/minha-area/propostas', [\App\Http\Controllers\PropostaController::class, 'minhas'])->name('propostas.minhas');
+    Route::get('/propostas/chamada/{chamada}', [\App\Http\Controllers\PropostaController::class, 'create'])->name('propostas.create');
+    Route::post('/propostas/chamada/{chamada}', [\App\Http\Controllers\PropostaController::class, 'store'])->name('propostas.store');
+    Route::get('/propostas/{proposta}', [\App\Http\Controllers\PropostaController::class, 'show'])->name('propostas.show');
+    Route::get('/propostas/{proposta}/editar', [\App\Http\Controllers\PropostaController::class, 'edit'])->name('propostas.edit');
+    Route::put('/propostas/{proposta}', [\App\Http\Controllers\PropostaController::class, 'update'])->name('propostas.update');
+    Route::post('/propostas/{proposta}/retirar', [\App\Http\Controllers\PropostaController::class, 'retirar'])->name('propostas.retirar');
+    Route::get('/propostas/evento/{evento}/certificado', [\App\Http\Controllers\PropostaController::class, 'certificado'])->name('propostas.certificado');
+
+    // --- VOLUNTARIADO (voluntário) ---
+    Route::get('/minha-area/voluntariado', [\App\Http\Controllers\VoluntarioController::class, 'meu'])->name('voluntariado.meu');
+    Route::get('/voluntariado/chamada/{chamada}', [\App\Http\Controllers\VoluntarioController::class, 'create'])->name('voluntariado.create');
+    Route::post('/voluntariado/chamada/{chamada}', [\App\Http\Controllers\VoluntarioController::class, 'store'])->name('voluntariado.store');
+    Route::post('/voluntariado/{voluntario}/desistir', [\App\Http\Controllers\VoluntarioController::class, 'desistir'])->name('voluntariado.desistir');
+    Route::get('/voluntariado/{voluntario}/certificado', [\App\Http\Controllers\VoluntarioController::class, 'certificado'])->name('voluntariado.certificado');
+
     // --- AVALIADOR (somente as próprias avaliações; autorização por Policy) ---
     Route::prefix('avaliador/avaliacoes')->name('avaliador.avaliacoes.')->group(function () {
         $c = \App\Http\Controllers\Avaliador\AvaliacaoController::class;
@@ -313,6 +330,32 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('eventos/{evento}/buscar-pessoas', \App\Http\Controllers\Admin\BuscaPessoaController::class)->middleware('throttle:60,1')->name('eventos.buscar-pessoas');
 
     // --- Gestão de Equipe / Staff ---
+    // Propostas de minicurso/oficina e voluntários (por evento)
+    Route::prefix('eventos/{evento}')->group(function () {
+        $p = \App\Http\Controllers\Admin\PropostaGestaoController::class;
+        Route::get('propostas', [$p, 'index'])->name('propostas.index');
+        Route::post('propostas/chamadas', [$p, 'storeChamada'])->name('propostas.chamadas.store');
+        Route::put('propostas/chamadas/{chamada}', [$p, 'updateChamada'])->name('propostas.chamadas.update');
+        Route::delete('propostas/chamadas/{chamada}', [$p, 'destroyChamada'])->name('propostas.chamadas.destroy');
+        Route::post('propostas/apoios/{apoio}/evento', [$p, 'apoioAoEvento'])->name('propostas.apoio-evento');
+        Route::get('propostas/{proposta}', [$p, 'show'])->name('propostas.show');
+        Route::post('propostas/{proposta}/decisao', [$p, 'decisao'])->name('propostas.decisao');
+        Route::post('propostas/{proposta}/certificado', [$p, 'certificado'])->name('propostas.certificado');
+
+        $v = \App\Http\Controllers\Admin\VoluntarioGestaoController::class;
+        Route::get('voluntarios', [$v, 'index'])->name('voluntarios.index');
+        Route::post('voluntarios/chamadas', [$v, 'storeChamada'])->name('voluntarios.chamadas.store');
+        Route::put('voluntarios/chamadas/{chamada}', [$v, 'updateChamada'])->name('voluntarios.chamadas.update');
+        Route::delete('voluntarios/chamadas/{chamada}', [$v, 'destroyChamada'])->name('voluntarios.chamadas.destroy');
+        Route::post('voluntarios/demandas', [$v, 'storeDemanda'])->name('voluntarios.demandas.store');
+        Route::put('voluntarios/demandas/{demanda}', [$v, 'updateDemanda'])->name('voluntarios.demandas.update');
+        Route::delete('voluntarios/demandas/{demanda}', [$v, 'destroyDemanda'])->name('voluntarios.demandas.destroy');
+        Route::post('voluntarios/{voluntario}/decisao', [$v, 'decisao'])->name('voluntarios.decisao');
+        Route::post('voluntarios/{voluntario}/alocar', [$v, 'alocar'])->name('voluntarios.alocar');
+        Route::delete('voluntarios/{voluntario}/demandas/{demanda}', [$v, 'desalocar'])->name('voluntarios.desalocar');
+        Route::post('voluntarios/{voluntario}/certificado', [$v, 'certificado'])->name('voluntarios.certificado');
+    });
+
     Route::get('eventos/{evento}/equipe', [EquipeController::class, 'index'])->name('eventos.equipe.index');
     Route::post('eventos/{evento}/equipe', [EquipeController::class, 'store'])->name('eventos.equipe.store');
     Route::put('equipe/{equipe}', [EquipeController::class, 'update'])->name('equipe.update');

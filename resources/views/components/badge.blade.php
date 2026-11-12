@@ -42,9 +42,17 @@
             'apresentador' => ['verde', 'fa-person-chalkboard', 'Apresentador'], 'correspondente' => ['rosa', 'fa-envelope', 'Correspondente'],
             'responsavel' => ['azul', 'fa-user-check', 'Responsável pela submissão'], 'consta' => ['ciano', 'fa-user-tag', 'Você consta como autor'],
         ],
+        'proposta' => [
+            'enviada' => ['azul', 'fa-paper-plane', 'Enviada'], 'em_analise' => ['ciano', 'fa-magnifying-glass', 'Em análise'], 'ajustes' => ['ambar', 'fa-pen-to-square', 'Ajustes solicitados'],
+            'aprovada' => ['verde-forte', 'fa-circle-check', 'Aprovada'], 'reprovada' => ['vermelho-forte', 'fa-circle-xmark', 'Não aprovada'], 'retirada' => ['ardosia', 'fa-box-archive', 'Retirada'],
+        ],
+        'voluntario' => [
+            'inscrito' => ['azul', 'fa-hourglass-half', 'Em análise'], 'aprovado' => ['verde-forte', 'fa-circle-check', 'Aprovado'], 'lista_espera' => ['ambar', 'fa-clock', 'Lista de espera'],
+            'reprovado' => ['vermelho-forte', 'fa-circle-xmark', 'Não selecionado'], 'desistente' => ['ardosia', 'fa-box-archive', 'Desistente'],
+        ],
         'chamada' => [
             'aberta' => ['verde-forte', 'fa-door-open', 'Chamada aberta'], 'em_breve' => ['ambar', 'fa-clock', 'Em breve'],
-            'encerrada' => ['ardosia', 'fa-lock', 'Encerrada'], 'rascunho' => ['cinza', 'fa-pencil', 'Rascunho'], 'nao_criada' => ['cinza', 'fa-circle-plus', 'Não criada'],
+            'encerrada' => ['ardosia', 'fa-lock', 'Encerrada'], 'desativada' => ['cinza', 'fa-ban', 'Desativada'], 'rascunho' => ['cinza', 'fa-pencil', 'Rascunho'], 'nao_criada' => ['cinza', 'fa-circle-plus', 'Não criada'],
         ],
         'premio' => [
             '1' => ['dourado', 'fa-trophy', 'Premiado · 1º lugar'], '2' => ['cinza', 'fa-medal', 'Premiado · 2º lugar'], '3' => ['laranja', 'fa-medal', 'Premiado · 3º lugar'],

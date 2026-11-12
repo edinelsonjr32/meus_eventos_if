@@ -206,6 +206,31 @@ class Evento extends Model
     }
 
     // Adicione este método no Model Evento
+    public function chamadasPropostas()
+    {
+        return $this->hasMany(ChamadaProposta::class);
+    }
+
+    public function propostas()
+    {
+        return $this->hasMany(Proposta::class);
+    }
+
+    public function chamadasVoluntarios()
+    {
+        return $this->hasMany(ChamadaVoluntario::class);
+    }
+
+    public function voluntarios()
+    {
+        return $this->hasMany(Voluntario::class);
+    }
+
+    public function demandasVoluntarios()
+    {
+        return $this->hasMany(DemandaVoluntario::class);
+    }
+
     public function equipe()
     {
         return $this->hasMany(Equipe::class);

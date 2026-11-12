@@ -107,6 +107,12 @@
                         @if($chamadaAberta)
                             <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-file-arrow-up me-1"></i> Submeter Trabalho</a>
                         @endif
+                        @if($evento->chamadasPropostas()->abertas()->exists())
+                            <a href="{{ route('propostas.minhas') }}" class="btn btn-ev-out"><i class="fa-solid fa-chalkboard-user me-1"></i> Propor Minicurso/Oficina</a>
+                        @endif
+                        @if($evento->chamadasVoluntarios()->where('ativa', true)->exists())
+                            <a href="{{ route('voluntariado.meu') }}" class="btn btn-ev-out"><i class="fa-solid fa-hand-holding-heart me-1"></i> Seja Voluntário(a)</a>
+                        @endif
                         @if($anaisPublicados)
                             <a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-book me-1"></i> Trabalhos Publicados</a>
                         @endif

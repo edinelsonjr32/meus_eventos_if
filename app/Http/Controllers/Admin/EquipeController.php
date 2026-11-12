@@ -48,8 +48,8 @@ class EquipeController extends Controller
             return back()->withInput()->with('error', 'Participante não encontrado! Ele precisa se cadastrar no sistema antes de ser adicionado à equipe.');
         }
 
-        if (Equipe::where('evento_id', $evento->id)->where('participante_id', $participante->id)->exists()) {
-            return back()->with('warning', 'Esta pessoa já faz parte da equipe deste evento.');
+        if (Equipe::where('evento_id', $evento->id)->where('participante_id', $participante->id)->where('funcao', $dados['funcao'])->exists()) {
+            return back()->with('warning', 'Esta pessoa já faz parte da equipe deste evento com esta função.');
         }
 
         Equipe::create([

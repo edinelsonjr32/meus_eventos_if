@@ -416,6 +416,14 @@
                 <i class="fa-solid fa-file-lines nav-ico"></i> Meus Trabalhos
             </a>
 
+            <a href="{{ route('propostas.minhas') }}" class="nav-link {{ request()->routeIs('propostas.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-chalkboard-user nav-ico"></i> Minhas Propostas
+            </a>
+
+            <a href="{{ route('voluntariado.meu') }}" class="nav-link {{ request()->routeIs('voluntariado.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-hand-holding-heart nav-ico"></i> Voluntariado
+            </a>
+
             {{-- ===== Área do avaliador ===== --}}
             @if($ehAvaliador)
                 <div class="nav-grupo">
