@@ -191,7 +191,8 @@ it('respeita o limite de trabalhos por usuário', function () {
 });
 
 it('exige login para submeter', function () {
-    $this->get(route('trabalhos.create', $this->evento->slug))->assertRedirect(route('login'));
+    // o formulário abre para visitantes (bloqueado, com aviso de login); enviar exige conta
+    $this->get(route('trabalhos.create', $this->evento->slug))->assertOk()->assertSee('Entre ou crie sua conta para continuar');
     $this->post($this->url, dadosValidos())->assertRedirect(route('login'));
 });
 

@@ -47,7 +47,12 @@ class TrabalhoController extends Controller
             return redirect()->route('evento.publico.show', $evento->slug)->with('error', $erro);
         }
 
-        return view('trabalhos.form', $this->dadosDoFormulario($evento, new Trabalho(['status' => Trabalho::RASCUNHO]), $request));
+        // Visitante: vê o formulário (bloqueado) com aviso de login; volta para cá depois de entrar
+        if (!$request->user()) {
+            $request->session()->put('url.intended', $request->fullUrl());
+        }
+
+        return view('trabalhos.form', $this->dadosDoFormulario($evento, new Trabalho(['status' => Trabalho::RASCUNHO]), $request) + ['visitante' => !$request->user()]);
     }
 
     public function store(SalvarTrabalhoRequest $request, string $slug)
@@ -183,7 +188,7 @@ class TrabalhoController extends Controller
             return 'A submissão de trabalhos não está aberta para este evento.';
         }
 
-        if ($config->max_trabalhos_por_usuario) {
+        if ($config->max_trabalhos_por_usuario && $request->user()) {
             $total = Trabalho::where('evento_id', $evento->id)
                 ->where('submetido_por', $request->user()->id)
                 ->where('status', '!=', Trabalho::RETIRADO)

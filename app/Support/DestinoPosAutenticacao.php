@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
  * Para onde a pessoa vai depois de entrar ou criar a conta.
  *
  * Regra: sempre a própria dashboard (a rota "dashboard" decide pelo papel: admin ou inscrito).
- * Única exceção: quem veio de um QR Code de presença (/frequencia/{token}) volta para registrar a presença.
+ * Exceções: quem veio de um QR Code de presença (/frequencia/{token}) ou de um formulário aberto a visitantes volta para onde estava.
  */
 class DestinoPosAutenticacao
 {
@@ -18,11 +18,19 @@ class DestinoPosAutenticacao
         $pretendido = (string) $request->session()->pull('url.intended', '');
         $caminho = (string) (parse_url($pretendido, PHP_URL_PATH) ?? '');
 
-        if ($pretendido !== '' && preg_match('#^/frequencia/[^/]+$#', $caminho) === 1 && self::mesmoSite($pretendido, $request)) {
+        if ($pretendido !== '' && self::caminhoPermitido($caminho) && self::mesmoSite($pretendido, $request)) {
             return redirect()->to($pretendido);
         }
 
         return redirect()->route(self::rotaDashboard($request->user()));
+    }
+
+    /** Presença por QR Code e formulários abertos a visitantes (proposta, voluntariado, submissão de trabalho). */
+    private static function caminhoPermitido(string $caminho): bool
+    {
+        return preg_match('#^/frequencia/[^/]+$#', $caminho) === 1
+            || preg_match('#^/(propostas|voluntariado)/chamada/[^/]+$#', $caminho) === 1
+            || preg_match('#^/e/[^/]+/trabalhos/submeter$#', $caminho) === 1;
     }
 
     /** Dashboard da pessoa pelo papel, direto (sem passar por /dashboard, para o aviso da sessão não se perder no redirecionamento duplo). */

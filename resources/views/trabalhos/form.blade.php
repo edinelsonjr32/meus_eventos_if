@@ -51,12 +51,12 @@
         'modoGestao' => $modoGestao,
     ];
 @endphp
-<x-app-layout>
+<x-layout-adaptavel titulo="Submissão de trabalhos">
     <div class="row justify-content-center">
         <div class="col-xl-9">
 
             <div class="d-flex align-items-center gap-3 mb-4">
-                <a href="{{ $modoGestao ? ($editando ? route('gestao.trabalhos.show', $trabalho) : route('gestao.trabalhos.index', $evento)) : ($editando ? route('trabalhos.show', $trabalho) : route('trabalhos.index')) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+                <a href="{{ auth()->guest() ? route('evento.publico.show', $evento->slug) : ($modoGestao ? ($editando ? route('gestao.trabalhos.show', $trabalho) : route('gestao.trabalhos.index', $evento)) : ($editando ? route('trabalhos.show', $trabalho) : route('trabalhos.index'))) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
                     <i class="fa-solid fa-arrow-left"></i>
                 </a>
                 <div>
@@ -101,6 +101,7 @@
 
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
             @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
+            <x-aviso-login acao="preencher e submeter seu trabalho" />
             @if($errors->any())
                 <div class="alert alert-danger" id="alerta-erros" role="alert" tabindex="-1">
                     <strong><i class="fa-solid fa-circle-exclamation me-1"></i> Não foi possível salvar. Corrija os campos abaixo:</strong>
@@ -114,6 +115,7 @@
 
             <form action="{{ $action }}" method="POST" enctype="multipart/form-data" novalidate x-data="formTrabalho({{ \Illuminate\Support\Js::from($dadosJs) }})">
                 @csrf
+                <fieldset @disabled(auth()->guest()) style="border:0;padding:0;margin:0;min-width:0">
                 @if($editando) @method('PUT') @endif
 
                 {{-- Erros encontrados no navegador (antes de enviar) --}}
@@ -135,7 +137,7 @@
                     @elseif(!$modoGestao)
                         <div class="mb-3">
                             <label class="small fw-bold text-secondary">E-mail *</label>
-                            <input type="email" class="form-control bg-light" value="{{ auth()->user()->email }}" readonly tabindex="-1">
+                            <input type="email" class="form-control bg-light" value="{{ auth()->user()?->email }}" readonly tabindex="-1">
                             <div class="form-text">O e-mail da sua conta é registrado automaticamente com a submissão.</div>
                         </div>
                     @endif
@@ -423,7 +425,12 @@
                     <div class="small text-muted mt-2"><i class="fa-solid fa-shield-halved me-1"></i> Seus dados pessoais são tratados conforme a <a href="{{ route('privacidade') }}" target="_blank">Política de Privacidade</a>. CPF e e-mail dos autores nunca são publicados.</div>
                 </section>
 
+                </fieldset>
+
                 {{-- Envio --}}
+                @guest
+                    <div class="d-flex justify-content-end mb-5"><a href="{{ route('login') }}" class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-right-to-bracket me-1"></i> Entrar para submeter</a></div>
+                @else
                 <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mb-5">
                     <a href="{{ $modoGestao ? ($editando ? route('gestao.trabalhos.show', $trabalho) : route('gestao.trabalhos.index', $evento)) : ($editando ? route('trabalhos.show', $trabalho) : route('trabalhos.index')) }}" class="btn btn-light fw-bold"><i class="fa-solid fa-arrow-left me-1"></i> Cancelar</a>
                     <div class="d-flex flex-column flex-sm-row gap-2">
@@ -437,6 +444,7 @@
                         </button>
                     </div>
                 </div>
+                @endguest
             </form>
         </div>
     </div>
@@ -568,4 +576,4 @@
             };
         }
     </script>
-</x-app-layout>
+</x-layout-adaptavel>

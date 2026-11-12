@@ -4,13 +4,14 @@
     $v = fn ($campo) => old($campo, $proposta->$campo);
     $lista = array_values(array_map(fn ($a) => ['nome' => $a['nome'] ?? '', 'email' => $a['email'] ?? '', 'cpf' => $a['cpf'] ?? ''], $apoios ?? []));
 @endphp
-<x-app-layout>
+<x-layout-adaptavel titulo="Enviar proposta de minicurso ou oficina">
     <div class="row justify-content-center"><div class="col-xl-9">
         <div class="d-flex align-items-center gap-3 mb-4">
-            <a href="{{ route('propostas.minhas') }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
+            <a href="{{ auth()->check() ? route('propostas.minhas') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
             <div><h3 class="fw-bold m-0">{{ $editando ? 'Editar proposta' : 'Nova proposta' }}</h3><small class="text-secondary">{{ $chamada->evento->titulo }} · {{ $chamada->titulo }}</small></div>
         </div>
 
+        <x-aviso-login acao="preencher e enviar sua proposta" />
         @if(session('error')) <div class="alert alert-danger">{{ session('error') }}</div> @endif
         @if($errors->any())<div class="alert alert-danger" id="alerta-erros"><strong>Corrija os campos abaixo:</strong><ul class="mb-0 mt-1 small">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div>@endif
         @if($editando && $proposta->status === 'ajustes')
@@ -21,6 +22,7 @@
         <form action="{{ $acao }}" method="POST" x-data="{ lab: {{ $v('requer_laboratorio') ? 'true' : 'false' }}, apoios: {{ \Illuminate\Support\Js::from($lista) }} }">
             @csrf
             @if($editando) @method('PUT') @endif
+            <fieldset @disabled(!auth()->check()) style="border:0;padding:0;margin:0;min-width:0">
 
             <div class="glass-card mb-4">
                 <h6 class="fw-bold text-success mb-3"><span class="badge bg-success me-2">1</span> A atividade</h6>
@@ -62,10 +64,15 @@
                 <button type="button" class="btn btn-sm btn-outline-success" x-show="apoios.length < 5" @click="apoios.push({ nome: '', email: '', cpf: '' })"><i class="fa-solid fa-plus"></i> Adicionar pessoa de apoio</button>
             </div>
 
+            </fieldset>
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between mb-5">
-                <a href="{{ route('propostas.minhas') }}" class="btn btn-light fw-bold"><i class="fa-solid fa-arrow-left me-1"></i> Cancelar</a>
-                <button class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-paper-plane me-1"></i> {{ $editando ? 'Salvar e reenviar' : 'Enviar proposta' }}</button>
+                <a href="{{ auth()->check() ? route('propostas.minhas') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light fw-bold"><i class="fa-solid fa-arrow-left me-1"></i> Cancelar</a>
+                @auth
+                    <button class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-paper-plane me-1"></i> {{ $editando ? 'Salvar e reenviar' : 'Enviar proposta' }}</button>
+                @else
+                    <a href="{{ route('login') }}" class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-right-to-bracket me-1"></i> Entrar para enviar</a>
+                @endauth
             </div>
         </form>
     </div></div>
-</x-app-layout>
+</x-layout-adaptavel>

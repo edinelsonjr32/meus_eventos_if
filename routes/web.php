@@ -70,12 +70,17 @@ Route::get('/frequencia/{token}/acesso/{modo}', [FrequenciaController::class, 'a
 // A presença exige conta: sem login a requisição é barrada (JSON recebe 401)
 Route::post('/frequencia/{token}', [FrequenciaController::class, 'store'])->middleware('auth')->name('frequencia.store');
 
+// Formulários abertos a visitantes: veem o formulário com aviso de login; enviar exige conta (os POST ficam na área logada)
+Route::get('/e/{slug}/trabalhos/submeter', [\App\Http\Controllers\TrabalhoController::class, 'create'])->name('trabalhos.create');
+Route::get('/propostas/chamada/{chamada}', [\App\Http\Controllers\PropostaController::class, 'create'])->name('propostas.create');
+Route::get('/voluntariado/chamada/{chamada}', [\App\Http\Controllers\VoluntarioController::class, 'create'])->name('voluntariado.create');
+
 // Certificados de trabalhos (código aleatório; limite de requisições contra enumeração)
 Route::middleware('throttle:30,1')->group(function () {
     Route::get('/certificado-trabalho/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'validar'])->name('certificado.trabalho.validar');
     Route::get('/certificado-trabalho/download/{hash}', [\App\Http\Controllers\Publico\CertificadoTrabalhoController::class, 'download'])->name('certificado.trabalho.download');
     Route::get('/certificado-premiacao/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoPremiacaoController::class, 'validar'])->name('certificado.premiacao.validar');
-    Route::get('/certificado-equipe/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoEquipeController::class, 'validar'])->name('certificado.equipe.validar');
+Route::get('/certificado-equipe/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoEquipeController::class, 'validar'])->name('certificado.equipe.validar');
     Route::get('/certificado-equipe/download/{hash}', [\App\Http\Controllers\Publico\CertificadoEquipeController::class, 'download'])->name('certificado.equipe.download');
     Route::get('/certificado-premiacao/download/{hash}', [\App\Http\Controllers\Publico\CertificadoPremiacaoController::class, 'download'])->name('certificado.premiacao.download');
 });
@@ -109,7 +114,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- TRABALHOS (autor) ---
     Route::get('/minha-area/trabalhos', [\App\Http\Controllers\TrabalhoController::class, 'index'])->name('trabalhos.index');
-    Route::get('/e/{slug}/trabalhos/submeter', [\App\Http\Controllers\TrabalhoController::class, 'create'])->name('trabalhos.create');
     Route::post('/e/{slug}/trabalhos', [\App\Http\Controllers\TrabalhoController::class, 'store'])->name('trabalhos.store');
     Route::get('/trabalhos/{trabalho}', [\App\Http\Controllers\TrabalhoController::class, 'show'])->name('trabalhos.show');
     Route::get('/trabalhos/{trabalho}/editar', [\App\Http\Controllers\TrabalhoController::class, 'edit'])->name('trabalhos.edit');
@@ -121,7 +125,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- PROPOSTAS DE MINICURSO/OFICINA (proponente) ---
     Route::get('/minha-area/propostas', [\App\Http\Controllers\PropostaController::class, 'minhas'])->name('propostas.minhas');
-    Route::get('/propostas/chamada/{chamada}', [\App\Http\Controllers\PropostaController::class, 'create'])->name('propostas.create');
     Route::post('/propostas/chamada/{chamada}', [\App\Http\Controllers\PropostaController::class, 'store'])->name('propostas.store');
     Route::get('/propostas/{proposta}', [\App\Http\Controllers\PropostaController::class, 'show'])->name('propostas.show');
     Route::get('/propostas/{proposta}/editar', [\App\Http\Controllers\PropostaController::class, 'edit'])->name('propostas.edit');
@@ -131,7 +134,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- VOLUNTARIADO (voluntário) ---
     Route::get('/minha-area/voluntariado', [\App\Http\Controllers\VoluntarioController::class, 'meu'])->name('voluntariado.meu');
-    Route::get('/voluntariado/chamada/{chamada}', [\App\Http\Controllers\VoluntarioController::class, 'create'])->name('voluntariado.create');
     Route::post('/voluntariado/chamada/{chamada}', [\App\Http\Controllers\VoluntarioController::class, 'store'])->name('voluntariado.store');
     Route::post('/voluntariado/{voluntario}/desistir', [\App\Http\Controllers\VoluntarioController::class, 'desistir'])->name('voluntariado.desistir');
     Route::get('/voluntariado/{voluntario}/certificado', [\App\Http\Controllers\VoluntarioController::class, 'certificado'])->name('voluntariado.certificado');

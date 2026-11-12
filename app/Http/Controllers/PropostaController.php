@@ -39,6 +39,16 @@ class PropostaController extends Controller
             return redirect($url, 301);
         }
 
+        // Visitante: vê o formulário (bloqueado) com aviso de login; volta para cá depois de entrar
+        if (!$request->user()) {
+            if (!$chamada->estaAberta()) {
+                return redirect()->route('evento.publico.show', $chamada->evento->slug)->with('error', 'Esta chamada não está recebendo propostas no momento.');
+            }
+            $request->session()->put('url.intended', $request->fullUrl());
+
+            return view('propostas.form', ['chamada' => $chamada->load('evento'), 'proposta' => new Proposta(['tipo' => array_key_first($chamada->tiposAceitos()), 'requer_laboratorio' => false]), 'apoios' => [], 'visitante' => true]);
+        }
+
         if ($erro = $this->bloqueio($request, $chamada)) {
             return redirect()->route('propostas.minhas')->with('error', $erro);
         }

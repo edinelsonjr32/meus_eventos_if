@@ -1,10 +1,11 @@
-<x-app-layout>
+<x-layout-adaptavel titulo="Seja voluntário(a)">
     <div class="row justify-content-center"><div class="col-xl-8">
         <div class="d-flex align-items-center gap-3 mb-4">
-            <a href="{{ route('voluntariado.meu') }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
+            <a href="{{ auth()->check() ? route('voluntariado.meu') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light rounded-circle shadow-sm" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-arrow-left"></i></a>
             <div><h3 class="fw-bold m-0">Quero ser voluntário(a)</h3><small class="text-secondary">{{ $chamada->evento->titulo }} · {{ $chamada->titulo }}</small></div>
         </div>
 
+        <x-aviso-login acao="se inscrever como voluntário(a)" />
         @if(session('error')) <div class="alert alert-danger">{{ session('error') }}</div> @endif
         @if($errors->any())<div class="alert alert-danger"><ul class="mb-0 ps-3">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div>@endif
 
@@ -18,7 +19,8 @@
 
         <form action="{{ route('voluntariado.store', $chamada) }}" method="POST" class="glass-card">
             @csrf
-            <div class="alert alert-light border small"><i class="fa-solid fa-user-check me-1 text-success"></i> Inscrevendo como <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}).</div>
+            @auth<div class="alert alert-light border small"><i class="fa-solid fa-user-check me-1 text-success"></i> Inscrevendo como <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}).</div>@endauth
+            <fieldset @disabled(!auth()->check()) style="border:0;padding:0;margin:0;min-width:0">
             <div class="mb-3"><label class="small fw-bold">Por que você quer ser voluntário(a)? *</label><textarea name="motivacao" rows="4" class="form-control" required>{{ old('motivacao') }}</textarea></div>
             @php $marcados = old('disponibilidade', []); $periodos = \App\Models\Voluntario::PERIODOS; @endphp
             <div class="mb-3" x-data="{ marcar(dia, tudo) { document.querySelectorAll('[data-dia=\'' + dia + '\']').forEach(c => c.checked = tudo) } }">
@@ -47,10 +49,15 @@
             </div>
             <div class="mb-3"><label class="small fw-bold">Habilidades ou experiências úteis</label><textarea name="habilidades" rows="2" class="form-control" placeholder="Ex.: fotografia, informática, atendimento ao público">{{ old('habilidades') }}</textarea></div>
             <div class="mb-4"><label class="small fw-bold">Telefone / WhatsApp</label><input type="text" name="telefone" class="form-control" maxlength="15" value="{{ old('telefone') }}"></div>
+            </fieldset>
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">
-                <a href="{{ route('voluntariado.meu') }}" class="btn btn-light fw-bold">Cancelar</a>
-                <button class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-hand-holding-heart me-1"></i> Enviar inscrição</button>
+                <a href="{{ auth()->check() ? route('voluntariado.meu') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light fw-bold">Cancelar</a>
+                @auth
+                    <button class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-hand-holding-heart me-1"></i> Enviar inscrição</button>
+                @else
+                    <a href="{{ route('login') }}" class="btn btn-primary-custom fw-bold"><i class="fa-solid fa-right-to-bracket me-1"></i> Entrar para se inscrever</a>
+                @endauth
             </div>
         </form>
     </div></div>
-</x-app-layout>
+</x-layout-adaptavel>

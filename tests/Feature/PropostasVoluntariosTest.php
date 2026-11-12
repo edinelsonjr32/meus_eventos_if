@@ -183,7 +183,7 @@ it('telas de gestão abrem para o admin e o evento mostra as chamadas abertas', 
     $this->actingAs($this->admin)->get(route('admin.propostas.index', $this->evento))->assertOk();
     $this->get(route('admin.voluntarios.index', $this->evento))->assertOk();
     $this->get(route('admin.eventos.show', $this->evento->id))->assertOk()->assertSee('Minicursos');
-    $this->get(route('evento.publico.show', $this->evento->slug))->assertOk()->assertSee('Propor Minicurso/Oficina');
+    $this->get(route('evento.publico.show', $this->evento->slug))->assertOk()->assertSee('Propor Minicurso/Oficina')->assertSee(route('propostas.create', $this->chamada), false);
 });
 
 it('valida o formulário de proposta: campos, laboratório, apoios e duplicidade', function () {
@@ -524,4 +524,31 @@ it('links das chamadas usam o título como slug com o id no fim (SEO) e links an
     $this->get('/propostas/chamada/qualquer-coisa')->assertNotFound();
     $this->get('/propostas/chamada/novo-titulo-99999')->assertNotFound();
     $this->post(route('voluntariado.store', $v), ['motivacao' => 'Quero ajudar no evento todo', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]])->assertSessionHas('success');
+});
+
+it('visitante vê os formulários com aviso de login (campos bloqueados) e volta para eles depois de entrar', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Voluntários Abertos', 'ativa' => true]);
+    $urlV = route('voluntariado.create', $ch);
+    $urlP = route('propostas.create', $this->chamada);
+
+    foreach ([$urlV, $urlP] as $url) {
+        $this->get($url)->assertOk()->assertSee('Entre ou crie sua conta para continuar')->assertSee(route('login'), false)->assertSee(route('register'), false)->assertSee('<fieldset disabled', false)->assertSessionHas('url.intended', $url);
+    }
+    $this->get(route('trabalhos.create', $this->evento->slug))->assertOk()->assertSee('Entre ou crie sua conta para continuar')->assertSee('<fieldset disabled', false);
+
+    // chamada encerrada: o visitante é levado à página do evento com a explicação
+    $ch->update(['fim' => now()->subDay()]);
+    $this->get($urlV)->assertRedirect(route('evento.publico.show', $this->evento->slug));
+
+    // enviar continua exigindo login
+    $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar no evento todo'])->assertRedirect(route('login'));
+    $this->post(route('propostas.store', $this->chamada), $this->dados)->assertRedirect(route('login'));
+
+    // depois de entrar, volta ao formulário em que estava
+    $ch->update(['fim' => null]);
+    $this->get($urlV);
+    $this->post('/login', ['email' => $this->autor->email, 'password' => 'password'])->assertRedirect($urlV);
+
+    // logado: formulário liberado, sem aviso nem bloqueio
+    $this->get($urlV)->assertOk()->assertDontSee('Entre ou crie sua conta')->assertDontSee('<fieldset disabled', false);
 });

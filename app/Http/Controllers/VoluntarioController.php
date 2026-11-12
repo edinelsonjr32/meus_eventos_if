@@ -31,6 +31,16 @@ class VoluntarioController extends Controller
             return redirect($url, 301);
         }
 
+        // Visitante: vê o formulário (bloqueado) com aviso de login; volta para cá depois de entrar
+        if (!$request->user()) {
+            if (!$chamada->estaAberta()) {
+                return redirect()->route('evento.publico.show', $chamada->evento->slug)->with('error', 'Esta chamada não está recebendo inscrições no momento.');
+            }
+            $request->session()->put('url.intended', $request->fullUrl());
+
+            return view('voluntariado.inscrever', ['chamada' => $chamada->load('evento'), 'participante' => null, 'dias' => $chamada->evento->diasDeVoluntariado(), 'visitante' => true]);
+        }
+
         if (!$chamada->estaAberta()) {
             return redirect()->route('voluntariado.meu')->with('error', 'Esta chamada não está recebendo inscrições no momento.');
         }
