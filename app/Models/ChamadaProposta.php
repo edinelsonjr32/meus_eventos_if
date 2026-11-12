@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** Chamada para propostas de minicursos e oficinas de um evento. */
 class ChamadaProposta extends Model
 {
+    use \App\Models\Concerns\UrlComSlug;
+
     protected $table = 'chamadas_propostas';
 
     public const TIPOS = ['minicurso' => 'Minicurso', 'oficina' => 'Oficina'];

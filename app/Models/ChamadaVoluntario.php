@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** Chamada para voluntários de um evento. */
 class ChamadaVoluntario extends Model
 {
+    use \App\Models\Concerns\UrlComSlug;
+
     protected $table = 'chamadas_voluntarios';
 
     protected $fillable = ['evento_id', 'titulo', 'descricao', 'requisitos', 'vagas', 'inicio', 'fim', 'ativa', 'criado_por'];

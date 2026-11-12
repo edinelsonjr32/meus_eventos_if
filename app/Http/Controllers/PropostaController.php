@@ -34,6 +34,11 @@ class PropostaController extends Controller
 
     public function create(Request $request, ChamadaProposta $chamada)
     {
+        // endereço canônico (título + id) para SEO: só o número ou título antigo redireciona
+        if ($url = $chamada->urlCanonicaSe((string) $request->segment(3), 'propostas.create')) {
+            return redirect($url, 301);
+        }
+
         if ($erro = $this->bloqueio($request, $chamada)) {
             return redirect()->route('propostas.minhas')->with('error', $erro);
         }

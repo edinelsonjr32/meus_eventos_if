@@ -26,6 +26,11 @@ class VoluntarioController extends Controller
 
     public function create(Request $request, ChamadaVoluntario $chamada)
     {
+        // endereço canônico (título + id) para SEO: só o número ou título antigo redireciona
+        if ($url = $chamada->urlCanonicaSe((string) $request->segment(3), 'voluntariado.create')) {
+            return redirect($url, 301);
+        }
+
         if (!$chamada->estaAberta()) {
             return redirect()->route('voluntariado.meu')->with('error', 'Esta chamada não está recebendo inscrições no momento.');
         }

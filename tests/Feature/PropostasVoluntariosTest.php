@@ -498,3 +498,30 @@ it('a tela de edição da atividade permite ver, adicionar e remover os voluntá
     $d->delete();
     $this->get(route('admin.atividades.edit', $at))->assertSee('Criar demanda de voluntários');
 });
+
+it('links das chamadas usam o título como slug com o id no fim (SEO) e links antigos continuam válidos', function () {
+    $c = ChamadaProposta::create(['evento_id' => $this->evento->id, 'titulo' => 'Chamada de Propostas de Minicursos – XI Semana de Ciência, Tecnologia e Cultura', 'tipos_aceitos' => ['minicurso'], 'ativa' => true, 'criado_por' => $this->admin->id]);
+    $v = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Chamada de Voluntários – XI Semana', 'ativa' => true]);
+    $this->actingAs($this->autor);
+
+    $urlC = route('propostas.create', $c);
+    $urlV = route('voluntariado.create', $v);
+    expect($urlC)->toEndWith('/propostas/chamada/chamada-de-propostas-de-minicursos-xi-semana-de-ciencia-tecnologia-e-cultura-' . $c->id)
+        ->and($urlV)->toEndWith('/voluntariado/chamada/chamada-de-voluntarios-xi-semana-' . $v->id);
+
+    $this->get($urlC)->assertOk();
+    $this->get($urlV)->assertOk();
+
+    // só o número, ou título desatualizado: redireciona (301) ao endereço canônico
+    $this->get('/propostas/chamada/' . $c->id)->assertStatus(301)->assertRedirect($urlC);
+    $this->get('/voluntariado/chamada/titulo-antigo-' . $v->id)->assertStatus(301)->assertRedirect($urlV);
+
+    // título alterado: o endereço novo muda, o antigo redireciona
+    $c->update(['titulo' => 'Novo título']);
+    $this->get($urlC)->assertStatus(301)->assertRedirect(route('propostas.create', $c->fresh()));
+
+    // lixo ou id inexistente: 404; o envio do formulário funciona pelo endereço com slug
+    $this->get('/propostas/chamada/qualquer-coisa')->assertNotFound();
+    $this->get('/propostas/chamada/novo-titulo-99999')->assertNotFound();
+    $this->post(route('voluntariado.store', $v), ['motivacao' => 'Quero ajudar no evento todo', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]])->assertSessionHas('success');
+});
