@@ -39,6 +39,13 @@
                 @if($i->disponibilidadeResumo())<div class="small text-secondary mt-2"><i class="fa-regular fa-calendar-check me-1"></i> <strong>Sua disponibilidade:</strong> {{ $i->disponibilidadeResumo() }}</div>@endif
                 @if($i->parecer)<div class="alert alert-light border small mt-3 mb-0 texto-quebra"><strong>Mensagem da organização:</strong> {{ $i->parecer }}</div>@endif
 
+                @if($i->status === 'aprovado' && $i->chamada->grupo_whatsapp_url)
+                    <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 mb-0 small">
+                        <span><i class="fa-brands fa-whatsapp me-1"></i> A organização criou o <strong>grupo de WhatsApp dos voluntários</strong>.</span>
+                        <a href="{{ $i->chamada->grupo_whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-success fw-bold">Entrar no grupo</a>
+                    </div>
+                @endif
+
                 @if($i->status === 'aprovado')
                     <div class="mt-3">
                         <div class="small fw-bold text-secondary mb-2">Onde você atua</div>

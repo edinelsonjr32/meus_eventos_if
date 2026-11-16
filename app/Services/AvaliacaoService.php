@@ -208,6 +208,8 @@ class AvaliacaoService
             if ($ativas->isNotEmpty() && $ativas->every(fn ($a) => $a->status === 'concluida') && $ativas->count() >= $meta) {
                 $this->workflow->registrar($trabalho, null, 'em_avaliacao', 'avaliado', 'Todas as avaliações foram concluídas');
                 $trabalho->status = 'avaliado';
+                $trabalho->save();
+                \App\Services\Notificacoes::trabalho($trabalho, 'Avaliação do seu trabalho concluída', 'Todas as avaliações foram concluídas. A gestão fará a análise final e você receberá a decisão por e-mail.', 'info');
             }
         }
 
@@ -345,6 +347,7 @@ class AvaliacaoService
 
         $trabalho->update(['prazo_correcao' => $novoPrazo]);
         $this->workflow->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, 'Prazo da versão final prorrogado até ' . $novoPrazo->format('d/m/Y'));
+        \App\Services\Notificacoes::trabalho($trabalho, 'Prazo da versão final prorrogado', 'O prazo para enviar a versão final do seu trabalho foi prorrogado até ' . $novoPrazo->format('d/m/Y') . '.', 'ok');
     }
 
     /** Nova rodada: os avaliadores da rodada anterior recebem a versão corrigida. */

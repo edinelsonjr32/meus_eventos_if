@@ -13,9 +13,9 @@ class ChamadaVoluntario extends Model
 
     protected $table = 'chamadas_voluntarios';
 
-    protected $fillable = ['evento_id', 'titulo', 'descricao', 'requisitos', 'vagas', 'inicio', 'fim', 'ativa', 'criado_por'];
+    protected $fillable = ['evento_id', 'titulo', 'descricao', 'requisitos', 'grupo_whatsapp_url', 'grupo_whatsapp_enviado_em', 'vagas', 'inicio', 'fim', 'ativa', 'criado_por'];
 
-    protected $casts = ['inicio' => 'datetime', 'fim' => 'datetime', 'ativa' => 'boolean', 'vagas' => 'integer'];
+    protected $casts = ['inicio' => 'datetime', 'fim' => 'datetime', 'ativa' => 'boolean', 'vagas' => 'integer', 'grupo_whatsapp_enviado_em' => 'datetime'];
 
     public function evento(): BelongsTo
     {

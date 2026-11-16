@@ -355,6 +355,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::post('voluntarios/chamadas', [$v, 'storeChamada'])->name('voluntarios.chamadas.store');
         Route::put('voluntarios/chamadas/{chamada}', [$v, 'updateChamada'])->name('voluntarios.chamadas.update');
         Route::delete('voluntarios/chamadas/{chamada}', [$v, 'destroyChamada'])->name('voluntarios.chamadas.destroy');
+        Route::get('voluntarios/listagem', [$v, 'listagem'])->name('voluntarios.listagem');
+        Route::post('voluntarios/chamadas/{chamada}/grupo-whatsapp', [$v, 'enviarGrupo'])->name('voluntarios.chamadas.grupo');
         Route::post('voluntarios/demandas', [$v, 'storeDemanda'])->name('voluntarios.demandas.store');
         Route::post('voluntarios/demandas/gerar', [$v, 'gerarDemandas'])->name('voluntarios.demandas.gerar');
         Route::put('voluntarios/demandas/{demanda}', [$v, 'updateDemanda'])->name('voluntarios.demandas.update');

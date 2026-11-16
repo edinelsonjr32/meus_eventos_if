@@ -6,6 +6,7 @@ use App\Http\Requests\SalvarTrabalhoRequest;
 use App\Mail\AvaliadorAtribuidoMail;
 use App\Mail\TrabalhoReenviadoMail;
 use App\Mail\TrabalhoStatusMail;
+use App\Services\Notificacoes;
 use App\Mail\TrabalhoSubmetidoMail;
 use App\Models\Evento;
 use App\Models\Participante;
@@ -126,6 +127,8 @@ class TrabalhoWorkflow
             $trabalho->update(['status' => Trabalho::RETIRADO]);
             $this->registrar($trabalho, $user, $de, Trabalho::RETIRADO, $motivo ?: 'Retirado pelo autor');
         });
+
+        Notificacoes::trabalho($trabalho->fresh(), 'Trabalho retirado', 'O trabalho foi retirado e não segue mais no processo de avaliação deste evento.', 'alerta', $motivo ?: null);
     }
 
     public function registrar(Trabalho $trabalho, ?User $user, ?string $de, string $para, ?string $justificativa = null): void
@@ -294,6 +297,8 @@ class TrabalhoWorkflow
             Mail::to($gestor->email)->queue(new TrabalhoReenviadoMail($trabalho->fresh(['autores', 'evento']), 'aprovado'));
         }
 
+        Notificacoes::trabalho($trabalho->fresh(), 'Versão final recebida', 'Recebemos a versão final corrigida do seu trabalho. Obrigado! A gestão foi avisada.', 'ok');
+
         return $trabalho->fresh();
     }
 
@@ -371,11 +376,21 @@ class TrabalhoWorkflow
             $justificativa = $justificativa !== '' ? $justificativa : 'Envio para avaliação cancelado pela gestão';
         }
 
-        DB::transaction(function () use ($trabalho, $gestor, $para, $justificativa) {
-            $de = $trabalho->status;
+        $de = $trabalho->status;
+        DB::transaction(function () use ($trabalho, $gestor, $para, $justificativa, $de) {
             $trabalho->update(['status' => $para]);
             $this->registrar($trabalho, $gestor, $de, $para, $justificativa !== '' ? $justificativa : null);
         });
+
+        // Movimentações sem e-mail próprio: o autor também fica sabendo (e vê o status no perfil)
+        $trabalhoAtual = $trabalho->fresh();
+        if ($para === 'em_triagem') {
+            Notificacoes::trabalho($trabalhoAtual, 'Seu trabalho está em análise', $de === 'em_avaliacao'
+                ? 'O envio para avaliação foi cancelado pela gestão e o trabalho voltou para a triagem. Você será avisado(a) do próximo passo.'
+                : 'A gestão do evento iniciou a análise (triagem) do seu trabalho. Você será avisado(a) do próximo passo.');
+        } elseif ($para === 'em_avaliacao') {
+            Notificacoes::trabalho($trabalhoAtual, 'Seu trabalho foi encaminhado para avaliação', 'O trabalho passou pela triagem e foi encaminhado para a avaliação. Quando houver uma decisão, você receberá um novo e-mail.', 'ok');
+        }
 
         if (in_array($para, [Trabalho::DEVOLVIDO_TRIAGEM, 'rejeitado_triagem'], true)) {
             $this->avisarAutores($trabalho, $para === Trabalho::DEVOLVIDO_TRIAGEM

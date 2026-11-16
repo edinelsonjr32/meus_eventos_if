@@ -46,11 +46,20 @@ class VoluntarioService
                 throw new \DomainException('Você já está inscrito nesta chamada.');
             }
             $existente->update($campos + ['status' => 'inscrito', 'parecer' => null, 'decidido_por' => null, 'decidido_em' => null]);
+            $this->avisarInscricao($existente);
 
             return $existente;
         }
 
-        return Voluntario::create($campos + ['chamada_id' => $chamada->id, 'evento_id' => $chamada->evento_id, 'user_id' => $user->id, 'participante_id' => $participante->id, 'status' => 'inscrito']);
+        $voluntario = Voluntario::create($campos + ['chamada_id' => $chamada->id, 'evento_id' => $chamada->evento_id, 'user_id' => $user->id, 'participante_id' => $participante->id, 'status' => 'inscrito']);
+        $this->avisarInscricao($voluntario);
+
+        return $voluntario;
+    }
+
+    private function avisarInscricao(Voluntario $voluntario): void
+    {
+        Notificacoes::voluntario($voluntario, 'Inscrição de voluntário recebida', 'Recebemos sua inscrição como voluntário(a). A organização vai analisá-la e você será avisado(a) por e-mail do resultado.', 'ok');
     }
 
     /** Mantém só dias com períodos válidos: ["2026-11-12" => ["manha", "tarde"]]. */
@@ -72,6 +81,7 @@ class VoluntarioService
     {
         $voluntario->demandas()->detach();
         $voluntario->update(['status' => 'desistente']);
+        Notificacoes::voluntario($voluntario->fresh(), 'Inscrição de voluntário cancelada', 'Sua desistência foi registrada. Se mudar de ideia e a chamada ainda estiver aberta, é possível se inscrever novamente.', 'alerta');
     }
 
     /** @throws \DomainException */
@@ -137,11 +147,16 @@ class VoluntarioService
         }
 
         $voluntario->demandas()->attach($demanda->id);
+
+        Notificacoes::voluntario($voluntario, 'Você foi vinculado(a) a uma atividade', 'A organização vinculou você a uma atividade. Confira os detalhes abaixo e, em caso de dúvida, procure o servidor responsável.', 'ok', Notificacoes::detalhesDaDemanda($demanda));
     }
 
     public function desalocar(Voluntario $voluntario, DemandaVoluntario $demanda): void
     {
-        $voluntario->demandas()->detach($demanda->id);
+        $removido = $voluntario->demandas()->detach($demanda->id);
+        if ($removido) {
+            Notificacoes::voluntario($voluntario, 'Você foi desvinculado(a) de uma atividade', 'A organização removeu seu vínculo com a atividade abaixo. Se tiver dúvidas, fale com o servidor responsável.', 'alerta', ['Atividade' => $demanda->titulo]);
+        }
     }
 
     /**
@@ -168,7 +183,14 @@ class VoluntarioService
             ? $voluntario->chamada->titulo
             : $voluntario->demandas->map(fn ($d) => $d->titulo . ($d->data_inicio ? ' (' . $d->data_inicio->format('d/m/Y') . ')' : ''))->implode('; ');
 
-        return $this->certificados->emitirParaFuncao($voluntario->evento, $participante, 'Voluntário', $horas, $detalhe, $gestor);
+        $ja = Equipe::where('evento_id', $voluntario->evento_id)->where('participante_id', $participante->id)->where('funcao', 'Voluntário')->whereNotNull('certificado_emitido_em')->exists();
+        $equipe = $this->certificados->emitirParaFuncao($voluntario->evento, $participante, 'Voluntário', $horas, $detalhe, $gestor);
+
+        if (!$ja) {
+            Notificacoes::voluntario($voluntario, 'Seu certificado de voluntário está disponível', 'O certificado do seu trabalho voluntário foi emitido. Baixe-o na sua área.', 'ok', ['Carga horária' => $horas . ' h'], 'Baixar meu certificado', route('voluntariado.certificado', $voluntario));
+        }
+
+        return $equipe;
     }
 
     /** Vínculo de equipe (certificado) deste voluntário, se existir. */

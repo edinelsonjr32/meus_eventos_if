@@ -9,4 +9,6 @@
     @else
         <x-email.botao :href="route('trabalhos.show', $trabalho)">Ver detalhes do trabalho</x-email.botao>
     @endif
+
+    <x-email.perfil area="Meus Trabalhos" :href="route('trabalhos.index')" />
 </x-email.layout>

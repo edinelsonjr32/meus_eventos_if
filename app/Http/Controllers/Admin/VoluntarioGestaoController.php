@@ -188,6 +188,60 @@ class VoluntarioGestaoController extends Controller
         return back()->with('abrir', $voluntario->id)->with('aba', request('aba', 'inscritos'))->with('success', 'Voluntário removido da atividade.');
     }
 
+    // ---------- Listagem e grupo de WhatsApp ----------
+
+    /** Listagem dos voluntários (CSV) com WhatsApp, atividades e carga horária: para montar o grupo e a escala. */
+    public function listagem(Request $request, Evento $evento)
+    {
+        $this->authorize('gerenciar', $evento);
+
+        $status = $request->input('status', 'aprovado');
+        $voluntarios = Voluntario::with(['usuario', 'participante', 'chamada', 'demandas'])->where('evento_id', $evento->id)
+            ->when($status !== 'todos' && isset(Voluntario::STATUS[$status]), fn ($q) => $q->where('status', $status))
+            ->when($request->filled('chamada'), fn ($q) => $q->where('chamada_id', (int) $request->input('chamada')))
+            ->get()->sortBy(fn ($v) => mb_strtolower($v->usuario->name))->values();
+
+        $nome = 'voluntarios-' . \Illuminate\Support\Str::slug($evento->slug) . '-' . now()->format('Ymd-Hi') . '.csv';
+        $seguro = [\App\Exports\TrabalhosExport::class, 'seguro'];
+
+        return response()->streamDownload(function () use ($voluntarios, $seguro) {
+            $f = fopen('php://output', 'w');
+            fwrite($f, "\xEF\xBB\xBF");   // BOM: o Excel abre com acentos corretos
+            fputcsv($f, ['Nome', 'E-mail', 'WhatsApp', 'Link do WhatsApp', 'Situação', 'Chamada', 'Atividades vinculadas', 'Carga horária (h)', 'Disponibilidade'], ';');
+            foreach ($voluntarios as $v) {
+                $numero = preg_replace('/\D/', '', (string) $v->telefone);
+                fputcsv($f, array_map($seguro, [
+                    $v->usuario->name, $v->usuario->email, $v->telefone, $numero ? 'https://wa.me/55' . $numero : '', $v->statusRotulo(), $v->chamada->titulo,
+                    $v->demandas->pluck('titulo')->implode(' | '), rtrim(rtrim(number_format($v->cargaHoraria(), 1, ',', ''), '0'), ','), $v->disponibilidadeResumo(),
+                ]), ';');
+            }
+            fclose($f);
+        }, $nome, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Avisa por e-mail todos os voluntários aprovados da chamada, com o link do grupo de WhatsApp. */
+    public function enviarGrupo(Evento $evento, ChamadaVoluntario $chamada)
+    {
+        $this->authorize('gerenciar', $evento);
+        abort_unless($chamada->evento_id === $evento->id, 404);
+
+        if (blank($chamada->grupo_whatsapp_url)) {
+            return back()->with('aba', 'chamadas')->with('error', 'Cadastre o link do grupo de WhatsApp na chamada antes de enviar.');
+        }
+
+        $aprovados = Voluntario::with(['usuario', 'evento', 'chamada'])->where('chamada_id', $chamada->id)->where('status', 'aprovado')->get();
+        if ($aprovados->isEmpty()) {
+            return back()->with('aba', 'chamadas')->with('error', 'Não há voluntários aprovados nesta chamada.');
+        }
+
+        foreach ($aprovados as $v) {
+            \App\Services\Notificacoes::voluntario($v, 'Entre no grupo de WhatsApp dos voluntários', 'A organização criou um grupo de WhatsApp para os voluntários. Entre pelo botão abaixo para receber os avisos e a escala.', 'ok', [], 'Entrar no grupo de WhatsApp', $chamada->grupo_whatsapp_url);
+        }
+        $chamada->update(['grupo_whatsapp_enviado_em' => now()]);
+
+        return back()->with('aba', 'chamadas')->with('success', "Link do grupo enviado por e-mail a {$aprovados->count()} voluntário(s) aprovado(s).");
+    }
+
     // ---------- Certificado ----------
     public function certificado(Request $request, Evento $evento, Voluntario $voluntario)
     {
@@ -209,8 +263,9 @@ class VoluntarioGestaoController extends Controller
     {
         $dados = $request->validate([
             'titulo' => 'required|string|max:255', 'descricao' => 'nullable|string|max:20000', 'requisitos' => 'nullable|string|max:30000',
+            'grupo_whatsapp_url' => ['nullable', 'url', 'max:255', 'regex:~^https://chat\.whatsapp\.com/[A-Za-z0-9]+/?(\?.*)?$~'],
             'vagas' => 'nullable|integer|min:1|max:2000', 'inicio' => 'nullable|date', 'fim' => 'nullable|date|after_or_equal:inicio', 'ativa' => 'nullable|boolean',
-        ], ['titulo.required' => 'Informe o título da chamada.', 'fim.after_or_equal' => 'O encerramento deve ser depois da abertura.']);
+        ], ['titulo.required' => 'Informe o título da chamada.', 'fim.after_or_equal' => 'O encerramento deve ser depois da abertura.', 'grupo_whatsapp_url.regex' => 'Use o link de convite do grupo, no formato https://chat.whatsapp.com/CÓDIGO.', 'grupo_whatsapp_url.url' => 'Informe o link completo do grupo (https://chat.whatsapp.com/...).']);
 
         $dados['descricao'] = \App\Support\HtmlSeguro::limparSimples($dados['descricao'] ?? null);
         $dados['requisitos'] = \App\Support\HtmlSeguro::limparSimples($dados['requisitos'] ?? null);

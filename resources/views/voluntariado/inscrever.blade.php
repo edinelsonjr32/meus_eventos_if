@@ -48,7 +48,7 @@
                 </div>
             </div>
             <div class="mb-3"><label class="small fw-bold">Habilidades ou experiências úteis</label><textarea name="habilidades" rows="2" class="form-control" placeholder="Ex.: fotografia, informática, atendimento ao público">{{ old('habilidades') }}</textarea></div>
-            <div class="mb-4"><label class="small fw-bold">Telefone / WhatsApp</label><input type="text" name="telefone" class="form-control" maxlength="15" value="{{ old('telefone') }}"></div>
+            <div class="mb-4"><label class="small fw-bold">WhatsApp (com DDD) *</label><input type="text" name="telefone" class="form-control" maxlength="15" required placeholder="(00) 00000-0000" value="{{ old('telefone') }}"></div>
             </fieldset>
             <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between">
                 <a href="{{ auth()->check() ? route('voluntariado.meu') : route('evento.publico.show', $chamada->evento->slug) }}" class="btn btn-light fw-bold">Cancelar</a>

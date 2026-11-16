@@ -21,4 +21,6 @@
 
     <p style="margin:0;">Veja os pareceres e os próximos passos na página do seu trabalho.</p>
     <x-email.botao :href="route('trabalhos.show', $trabalho)">Ver resultado completo</x-email.botao>
+
+    <x-email.perfil area="Meus Trabalhos" :href="route('trabalhos.index')" />
 </x-email.layout>

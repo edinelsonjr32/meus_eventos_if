@@ -141,7 +141,7 @@ it('voluntário se inscreve, é aprovado, vinculado a demanda (sem choque de hor
     $svc = app(VoluntarioService::class);
 
     $this->actingAs($this->autor)->get(route('voluntariado.create', $ch))->assertOk();
-    $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar na organização do evento', 'disponibilidade' => [now()->format('Y-m-d') => ['manha', 'tarde']]])->assertRedirect();
+    $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar na organização do evento', 'telefone' => '(93) 91234-5678', 'disponibilidade' => [now()->format('Y-m-d') => ['manha', 'tarde']]])->assertRedirect();
     $v = Voluntario::first();
     expect($v->status)->toBe('inscrito');
     expect(fn () => $svc->inscrever($this->autor, $ch, ['motivacao' => 'x', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]]))->toThrow(DomainException::class);
@@ -328,7 +328,7 @@ it('disponibilidade é escolhida em dias e períodos (não texto): valida, filtr
     $hoje = now()->format('Y-m-d');
     $this->actingAs($this->autor)->get(route('voluntariado.create', $ch))->assertOk()->assertSee('name="disponibilidade[' . $hoje . '][]"', false)->assertDontSee('<textarea name="disponibilidade"', false);
 
-    $envia = fn (array $d) => $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar no evento todo'] + $d);
+    $envia = fn (array $d) => $this->post(route('voluntariado.store', $ch), ['motivacao' => 'Quero ajudar no evento todo', 'telefone' => '(93) 91234-5678'] + $d);
     $envia([])->assertSessionHasErrors('disponibilidade');
     $envia(['disponibilidade' => 'toda manhã'])->assertSessionHasErrors('disponibilidade');
     $envia(['disponibilidade' => [$hoje => ['madrugada']]])->assertSessionHasErrors('disponibilidade.*.*');
@@ -386,6 +386,7 @@ it('máscaras automáticas estão nas telas de formulário e o telefone do volun
     $this->get(route('evento.publico.show', $this->evento->slug))->assertOk()->assertSee('__mascarasAutomaticas', false);
 
     $base = ['motivacao' => 'Quero ajudar no evento todo', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]];
+    $this->post(route('voluntariado.store', $ch), $base)->assertSessionHasErrors('telefone');   // WhatsApp é obrigatório
     $this->post(route('voluntariado.store', $ch), $base + ['telefone' => '12345'])->assertSessionHasErrors('telefone');
     $this->post(route('voluntariado.store', $ch), $base + ['telefone' => '(93) 91234-5678'])->assertSessionHasNoErrors();
     expect(Voluntario::first()->telefone)->toBe('(93) 91234-5678');
@@ -524,7 +525,7 @@ it('links das chamadas usam o título como slug com o id no fim (SEO) e links an
     // lixo ou id inexistente: 404; o envio do formulário funciona pelo endereço com slug
     $this->get('/propostas/chamada/qualquer-coisa')->assertNotFound();
     $this->get('/propostas/chamada/novo-titulo-99999')->assertNotFound();
-    $this->post(route('voluntariado.store', $v), ['motivacao' => 'Quero ajudar no evento todo', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]])->assertSessionHas('success');
+    $this->post(route('voluntariado.store', $v), ['motivacao' => 'Quero ajudar no evento todo', 'telefone' => '(93) 91234-5678', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]])->assertSessionHas('success');
 });
 
 it('visitante vê os formulários com aviso de login (campos bloqueados) e volta para eles depois de entrar', function () {
@@ -580,7 +581,7 @@ it('voluntário: motivação e habilidades aceitam texto formatado, validando o 
     $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
     $this->actingAs($this->autor);
     $hoje = now()->format('Y-m-d');
-    $envia = fn (array $d) => $this->post(route('voluntariado.store', $ch), $d + ['disponibilidade' => [$hoje => ['manha']]]);
+    $envia = fn (array $d) => $this->post(route('voluntariado.store', $ch), $d + ['telefone' => '(93) 91234-5678', 'disponibilidade' => [$hoje => ['manha']]]);
 
     $envia(['motivacao' => '<p><strong>oi</strong></p>'])->assertSessionHasErrors('motivacao');
     $envia(['motivacao' => '<p>' . str_repeat('x', 2001) . '</p>'])->assertSessionHasErrors('motivacao');

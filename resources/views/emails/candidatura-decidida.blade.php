@@ -26,4 +26,6 @@
     @endif
 
     <x-email.botao :href="$link">{{ $proposta ? 'Ver minhas propostas' : 'Ver meu voluntariado' }}</x-email.botao>
+
+    <x-email.perfil :area="$proposta ? 'Propostas de Curso/Oficina' : 'Voluntariado'" :href="$link" />
 </x-email.layout>

@@ -50,7 +50,7 @@ class PropostaService
             throw new \DomainException('Você já enviou uma proposta com este título nesta chamada.');
         }
 
-        return DB::transaction(function () use ($user, $chamada, $dados, $apoios, $participante) {
+        $proposta = DB::transaction(function () use ($user, $chamada, $dados, $apoios, $participante) {
             $proposta = Proposta::create($this->campos($dados) + [
                 'chamada_id' => $chamada->id, 'evento_id' => $chamada->evento_id, 'user_id' => $user->id, 'participante_id' => $participante->id, 'status' => 'enviada',
             ]);
@@ -58,6 +58,10 @@ class PropostaService
 
             return $proposta;
         });
+
+        Notificacoes::proposta($proposta, 'Proposta recebida', 'Recebemos sua proposta. A organização vai analisá-la e você será avisado(a) por e-mail a cada novidade.', 'ok');
+
+        return $proposta;
     }
 
     /** @throws \DomainException */
@@ -80,7 +84,10 @@ class PropostaService
             $this->gravarApoios($proposta, $apoios);
         });
 
-        return $proposta->fresh();
+        $atualizada = $proposta->fresh();
+        Notificacoes::proposta($atualizada, 'Proposta atualizada', 'Recebemos as alterações da sua proposta' . ($proposta->wasChanged('status') || $atualizada->status === 'enviada' ? ' e ela voltou para a análise da organização.' : '.'), 'info');
+
+        return $atualizada;
     }
 
     public function retirar(Proposta $proposta): void
@@ -92,6 +99,7 @@ class PropostaService
             throw new \DomainException('Esta proposta já está encerrada.');
         }
         $proposta->update(['status' => 'retirada']);
+        Notificacoes::proposta($proposta->fresh(), 'Proposta retirada', 'Sua proposta foi retirada e não segue mais para análise.', 'alerta');
     }
 
     /**
@@ -131,6 +139,8 @@ class PropostaService
         $proposta->refresh();
         if (in_array($decisao, ['ajustes', 'reprovada', 'aprovada'], true)) {
             $this->avisar($proposta);
+        } elseif ($decisao === 'em_analise') {
+            Notificacoes::proposta($proposta, 'Sua proposta está em análise', 'A organização começou a analisar a sua proposta. Você será avisado(a) da decisão por e-mail.', 'info');
         }
 
         return $proposta;

@@ -32,7 +32,11 @@
                         <div class="d-flex flex-wrap justify-content-between gap-2">
                             <div class="min-w-0"><div class="fw-bold texto-quebra">{{ $c->titulo }} <x-badge tipo="chamada" :valor="$c->situacao()" /></div>
                                 <div class="small text-secondary">{{ $c->inicio ? $c->inicio->format('d/m/Y H:i') : 'já aberta' }} → {{ $c->fim ? $c->fim->format('d/m/Y H:i') : 'sem prazo' }} · {{ $c->vagas ? $c->vagas . ' vaga(s)' : 'sem limite de vagas' }} · {{ $c->voluntarios_count }} inscrito(s)</div></div>
-                            <div class="d-flex gap-2 align-items-start">
+                            <div class="d-flex flex-wrap gap-2 align-items-start">
+                                @if($c->grupo_whatsapp_url)
+                                    <form action="{{ route('admin.voluntarios.chamadas.grupo', [$evento->id, $c->id]) }}" method="POST" onsubmit="return confirm('Enviar o link do grupo de WhatsApp por e-mail a todos os voluntários aprovados desta chamada?')">@csrf<button class="btn btn-sm btn-outline-success" title="{{ $c->grupo_whatsapp_enviado_em ? 'Último envio: ' . $c->grupo_whatsapp_enviado_em->format('d/m/Y H:i') : 'Ainda não enviado' }}"><i class="fa-brands fa-whatsapp"></i> Enviar link do grupo{{ $c->grupo_whatsapp_enviado_em ? ' (reenviar)' : '' }}</button></form>
+                                @endif
+                                <a href="{{ route('admin.voluntarios.listagem', [$evento->id, 'chamada' => $c->id]) }}" class="btn btn-sm btn-light border"><i class="fa-solid fa-file-csv"></i> Listagem</a>
                                 <button type="button" class="btn btn-sm btn-light border" @click="editar = !editar"><i class="fa-solid fa-pen"></i> Editar</button>
                                 <form action="{{ route('admin.voluntarios.chamadas.destroy', [$evento->id, $c->id]) }}" method="POST" onsubmit="return confirm('Excluir esta chamada?')">@csrf @method('DELETE')<button class="btn btn-sm btn-light border"><i class="fa-solid fa-trash"></i></button></form>
                             </div>
@@ -89,7 +93,8 @@
                 @foreach(\App\Models\Voluntario::STATUS as $chave => $rotulo)
                     <a href="{{ route('admin.voluntarios.index', [$evento->id, 'status' => $chave]) }}" class="text-decoration-none"><x-badge tipo="voluntario" :valor="$chave" :extra="$contagem->get($chave, 0)" /></a>
                 @endforeach
-                <form method="GET" class="ms-auto d-flex gap-2">
+                <a href="{{ route('admin.voluntarios.listagem', [$evento->id, 'status' => $status ?: 'aprovado']) }}" class="btn btn-sm btn-outline-success ms-auto"><i class="fa-solid fa-file-csv"></i> Baixar listagem ({{ $status ? \App\Models\Voluntario::STATUS[$status] : 'aprovados' }})</a>
+                <form method="GET" class="d-flex gap-2">
                     @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
                     <input type="search" name="q" value="{{ request('q') }}" class="form-control form-control-sm" placeholder="Nome ou e-mail">
                     <button class="btn btn-sm btn-light border"><i class="fa-solid fa-magnifying-glass"></i></button>

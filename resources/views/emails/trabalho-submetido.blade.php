@@ -21,4 +21,6 @@
     </table>
 
     <x-email.botao :href="route('trabalhos.show', $trabalho)">Acompanhar meu trabalho</x-email.botao>
+
+    <x-email.perfil area="Meus Trabalhos" :href="route('trabalhos.index')" />
 </x-email.layout>
