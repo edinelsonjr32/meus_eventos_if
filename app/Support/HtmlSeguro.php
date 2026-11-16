@@ -34,6 +34,10 @@ class HtmlSeguro
     /** Como limpar(), mas sem imagens, figuras e tabelas: para textos de formulários de usuários (sem envio de arquivos). */
     public static function limparSimples(?string $html): ?string
     {
+        // Texto digitado sem formatação (caixa de texto simples) fica como está: a exibição escapa e preserva as quebras de linha
+        if ($simples = self::textoSimples($html)) {
+            return $simples;
+        }
         $limpo = self::limpar($html);
         if ($limpo === null) {
             return null;
@@ -46,6 +50,9 @@ class HtmlSeguro
     /** Como limpar(), mas sem imagens: mantém títulos, listas, links e tabelas (editais e regulamentos). */
     public static function limparSemImagens(?string $html): ?string
     {
+        if ($simples = self::textoSimples($html)) {
+            return $simples;
+        }
         $limpo = self::limpar($html);
         if ($limpo === null) {
             return null;
@@ -53,6 +60,14 @@ class HtmlSeguro
         $limpo = preg_replace(['~<img\b[^>]*>~i', '~</?(figure|figcaption)\b[^>]*>~i'], '', $limpo);
 
         return self::limpar($limpo);
+    }
+
+    /** Texto sem nenhuma tag HTML (digitado em caixa simples): devolve-o aparado; com tags ou vazio, null. */
+    private static function textoSimples(?string $texto): ?string
+    {
+        $t = trim((string) $texto);
+
+        return $t !== '' && $t === strip_tags($t) ? $t : null;
     }
 
     /** Texto puro (sem tags nem entidades), com quebras de linha entre parágrafos: para contar caracteres ou guardar como texto. */

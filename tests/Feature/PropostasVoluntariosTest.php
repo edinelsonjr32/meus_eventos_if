@@ -591,10 +591,23 @@ it('voluntário: motivação e habilidades aceitam texto formatado, validando o 
     $this->actingAs($this->admin)->get(route('admin.voluntarios.index', $this->evento))->assertSee('<strong>muito</strong>', false);
 });
 
-it('formulários usam o editor de texto e o visitante o vê somente leitura', function () {
+it('formulários de proposta e de voluntário usam caixas de texto simples; o editor segue só nas telas do admin', function () {
     $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
-    $this->get(route('propostas.create', $this->chamada))->assertOk()->assertSee('data-modo="simples"', false)->assertSee('name="resumo"', false)->assertSee('enableReadOnlyMode', false);
-    $this->get(route('voluntariado.create', $ch))->assertOk()->assertSee('data-modo="simples"', false)->assertSee('name="motivacao"', false);
-    $this->actingAs($this->admin)->get(route('admin.voluntarios.index', $this->evento))->assertOk()->assertSee('name="requisitos"', false);
-}
-);
+    $this->get(route('propostas.create', $this->chamada))->assertOk()->assertDontSee('editor-rico', false)->assertSee('<textarea name="resumo"', false);
+    $this->get(route('voluntariado.create', $ch))->assertOk()->assertDontSee('editor-rico', false)->assertSee('<textarea name="motivacao"', false);
+    $this->actingAs($this->admin)->get(route('admin.voluntarios.index', $this->evento))->assertOk()->assertSee('name="requisitos"', false)->assertSee('editor-rico', false);
+});
+
+it('texto simples digitado nos formulários é guardado como está (com & e quebras de linha) e exibido escapado', function () {
+    $this->actingAs($this->autor);
+    $resumo = "Aprender Git & GitHub na prática, com exemplos reais e 5 < 6.\nSegunda linha do resumo para passar de oitenta caracteres sem problemas.";
+    $this->post(route('propostas.store', $this->chamada), array_merge($this->dados, ['resumo' => $resumo, 'objetivos' => "Linha 1\nLinha 2"]))->assertSessionHasNoErrors();
+
+    $p = Proposta::first();
+    expect($p->resumo)->toBe($resumo)->and($p->objetivos)->toBe("Linha 1\nLinha 2");
+    $this->get(route('propostas.show', $p))->assertSee('Git &amp; GitHub', false)->assertDontSee('&amp;amp;', false)->assertSee('Linha 1<br />', false);
+
+    // com tags (ex.: texto colado com formatação) continua limpo
+    $this->post(route('propostas.store', $this->chamada), array_merge($this->dados, ['titulo' => 'Outro', 'resumo' => '<p>' . str_repeat('texto ', 20) . '</p><script>x()</script>']))->assertSessionHasNoErrors();
+    expect(Proposta::where('titulo', 'Outro')->first()->resumo)->not->toContain('<script');
+});
