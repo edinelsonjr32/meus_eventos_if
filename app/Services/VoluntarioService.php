@@ -77,6 +77,20 @@ class VoluntarioService
         return $saida;
     }
 
+    /** @throws \DomainException */
+    public function excluir(Voluntario $voluntario): void
+    {
+        if (!$voluntario->excluivel()) {
+            throw new \DomainException($voluntario->status === 'aprovado'
+                ? 'Você está aprovado(a) como voluntário(a). Desista da inscrição antes de excluí-la.'
+                : 'Esta inscrição não pode ser excluída.');
+        }
+        if ($this->certificadoDe($voluntario)?->certificadoEmitido()) {
+            throw new \DomainException('Já existe certificado de voluntário emitido para este evento: a inscrição não pode ser excluída.');
+        }
+        $voluntario->delete();   // vínculos com atividades saem junto
+    }
+
     public function desistir(Voluntario $voluntario): void
     {
         $voluntario->demandas()->detach();

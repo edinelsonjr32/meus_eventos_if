@@ -167,6 +167,19 @@ class TrabalhoController extends Controller
         return redirect()->route('trabalhos.index')->with('success', 'Trabalho retirado.');
     }
 
+    public function excluir(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('excluir', $trabalho);
+
+        try {
+            $this->workflow->excluir($trabalho, $request->user());
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('trabalhos.index')->with('success', 'Trabalho excluído.');
+    }
+
     /** Salva como rascunho ou conclui o envio, conforme o botão usado. */
     private function concluir(SalvarTrabalhoRequest $request, Trabalho $trabalho, string $mensagemRascunho)
     {

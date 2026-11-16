@@ -86,6 +86,19 @@ class VoluntarioController extends Controller
         return redirect()->route('voluntariado.meu')->with('success', 'Inscrição enviada! A organização vai analisar e você será avisado(a) por e-mail.');
     }
 
+    public function excluir(Request $request, Voluntario $voluntario)
+    {
+        abort_unless($voluntario->user_id === $request->user()->id, 403);
+
+        try {
+            $this->service->excluir($voluntario);
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('voluntariado.meu')->with('success', 'Inscrição de voluntário excluída.');
+    }
+
     public function desistir(Request $request, Voluntario $voluntario)
     {
         abort_unless($voluntario->user_id === $request->user()->id, 403);

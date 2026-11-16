@@ -154,3 +154,78 @@ it('listagem de voluntários em CSV com WhatsApp, atividades e filtros; protege 
     // gestão sem permissão não baixa
     $this->actingAs(mkUser('user'))->get(route('admin.voluntarios.listagem', $this->evento))->assertRedirect();
 });
+
+it('usuário exclui a própria proposta (se não aprovada), com apoios; aprovada e de outra pessoa não', function () {
+    $chamada = ChamadaProposta::create(['evento_id' => $this->evento->id, 'titulo' => 'Minicursos', 'tipos_aceitos' => ['minicurso'], 'ativa' => true, 'max_por_usuario' => 5, 'criado_por' => $this->admin->id]);
+    $svc = app(PropostaService::class);
+    $dados = ['tipo' => 'minicurso', 'titulo' => 'Git', 'resumo' => str_repeat('Aprender versionamento. ', 10), 'carga_horaria_prevista' => 4, 'vagas_sugeridas' => 30];
+    $apoio = [['nome' => 'Ajudante', 'email' => 'aj@x.com', 'cpf' => '529.982.247-25']];
+
+    $p = $svc->enviar($this->autor, $chamada, $dados, $apoio);
+    $this->actingAs($this->autor)->get(route('propostas.show', $p))->assertSee('Excluir proposta');
+    $this->actingAs(mkUser('user'))->delete(route('propostas.excluir', $p))->assertForbidden();
+
+    $this->actingAs($this->autor)->delete(route('propostas.excluir', $p))->assertRedirect(route('propostas.minhas'))->assertSessionHas('success');
+    expect(\App\Models\Proposta::count())->toBe(0)->and(\App\Models\PropostaApoio::count())->toBe(0);
+
+    // aprovada (já na programação): não exclui
+    $lab = \App\Models\Local::create(['evento_id' => $this->evento->id, 'nome' => 'Lab', 'tipo' => 'laboratorio']);
+    $p2 = $svc->enviar($this->autor, $chamada, ['titulo' => 'Docker'] + $dados);
+    $svc->decidir($p2, $this->admin, 'aprovada', ['data_inicio' => now()->addDay()->setTime(9, 0), 'data_fim' => now()->addDay()->setTime(13, 0), 'local_id' => $lab->id, 'vagas' => 20, 'carga_horaria' => 4]);
+    $this->actingAs($this->autor)->get(route('propostas.show', $p2))->assertDontSee('Excluir proposta')->assertSee('fale com a organização');
+    $this->delete(route('propostas.excluir', $p2))->assertSessionHas('error');
+    expect(\App\Models\Proposta::count())->toBe(1);
+
+    // em andamento (enviada) pode; depois de retirada também
+    $p3 = $svc->enviar($this->autor, $chamada, ['titulo' => 'K8s'] + $dados);
+    $svc->retirar($p3);
+    $this->delete(route('propostas.excluir', $p3))->assertSessionHas('success');
+});
+
+it('usuário exclui a própria inscrição de voluntário, menos se aprovado ou já certificado', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'V', 'ativa' => true]);
+    $svc = app(VoluntarioService::class);
+    $disp = [now()->format('Y-m-d') => ['manha']];
+    $v = $svc->inscrever($this->autor, $ch, ['motivacao' => 'Quero ajudar', 'telefone' => '(93) 91234-5678', 'disponibilidade' => $disp]);
+
+    $this->actingAs($this->autor)->get(route('voluntariado.meu'))->assertSee('Excluir inscrição');
+    $this->actingAs(mkUser('user'))->delete(route('voluntariado.excluir', $v))->assertForbidden();
+
+    // aprovado: precisa desistir antes
+    $svc->decidir($v, $this->admin, 'aprovado');
+    $this->actingAs($this->autor)->get(route('voluntariado.meu'))->assertDontSee('Excluir inscrição');
+    $this->delete(route('voluntariado.excluir', $v))->assertSessionHas('error');
+    expect(Voluntario::count())->toBe(1);
+
+    $this->post(route('voluntariado.desistir', $v));
+    $this->delete(route('voluntariado.excluir', $v))->assertRedirect(route('voluntariado.meu'))->assertSessionHas('success');
+    expect(Voluntario::count())->toBe(0);
+
+    // pode se inscrever de novo depois de excluir
+    $svc->inscrever($this->autor, $ch, ['motivacao' => 'Voltei', 'telefone' => '(93) 91234-5678', 'disponibilidade' => $disp]);
+    expect(Voluntario::count())->toBe(1);
+});
+
+it('autor exclui o próprio trabalho em rascunho, retirado ou reprovado; em andamento ou aprovado, não', function () {
+    $this->actingAs($this->autor);
+    $rascunho = mkTrabalho($this->evento, $this->autor, [], 'rascunho');
+    $this->get(route('trabalhos.show', $rascunho))->assertSee('Excluir trabalho');
+    $this->actingAs(mkUser('user'))->delete(route('trabalhos.excluir', $rascunho))->assertForbidden();
+
+    $this->actingAs($this->autor)->delete(route('trabalhos.excluir', $rascunho))->assertRedirect(route('trabalhos.index'))->assertSessionHas('success');
+    expect(\App\Models\Trabalho::find($rascunho->id))->toBeNull()->and(\App\Models\Trabalho::withTrashed()->find($rascunho->id))->not->toBeNull();
+    expect(\App\Models\Trabalho::withTrashed()->find($rascunho->id)->historico()->where('justificativa', 'Excluído pelo autor')->exists())->toBeTrue();
+
+    foreach (['submetido', 'em_avaliacao', 'aprovado'] as $status) {
+        $t = mkTrabalho($this->evento, $this->autor, [], $status);
+        $this->delete(route('trabalhos.excluir', $t))->assertForbidden();
+        expect(\App\Models\Trabalho::find($t->id))->not->toBeNull();
+    }
+
+    foreach (['retirado', 'reprovado'] as $status) {
+        $t = mkTrabalho($this->evento, $this->autor, [], $status);
+        $this->get(route('trabalhos.index'))->assertSee(route('trabalhos.excluir', $t), false);
+        $this->delete(route('trabalhos.excluir', $t))->assertSessionHas('success');
+        expect(\App\Models\Trabalho::find($t->id))->toBeNull();
+    }
+});

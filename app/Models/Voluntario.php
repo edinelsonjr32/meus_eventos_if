@@ -58,6 +58,12 @@ class Voluntario extends Model
         return self::STATUS[$this->status] ?? $this->status;
     }
 
+    /** O voluntário pode excluir a inscrição enquanto não estiver aprovado (aprovado: desista antes, o que o desvincula das atividades). */
+    public function excluivel(): bool
+    {
+        return in_array($this->status, ['inscrito', 'lista_espera', 'reprovado', 'desistente'], true);
+    }
+
     /** Informou a disponibilidade pelo seletor de dias e períodos? (inscrições antigas só têm texto) */
     public function temDisponibilidade(): bool
     {

@@ -57,6 +57,13 @@
             @if(!in_array($proposta->status, ['aprovada', 'retirada', 'reprovada']))
                 <form action="{{ route('propostas.retirar', $proposta) }}" method="POST" onsubmit="return confirm('Retirar esta proposta?')">@csrf<button class="btn btn-outline-danger fw-bold"><i class="fa-solid fa-ban"></i> Retirar proposta</button></form>
             @endif
+            @if($proposta->excluivel())
+                <form action="{{ route('propostas.excluir', $proposta) }}" method="POST" onsubmit="return confirm('Excluir esta proposta definitivamente? Essa ação não pode ser desfeita.')">@csrf @method('DELETE')<button class="btn btn-danger fw-bold"><i class="fa-solid fa-trash"></i> Excluir proposta</button></form>
+            @elseif($proposta->status === 'aprovada')
+                <span class="small text-muted align-self-center">Proposta aprovada: para cancelar, fale com a organização do evento.</span>
+            @else
+                <span class="small text-muted align-self-center">Para excluir, primeiro retire a proposta.</span>
+            @endif
         </div>
     </div></div>
 </x-app-layout>

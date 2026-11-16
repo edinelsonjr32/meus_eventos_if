@@ -90,6 +90,17 @@ class PropostaService
         return $atualizada;
     }
 
+    /** @throws \DomainException */
+    public function excluir(Proposta $proposta): void
+    {
+        if (!$proposta->excluivel()) {
+            throw new \DomainException($proposta->atividade_id || $proposta->status === 'aprovada'
+                ? 'Esta proposta já foi aprovada e está na programação: fale com a organização para cancelá-la.'
+                : 'Retire a proposta antes de excluí-la.');
+        }
+        $proposta->delete();   // apoios saem junto
+    }
+
     public function retirar(Proposta $proposta): void
     {
         if ($proposta->status === 'aprovada') {

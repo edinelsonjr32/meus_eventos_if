@@ -131,6 +131,16 @@ class TrabalhoWorkflow
         Notificacoes::trabalho($trabalho->fresh(), 'Trabalho retirado', 'O trabalho foi retirado e não segue mais no processo de avaliação deste evento.', 'alerta', $motivo ?: null);
     }
 
+    /** Exclusão lógica pelo autor: o trabalho some das listas, e o histórico fica guardado. @throws \DomainException */
+    public function excluir(Trabalho $trabalho, User $user): void
+    {
+        if ($trabalho->submetido_por !== $user->id || !in_array($trabalho->status, Trabalho::EXCLUIVEIS, true)) {
+            throw new \DomainException('Este trabalho não pode ser excluído. Se ele está em andamento, retire-o antes.');
+        }
+        $this->registrar($trabalho, $user, $trabalho->status, $trabalho->status, 'Excluído pelo autor');
+        $trabalho->delete();
+    }
+
     public function registrar(Trabalho $trabalho, ?User $user, ?string $de, string $para, ?string $justificativa = null): void
     {
         $trabalho->historico()->create([

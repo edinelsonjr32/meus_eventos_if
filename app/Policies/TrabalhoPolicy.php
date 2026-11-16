@@ -30,6 +30,12 @@ class TrabalhoPolicy
         return $trabalho->submetido_por === $user->id && $trabalho->editavel();
     }
 
+    /** Excluir: somente o submetente, em rascunho, retirado, rejeitado na triagem ou reprovado (a exclusão é lógica e fica no histórico). */
+    public function excluir(User $user, Trabalho $trabalho): bool
+    {
+        return $trabalho->submetido_por === $user->id && in_array($trabalho->status, Trabalho::EXCLUIVEIS, true);
+    }
+
     /** Retirar: o submetente, antes de qualquer decisão. */
     public function retirar(User $user, Trabalho $trabalho): bool
     {

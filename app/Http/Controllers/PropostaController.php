@@ -122,6 +122,19 @@ class PropostaController extends Controller
         return redirect()->route('propostas.minhas')->with('success', 'Proposta retirada.');
     }
 
+    public function excluir(Request $request, Proposta $proposta)
+    {
+        $this->dono($request, $proposta);
+
+        try {
+            $this->service->excluir($proposta);
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('propostas.minhas')->with('success', 'Proposta excluída.');
+    }
+
     /** O ministrante baixa o certificado depois que a atividade termina (emitido na hora, se ainda não existir). */
     public function certificado(Request $request, Evento $evento)
     {

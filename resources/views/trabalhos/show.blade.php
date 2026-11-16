@@ -252,6 +252,9 @@
                                     <button class="btn btn-sm btn-light text-danger w-100">Retirar trabalho</button>
                                 </form>
                             @endcan
+                            @can('excluir', $trabalho)
+                                <form action="{{ route('trabalhos.excluir', $trabalho) }}" method="POST" class="mt-2" onsubmit="return confirm('Excluir este trabalho? Ele deixa de aparecer na sua lista.')">@csrf @method('DELETE')<button class="btn btn-sm btn-danger w-100"><i class="fa-solid fa-trash me-1"></i> Excluir trabalho</button></form>
+                            @endcan
                         @endunless
                     </div>
 

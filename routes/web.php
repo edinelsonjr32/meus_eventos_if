@@ -124,6 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/trabalhos/{trabalho}/autorizacao-publicacao', [\App\Http\Controllers\TrabalhoController::class, 'autorizarPublicacao'])->name('trabalhos.autorizacao-publicacao');
     Route::post('/trabalhos/{trabalho}/versao-final', [\App\Http\Controllers\TrabalhoController::class, 'enviarVersaoFinal'])->name('trabalhos.versao-final');
     Route::post('/trabalhos/{trabalho}/retirar', [\App\Http\Controllers\TrabalhoController::class, 'retirar'])->name('trabalhos.retirar');
+    Route::delete('/trabalhos/{trabalho}', [\App\Http\Controllers\TrabalhoController::class, 'excluir'])->name('trabalhos.excluir');
 
     // --- PROPOSTAS DE MINICURSO/OFICINA (proponente) ---
     Route::get('/minha-area/propostas', [\App\Http\Controllers\PropostaController::class, 'minhas'])->name('propostas.minhas');
@@ -132,11 +133,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/propostas/{proposta}/editar', [\App\Http\Controllers\PropostaController::class, 'edit'])->name('propostas.edit');
     Route::put('/propostas/{proposta}', [\App\Http\Controllers\PropostaController::class, 'update'])->name('propostas.update');
     Route::post('/propostas/{proposta}/retirar', [\App\Http\Controllers\PropostaController::class, 'retirar'])->name('propostas.retirar');
+    Route::delete('/propostas/{proposta}', [\App\Http\Controllers\PropostaController::class, 'excluir'])->name('propostas.excluir');
     Route::get('/propostas/evento/{evento}/certificado', [\App\Http\Controllers\PropostaController::class, 'certificado'])->name('propostas.certificado');
 
     // --- VOLUNTARIADO (voluntário) ---
     Route::get('/minha-area/voluntariado', [\App\Http\Controllers\VoluntarioController::class, 'meu'])->name('voluntariado.meu');
     Route::post('/voluntariado/chamada/{chamada}', [\App\Http\Controllers\VoluntarioController::class, 'store'])->name('voluntariado.store');
+    Route::delete('/voluntariado/{voluntario}', [\App\Http\Controllers\VoluntarioController::class, 'excluir'])->name('voluntariado.excluir');
     Route::post('/voluntariado/{voluntario}/desistir', [\App\Http\Controllers\VoluntarioController::class, 'desistir'])->name('voluntariado.desistir');
     Route::get('/voluntariado/{voluntario}/certificado', [\App\Http\Controllers\VoluntarioController::class, 'certificado'])->name('voluntariado.certificado');
 

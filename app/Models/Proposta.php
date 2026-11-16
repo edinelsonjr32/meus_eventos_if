@@ -69,6 +69,12 @@ class Proposta extends Model
         return ChamadaProposta::TIPOS[$this->tipo] ?? ucfirst($this->tipo);
     }
 
+    /** O proponente pode excluir enquanto a proposta não virou atividade da programação (aprovada: fale com a organização). */
+    public function excluivel(): bool
+    {
+        return !$this->atividade_id && in_array($this->status, ['enviada', 'em_analise', 'ajustes', 'reprovada', 'retirada'], true);
+    }
+
     public function editavel(): bool
     {
         return in_array($this->status, self::EDITAVEIS, true);

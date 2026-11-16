@@ -68,6 +68,7 @@
                             <td><x-badge tipo="proposta" :valor="$p->status" />@if($p->parecer && in_array($p->status, ['ajustes', 'reprovada']))<div class="small text-muted mt-1 texto-quebra" style="max-width:260px">{{ \Illuminate\Support\Str::limit($p->parecer, 120) }}</div>@endif</td>
                             <td class="text-end pe-4">
                                 <a href="{{ route('propostas.show', $p) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i> Ver</a>
+                                @if($p->excluivel())<form action="{{ route('propostas.excluir', $p) }}" method="POST" class="d-inline" onsubmit="return confirm('Excluir esta proposta definitivamente?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fa-solid fa-trash"></i></button></form>@endif
                                 @if($p->editavel())<a href="{{ route('propostas.edit', $p) }}" class="btn btn-sm btn-outline-warning"><i class="fa-solid fa-pen"></i> Editar</a>@endif
                             </td>
                         </tr>

@@ -73,6 +73,9 @@
                     @elseif($i->status === 'aprovado')
                         <span class="small text-muted"><i class="fa-regular fa-clock me-1"></i> O certificado é emitido pela organização depois do evento.</span>
                     @endif
+                    @if($i->excluivel())
+                        <form action="{{ route('voluntariado.excluir', $i) }}" method="POST" onsubmit="return confirm('Excluir esta inscrição definitivamente?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i> Excluir inscrição</button></form>
+                    @endif
                     @if(in_array($i->status, ['inscrito', 'aprovado', 'lista_espera']))
                         <form action="{{ route('voluntariado.desistir', $i) }}" method="POST" onsubmit="return confirm('Desistir do voluntariado neste evento?')">@csrf<button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-ban"></i> Desistir</button></form>
                     @endif

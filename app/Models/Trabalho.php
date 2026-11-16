@@ -12,6 +12,9 @@ class Trabalho extends Model
 {
     use SoftDeletes;
 
+    /** Situações em que o autor pode excluir o próprio trabalho (rascunho, retirado ou sem aprovação); em andamento, retire antes. */
+    public const EXCLUIVEIS = ['rascunho', 'retirado', 'rejeitado_triagem', 'reprovado'];
+
     public const RASCUNHO = 'rascunho';
     public const SUBMETIDO = 'submetido';
     public const DEVOLVIDO_TRIAGEM = 'devolvido_triagem';

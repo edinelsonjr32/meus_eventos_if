@@ -106,6 +106,9 @@
                                             @can('update', $t)
                                                 <a href="{{ route('trabalhos.edit', $t) }}" class="btn btn-sm btn-outline-warning"><i class="fa-solid fa-pen"></i> Editar</a>
                                             @endcan
+                                            @can('excluir', $t)
+                                                <form action="{{ route('trabalhos.excluir', $t) }}" method="POST" class="d-inline" onsubmit="return confirm('Excluir este trabalho? Ele deixa de aparecer na sua lista.')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fa-solid fa-trash"></i></button></form>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @endforeach
