@@ -46,6 +46,21 @@ class ChamadaVoluntario extends Model
         return $this->fim && now()->gt($this->fim) ? 'encerrada' : 'aberta';
     }
 
+    /** Quantas inscrições já existem (qualquer situação): com inscritos, a chamada não pode ser excluída. */
+    public function totalSubmissoes(): int
+    {
+        return $this->voluntarios_count ?? $this->voluntarios()->count();
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (ChamadaVoluntario $c) {
+            if ($c->voluntarios()->exists()) {
+                throw new \DomainException('Esta chamada já tem inscritos e não pode ser excluída. Desative-a para encerrar as inscrições.');
+            }
+        });
+    }
+
     public function scopeAbertas($q)
     {
         return $q->where('ativa', true)

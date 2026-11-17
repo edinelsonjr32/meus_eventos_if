@@ -62,10 +62,14 @@ class PropostaGestaoController extends Controller
         $this->authorize('gerenciar', $evento);
         abort_unless($chamada->evento_id === $evento->id, 404);
 
-        if ($chamada->propostas()->exists()) {
-            return back()->with('error', 'Esta chamada já recebeu propostas. Desative-a em vez de excluir.');
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($chamada) {
+                // trava a linha para que um envio simultâneo não escape da verificação
+                ChamadaProposta::whereKey($chamada->id)->lockForUpdate()->first()?->delete();
+            });
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
         }
-        $chamada->delete();
 
         return back()->with('success', 'Chamada excluída.');
     }

@@ -57,6 +57,21 @@ class ChamadaProposta extends Model
         return $this->fim && now()->gt($this->fim) ? 'encerrada' : 'aberta';
     }
 
+    /** Quantas propostas já foram enviadas (qualquer situação): com envios, a chamada não pode ser excluída. */
+    public function totalSubmissoes(): int
+    {
+        return $this->propostas_count ?? $this->propostas()->count();
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (ChamadaProposta $c) {
+            if ($c->propostas()->exists()) {
+                throw new \DomainException('Esta chamada já recebeu propostas e não pode ser excluída. Desative-a para encerrar o recebimento.');
+            }
+        });
+    }
+
     public function scopeAbertas($q)
     {
         return $q->where('ativa', true)

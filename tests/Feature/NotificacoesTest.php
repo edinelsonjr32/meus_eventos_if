@@ -229,3 +229,66 @@ it('autor exclui o próprio trabalho em rascunho, retirado ou reprovado; em anda
         expect(\App\Models\Trabalho::find($t->id))->toBeNull();
     }
 });
+
+it('trava: chamada de minicursos com propostas não pode ser excluída (nem por outro caminho), sem erro e com botão travado', function () {
+    $chamada = ChamadaProposta::create(['evento_id' => $this->evento->id, 'titulo' => 'Minicursos', 'tipos_aceitos' => ['minicurso'], 'ativa' => true, 'max_por_usuario' => 3, 'criado_por' => $this->admin->id]);
+    $url = route('admin.propostas.chamadas.destroy', [$this->evento->id, $chamada->id]);
+    $this->actingAs($this->admin);
+
+    // sem propostas: botão de excluir presente
+    $this->get(route('admin.propostas.index', $this->evento))->assertSee("confirm('Excluir esta chamada?')", false)->assertDontSee('não pode ser excluída');
+
+    $p = app(PropostaService::class)->enviar($this->autor, $chamada, ['tipo' => 'minicurso', 'titulo' => 'Git', 'resumo' => str_repeat('Aprender versionamento. ', 10), 'carga_horaria_prevista' => 4, 'vagas_sugeridas' => 30]);
+    app(PropostaService::class)->retirar($p->fresh());   // mesmo retirada, a proposta conta como submissão
+
+    $this->get(route('admin.propostas.index', $this->evento))->assertDontSee("confirm('Excluir esta chamada?')", false)->assertSee('Já recebeu 1 proposta(s)');
+    $this->delete($url)->assertSessionHas('error', 'Esta chamada já recebeu propostas e não pode ser excluída. Desative-a para encerrar o recebimento.');
+    expect(ChamadaProposta::find($chamada->id))->not->toBeNull()->and(\App\Models\Proposta::count())->toBe(1);
+
+    // a trava vale no próprio modelo (outra tela, comando, tinker)
+    expect(fn () => $chamada->fresh()->delete())->toThrow(DomainException::class);
+    expect(\App\Models\Proposta::count())->toBe(1);
+
+    // sem submissões (autor excluiu a proposta): pode excluir a chamada
+    $this->actingAs($this->autor)->delete(route('propostas.excluir', $p));
+    $this->actingAs($this->admin)->delete($url)->assertSessionHas('success');
+    expect(ChamadaProposta::find($chamada->id))->toBeNull();
+});
+
+it('trava: chamada de voluntários com inscritos não pode ser excluída, e libera quando não há inscrições', function () {
+    $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Voluntários', 'ativa' => true]);
+    $url = route('admin.voluntarios.chamadas.destroy', [$this->evento->id, $ch->id]);
+    $this->actingAs($this->admin);
+
+    $v = app(VoluntarioService::class)->inscrever($this->autor, $ch, ['motivacao' => 'Quero ajudar', 'telefone' => '(93) 91234-5678', 'disponibilidade' => [now()->format('Y-m-d') => ['manha']]]);
+    app(VoluntarioService::class)->desistir($v->fresh());   // desistente também conta
+
+    $this->get(route('admin.voluntarios.index', $this->evento))->assertDontSee("confirm('Excluir esta chamada?')", false)->assertSee('Já tem 1 inscrito(s)');
+    $this->delete($url)->assertSessionHas('error', 'Esta chamada já tem inscritos e não pode ser excluída. Desative-a para encerrar as inscrições.');
+    expect(fn () => $ch->fresh()->delete())->toThrow(DomainException::class);
+    expect(Voluntario::count())->toBe(1);
+
+    $v->fresh()->delete();
+    $this->delete($url)->assertSessionHas('success');
+    expect(ChamadaVoluntario::find($ch->id))->toBeNull();
+});
+
+it('trava: chamada de trabalhos com submissões não pode ser removida e a tela avisa; rascunhos não contam', function () {
+    $config = $this->evento->trabalhoConfig;
+    $gestor = mkUser();
+    mkPapel($gestor, $this->evento, 'gestor_trabalhos');
+
+    mkTrabalho($this->evento, $this->autor, [], 'rascunho');
+    expect($config->totalSubmissoes())->toBe(0);
+    $this->actingAs($gestor)->get(route('gestao.trabalhos.config', $this->evento))->assertOk()->assertDontSee('não pode ser excluída');
+
+    mkTrabalho($this->evento, $this->autor, [], 'submetido');
+    expect($config->fresh()->totalSubmissoes())->toBe(1);
+    $this->get(route('gestao.trabalhos.config', $this->evento))->assertSee('já recebeu')->assertSee('não pode ser excluída');
+    expect(fn () => $config->fresh()->delete())->toThrow(DomainException::class);
+    expect(\App\Models\TrabalhoConfig::find($config->id))->not->toBeNull();
+
+    // trabalho excluído pelo autor (exclusão lógica) continua contando: o registro existe
+    \App\Models\Trabalho::where('status', 'submetido')->first()->delete();
+    expect($config->fresh()->totalSubmissoes())->toBe(1);
+});

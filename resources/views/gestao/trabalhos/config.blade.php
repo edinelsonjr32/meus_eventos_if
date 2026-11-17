@@ -19,6 +19,9 @@
                     <x-badge tipo="chamada" :valor="$sit['chave']" :rotulo="$sit['rotulo']" />
                 </div>
                 <p class="small text-secondary mb-2">{{ $sit['descricao'] }}</p>
+                @if(($total = $config?->totalSubmissoes() ?? 0) > 0)
+                    <div class="alert alert-light border small py-2 mb-2"><i class="fa-solid fa-lock me-1 text-secondary"></i> Esta chamada já recebeu <strong>{{ $total }}</strong> trabalho(s) e <strong>não pode ser excluída</strong>. Para encerrar o recebimento, desmarque "Chamada publicada" ou ajuste o período.</div>
+                @endif
                 <ol class="small text-secondary mb-0 ps-3">
                     <li><strong>Configure</strong> o período, as categorias, as regras e os textos abaixo.</li>
                     <li><strong>Publique</strong> a chamada: o botão <em>Submeter Trabalho</em> aparece na página do evento e em "Meus Trabalhos" dos participantes, dentro do período definido.</li>

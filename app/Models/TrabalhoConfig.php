@@ -7,6 +7,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TrabalhoConfig extends Model
 {
+    /** Trabalhos já submetidos a esta chamada (inclui os excluídos logicamente): com submissões, a chamada não pode ser removida. */
+    public function totalSubmissoes(): int
+    {
+        return Trabalho::withTrashed()->where('evento_id', $this->evento_id)->where('status', '!=', Trabalho::RASCUNHO)->count();
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (TrabalhoConfig $c) {
+            if ($c->totalSubmissoes() > 0) {
+                throw new \DomainException('Esta chamada já recebeu trabalhos e não pode ser excluída. Para encerrar, despublique a chamada.');
+            }
+        });
+    }
+
     /** Categorias do trabalho (mesmas opções do formulário utilizado na Semana de Ciência e Tecnologia). */
     public const TIPOS = [
         'pesquisa' => 'Pesquisa',

@@ -38,7 +38,11 @@
                                 @endif
                                 <a href="{{ route('admin.voluntarios.listagem', [$evento->id, 'chamada' => $c->id]) }}" class="btn btn-sm btn-light border"><i class="fa-solid fa-file-csv"></i> Listagem</a>
                                 <button type="button" class="btn btn-sm btn-light border" @click="editar = !editar"><i class="fa-solid fa-pen"></i> Editar</button>
-                                <form action="{{ route('admin.voluntarios.chamadas.destroy', [$evento->id, $c->id]) }}" method="POST" onsubmit="return confirm('Excluir esta chamada?')">@csrf @method('DELETE')<button class="btn btn-sm btn-light border"><i class="fa-solid fa-trash"></i></button></form>
+                                @if($c->totalSubmissoes() > 0)
+                                    <button type="button" class="btn btn-sm btn-light border text-muted" disabled style="opacity:.6" title="Já tem {{ $c->totalSubmissoes() }} inscrito(s): não pode ser excluída. Desative a chamada para encerrar."><i class="fa-solid fa-lock"></i></button>
+                                @else
+                                    <form action="{{ route('admin.voluntarios.chamadas.destroy', [$evento->id, $c->id]) }}" method="POST" onsubmit="return confirm('Excluir esta chamada?')">@csrf @method('DELETE')<button class="btn btn-sm btn-light border" title="Excluir chamada"><i class="fa-solid fa-trash"></i></button></form>
+                                @endif
                             </div>
                         </div>
                         <div x-show="editar" x-cloak class="mt-3 p-3 rounded-3 bg-light border">@include('admin.voluntarios._form-chamada', ['acao' => route('admin.voluntarios.chamadas.update', [$evento->id, $c->id]), 'metodo' => 'PUT', 'chamada' => $c])</div>

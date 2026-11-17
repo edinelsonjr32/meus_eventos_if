@@ -65,10 +65,13 @@ class VoluntarioGestaoController extends Controller
     {
         $this->authorize('gerenciar', $evento);
         abort_unless($chamada->evento_id === $evento->id, 404);
-        if ($chamada->voluntarios()->exists()) {
-            return back()->with('aba', 'chamadas')->with('error', 'Esta chamada já tem inscritos. Desative-a em vez de excluir.');
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($chamada) {
+                ChamadaVoluntario::whereKey($chamada->id)->lockForUpdate()->first()?->delete();
+            });
+        } catch (\DomainException $e) {
+            return back()->with('aba', 'chamadas')->with('error', $e->getMessage());
         }
-        $chamada->delete();
 
         return back()->with('aba', 'chamadas')->with('success', 'Chamada excluída.');
     }
