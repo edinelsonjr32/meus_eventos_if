@@ -41,9 +41,9 @@ class LocalController extends Controller
         $this->authorize('gerenciar', $evento);
         $dados = $this->validar($request, $evento);
 
-        $evento->locais()->create($dados);
+        $local = $evento->locais()->create($dados);
 
-        return redirect()->route('admin.locais.index', $evento)->with('success', 'Local cadastrado.');
+        return redirect()->route('admin.locais.index', [$evento, 'aba' => 'locais'])->with('success', "Local \"{$local->nome}\" cadastrado.");
     }
 
     public function update(Request $request, Evento $evento, Local $local)
@@ -59,7 +59,7 @@ class LocalController extends Controller
         $local->atividades()->update(['local' => $rotulo]);
         $local->demandas()->update(['local' => $rotulo]);
 
-        return redirect()->route('admin.locais.index', $evento)->with('success', 'Local atualizado.');
+        return redirect()->route('admin.locais.index', [$evento, 'aba' => 'locais'])->with('success', 'Local atualizado.');
     }
 
     public function destroy(Evento $evento, Local $local)
@@ -68,11 +68,11 @@ class LocalController extends Controller
         abort_unless($local->evento_id === $evento->id, 404);
 
         if ($local->emUso()) {
-            return back()->with('error', 'Este local já é usado por atividades. Desative-o em vez de excluir (ele deixa de aparecer nas listas de escolha, mas a programação continua igual).');
+            return redirect()->route('admin.locais.index', [$evento, 'aba' => 'locais'])->with('error', 'Este local já é usado por atividades. Desative-o em vez de excluir (ele deixa de aparecer nas listas de escolha, mas a programação continua igual).');
         }
         $local->delete();
 
-        return back()->with('success', 'Local excluído.');
+        return redirect()->route('admin.locais.index', [$evento, 'aba' => 'locais'])->with('success', 'Local excluído.');
     }
 
     private function validar(Request $request, Evento $evento, ?Local $atual = null): array
@@ -88,6 +88,11 @@ class LocalController extends Controller
             'nome.required' => 'Informe o nome do local.',
             'capacidade.min' => 'A capacidade deve ser de pelo menos 1 pessoa.',
         ]);
+
+        // Nomes sem nenhuma letra/número reconhecível (ex.: só símbolos) gerariam a mesma chave para todos
+        if (!preg_match('/[\p{L}\p{N}]/u', $dados['nome']) || Local::normalizar($dados['nome']) === '') {
+            throw \Illuminate\Validation\ValidationException::withMessages(['nome' => 'Use um nome com letras ou números.']);
+        }
 
         // Unicidade sem diferenciar maiúsculas, acentos nem espaços repetidos ("Lab 1" = "lab  1" = "LAB 1")
         $existe = Local::where('evento_id', $evento->id)->where('nome_normalizado', Local::normalizar($dados['nome']))

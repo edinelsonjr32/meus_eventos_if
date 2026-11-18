@@ -103,3 +103,34 @@ it('demanda de voluntários escolhe local cadastrado', function () {
     expect(DemandaVoluntario::first()->local)->toBe('Laboratório 1');
     $this->post(route('admin.voluntarios.demandas.store', $this->evento), ['titulo' => 'X', 'carga_horaria' => 2, 'local_id' => 9999])->assertSessionHasErrors('local_id');
 });
+
+it('depois de cadastrar, editar ou excluir volta para a aba Locais (não para o mapa)', function () {
+    $r = novoLocal($this, ['nome' => 'Quadra Poliesportiva', 'tipo' => 'quadra']);
+    $r->assertRedirect(route('admin.locais.index', [$this->evento, 'aba' => 'locais']))->assertSessionHas('success');
+    $local = Local::first();
+
+    $this->put(route('admin.locais.update', [$this->evento, $local]), ['nome' => 'Quadra Coberta', 'tipo' => 'quadra'])
+        ->assertRedirect(route('admin.locais.index', [$this->evento, 'aba' => 'locais']));
+    $this->delete(route('admin.locais.destroy', [$this->evento, $local->fresh()]))
+        ->assertRedirect(route('admin.locais.index', [$this->evento, 'aba' => 'locais']));
+
+    // a aba pedida abre direto, com o local listado
+    novoLocal($this, ['nome' => 'Auditório']);
+    $this->get(route('admin.locais.index', [$this->evento, 'aba' => 'locais']))->assertOk()->assertSee("aba: 'locais'", false)->assertSee('Auditório');
+});
+
+it('erro ao editar um local não preenche o formulário de novo local, e nomes só com símbolos são recusados', function () {
+    novoLocal($this, ['nome' => 'Sala 1']);
+    novoLocal($this, ['nome' => 'Sala 2']);
+    $sala2 = Local::where('nome', 'Sala 2')->first();
+
+    $this->from(route('admin.locais.index', $this->evento))
+        ->put(route('admin.locais.update', [$this->evento, $sala2]), ['_form' => (string) $sala2->id, 'nome' => 'sala 1', 'tipo' => 'sala'])
+        ->assertSessionHasErrors('nome');
+    $html = $this->followingRedirects()->get(route('admin.locais.index', $this->evento))->getContent();
+    expect($sala2->fresh()->nome)->toBe('Sala 2');
+
+    novoLocal($this, ['nome' => '!!!'])->assertSessionHasErrors('nome');
+    novoLocal($this, ['nome' => '😀😀'])->assertSessionHasErrors('nome');
+    expect(Local::count())->toBe(2);
+});

@@ -92,7 +92,7 @@
 
         {{-- ===== Locais ===== --}}
         <div x-show="aba === 'locais'" x-cloak>
-            <div class="glass-card" x-data="{ nova: {{ $locais->isEmpty() || $errors->any() ? 'true' : 'false' }} }">
+            <div class="glass-card" x-data="{ nova: {{ $locais->isEmpty() || (old('_form') === 'n' && $errors->any()) ? 'true' : 'false' }} }">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold text-success m-0">Locais do evento</h6>
                     <button type="button" class="btn btn-sm btn-primary-custom" @click="nova = !nova"><i class="fa-solid fa-plus"></i> Novo local</button>
@@ -100,7 +100,7 @@
                 <div x-show="nova" x-cloak class="mb-4 p-3 rounded-3 bg-light border">@include('admin.locais._form', ['acao' => route('admin.locais.store', $evento->id), 'local' => null])</div>
 
                 @forelse($locais as $l)
-                    <div class="border rounded-3 p-3 mb-2" x-data="{ editar: false }">
+                    <div class="border rounded-3 p-3 mb-2" x-data="{ editar: {{ $errors->any() && old('_form') === (string) $l->id ? 'true' : 'false' }} }">
                         <div class="d-flex flex-wrap justify-content-between gap-2">
                             <div class="min-w-0">
                                 <div class="fw-bold texto-quebra">{{ $l->nome }} @unless($l->ativo)<span class="badge bg-secondary">inativo</span>@endunless</div>
