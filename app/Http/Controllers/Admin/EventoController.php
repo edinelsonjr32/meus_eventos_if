@@ -108,6 +108,8 @@ class EventoController extends Controller
                 'cor_fundo' => $request->input('cor_fundo', '#10b981'),
                 'exibir_logo' => $request->boolean('exibir_logo', true),
                 'exibir_banner' => $request->boolean('exibir_banner', true),
+                'exibir_no_portal' => $request->boolean('exibir_no_portal', true),
+                'inscricoes_abertas' => $request->boolean('inscricoes_abertas', true),
             ]
         ]);
 
@@ -182,7 +184,7 @@ class EventoController extends Controller
         $configuracoes = $evento->configuracoes ?? [];
         $configuracoes['cor_fundo'] = $request->cor_fundo;
         // (campo ausente = mantém o que já estava)
-        foreach (['exibir_logo', 'exibir_banner'] as $opcao) {
+        foreach (['exibir_logo', 'exibir_banner', 'exibir_no_portal', 'inscricoes_abertas'] as $opcao) {
             if ($request->has($opcao)) {
                 $configuracoes[$opcao] = $request->boolean($opcao);
             }

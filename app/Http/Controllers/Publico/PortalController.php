@@ -17,7 +17,7 @@ class PortalController extends Controller
     {
         // Eventos criados por contas fictícias de teste não aparecem no portal público
         $contasDeTeste = User::where('email', 'like', '%@teste.com')->select('id');
-        $publicos = fn () => Evento::whereNotIn('criado_por', $contasDeTeste);
+        $publicos = fn () => Evento::whereNotIn('criado_por', $contasDeTeste)->where(fn ($q) => $q->whereNull('configuracoes->exibir_no_portal')->orWhere('configuracoes->exibir_no_portal', true));
 
         $proximosEventos = $publicos()->where('data_fim', '>=', now())
             ->withCount(['atividades', 'inscricoes'])

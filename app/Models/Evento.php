@@ -44,6 +44,18 @@ class Evento extends Model
         return \App\Support\HtmlSeguro::paraExibir($this->descricao);
     }
 
+    /** Evento listado no portal público? (padrão: sim; sem isso só quem tem o link chega à página) */
+    public function exibidoNoPortal(): bool
+    {
+        return (bool) ($this->configuracoes['exibir_no_portal'] ?? true);
+    }
+
+    /** O evento recebe inscrições de participantes/alunos? (padrão: sim; desligado serve a eventos só com frequência, trabalhos etc.) */
+    public function aceitaInscricoes(): bool
+    {
+        return (bool) ($this->configuracoes['inscricoes_abertas'] ?? true);
+    }
+
     /** A organização escolheu mostrar a logo nas páginas públicas? (padrão: sim) */
     public function exibeLogo(): bool
     {

@@ -69,3 +69,29 @@ it('com certificado: validação e lista mostram o certificado', function () {
     $this->get(route('admin.atividades.participantes', $a))->assertSee(route('certificado.download', $f->hash_validacao));
     expect(Frequencia::comCertificado()->count())->toBe(1);
 });
+
+it('evento pode não aceitar inscrições e não aparecer no portal', function () {
+    $this->evento->update(['slug' => 'jogos-if', 'data_inicio' => now()->addDays(2), 'data_fim' => now()->addDays(5), 'configuracoes' => ['inscricoes_abertas' => false, 'exibir_no_portal' => false]]);
+    expect($this->evento->fresh()->aceitaInscricoes())->toBeFalse()->and($this->evento->fresh()->exibidoNoPortal())->toBeFalse();
+
+    auth()->logout();
+    $this->get(route('evento.publico.show', 'jogos-if'))->assertOk()->assertDontSee('Quero me inscrever')->assertDontSee('id="inscricao"', false)->assertSee('Evento aberto');
+    $this->get('/')->assertOk()->assertDontSee($this->evento->titulo);
+
+    $user = mkUser('participante');
+    $this->actingAs($user)->post(route('evento.publico.store', 'jogos-if'), [])->assertRedirect(route('evento.publico.show', 'jogos-if'))->assertSessionHas('error');
+    expect(\App\Models\Inscricao::count())->toBe(0);
+
+    // padrão: aceita inscrições e aparece no portal
+    $this->evento->update(['configuracoes' => []]);
+    expect($this->evento->fresh()->aceitaInscricoes())->toBeTrue();
+    $this->get('/')->assertSee($this->evento->titulo);
+    $this->get(route('evento.publico.show', 'jogos-if'))->assertSee('Quero me inscrever');
+});
+
+it('edita as opções de visibilidade e inscrição do evento', function () {
+    $dados = ['titulo' => $this->evento->titulo, 'descricao' => 'x', 'data_inicio' => $this->evento->data_inicio->format('Y-m-d\TH:i'), 'data_fim' => $this->evento->data_fim->format('Y-m-d\TH:i'), 'local' => $this->evento->local, 'cor_fundo' => '#10b981'];
+    $this->put(route('admin.eventos.update', $this->evento), $dados + ['exibir_no_portal' => '0', 'inscricoes_abertas' => '0'])->assertSessionHasNoErrors();
+    expect($this->evento->fresh()->exibidoNoPortal())->toBeFalse()->and($this->evento->fresh()->aceitaInscricoes())->toBeFalse();
+    $this->get(route('admin.eventos.edit', $this->evento))->assertOk()->assertSee('Evento visível publicamente');
+});

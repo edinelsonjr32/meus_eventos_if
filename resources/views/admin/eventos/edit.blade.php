@@ -91,6 +91,22 @@
                         </div>
                     </div>
 
+                    <div class="p-3 rounded-3 bg-light border mb-4">
+                        <div class="small fw-bold text-secondary text-uppercase mb-2">Visibilidade e inscrições</div>
+                        <div class="form-check form-switch mb-2">
+                            <input type="hidden" name="exibir_no_portal" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="exibir_no_portal" value="1" id="exibir_no_portal" @checked(old('exibir_no_portal', $evento->exibidoNoPortal()))>
+                            <label class="form-check-label fw-bold small" for="exibir_no_portal">Evento visível publicamente (listado no portal)</label>
+                            <div class="form-text small mt-0">Desmarcado, o evento não aparece na página inicial; só acessa quem tiver o link.</div>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input type="hidden" name="inscricoes_abertas" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="inscricoes_abertas" value="1" id="inscricoes_abertas" @checked(old('inscricoes_abertas', $evento->aceitaInscricoes()))>
+                            <label class="form-check-label fw-bold small" for="inscricoes_abertas">Aceitar inscrições de participantes/alunos</label>
+                            <div class="form-text small mt-0">Desmarcado, a página do evento não mostra o formulário de inscrição (útil para jogos e atividades abertas, só com controle de frequência).</div>
+                        </div>
+                    </div>
+
                     <div class="d-flex flex-wrap gap-4 mb-4 p-3 rounded-3 bg-light border">
                         <div class="form-check form-switch mb-0">
                             <input type="hidden" name="exibir_logo" value="0">

@@ -84,6 +84,10 @@ class EventoPublicoController extends Controller
         $evento = Evento::where('slug', $slug)->firstOrFail();
         $user = $request->user();
 
+        if (!$evento->aceitaInscricoes()) {
+            return redirect()->route('evento.publico.show', $evento->slug)->with('error', 'Este evento não recebe inscrições de participantes.');
+        }
+
         $contas = app(ParticipanteDaConta::class);
         $request->validate($contas->regras($contas->daConta($user) !== null, $request->tipo_vinculo));
 

@@ -100,7 +100,7 @@
             <div class="row">
                 <div class="col-lg-9">
                     <div class="d-flex flex-wrap gap-2 mb-3">
-                        <span class="ev-selo {{ $encerrado ? 'fim' : '' }}"><i class="fa-solid fa-circle"></i> {{ $encerrado ? 'Evento encerrado' : ($emAndamento ? 'Acontecendo agora' : 'Inscrições abertas') }}</span>
+                        <span class="ev-selo {{ $encerrado ? 'fim' : '' }}"><i class="fa-solid fa-circle"></i> {{ $encerrado ? 'Evento encerrado' : ($emAndamento ? 'Acontecendo agora' : ($evento->aceitaInscricoes() ? 'Inscrições abertas' : 'Evento aberto')) }}</span>
                         @if($chamadaAberta)<span class="ev-selo"><i class="fa-solid fa-file-arrow-up" style="font-size:.7rem"></i> Chamada de trabalhos aberta</span>@endif
                         @if($anaisPublicados)<span class="ev-selo"><i class="fa-solid fa-book" style="font-size:.7rem"></i> Trabalhos publicados</span>@endif
                     </div>
@@ -116,7 +116,7 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2">
-                        @unless($encerrado)<a href="#inscricao" class="btn btn-ev">Quero me inscrever <i class="fa-solid fa-arrow-down ms-1"></i></a>@endunless
+                        @if(!$encerrado && $evento->aceitaInscricoes())<a href="#inscricao" class="btn btn-ev">Quero me inscrever <i class="fa-solid fa-arrow-down ms-1"></i></a>@endif
                         @if($chamadaAberta)
                             <a href="{{ route('trabalhos.create', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-file-arrow-up me-1"></i> Submeter Trabalho</a>
                         @endif
@@ -142,14 +142,14 @@
             @if($atividades->isNotEmpty())<a href="#programacao">Programação</a>@endif
             @if($chamadaAtiva)<a href="#trabalhos">Trabalhos</a>@endif
             <a href="#local">Local</a>
-            <a href="#inscricao">Inscrição</a>
+            @if($evento->aceitaInscricoes())<a href="#inscricao">Inscrição</a>@endif
         </div>
     </nav>
 
     <div class="container pt-4 pb-2">
         <div class="row gy-4 gx-lg-5">
 
-            <div class="col-lg-7 col-xl-8">
+            <div class="{{ $evento->aceitaInscricoes() ? 'col-lg-7 col-xl-8' : 'col-12' }}">
 
                 {{-- Sobre --}}
                 <section class="cartao ev-bloco" id="sobre">
@@ -202,7 +202,7 @@
                                         <div class="flex-grow-1 min-w-0">
                                             <div class="d-flex flex-wrap gap-2 align-items-center">
                                                 <span class="selo">{{ $ativ->tipoRotulo() }}</span>
-                                                @if($restantes !== null)
+                                                @if($restantes !== null && $evento->aceitaInscricoes())
                                                     <span class="vagas {{ $restantes === 0 ? 'esgotado' : '' }}">{{ $restantes === 0 ? 'Vagas esgotadas' : $restantes . ' vaga(s)' }}</span>
                                                 @endif
                                             </div>
@@ -210,7 +210,7 @@
                                             <div class="meta">
                                                 @if($ativ->responsavel)<span><i class="fa-solid fa-user-tie"></i>{{ $ativ->responsavel }}</span>@endif
                                                 @if($ativ->local)<span><i class="fa-solid fa-location-dot"></i>{{ $ativ->local }}</span>@endif
-                                                @if($ativ->carga_horaria)<span><i class="fa-regular fa-clock"></i>{{ $fmtHoras($ativ->carga_horaria) }} de certificado</span>@endif
+                                                @if($ativ->carga_horaria)<span><i class="fa-regular fa-clock"></i>{{ $fmtHoras($ativ->carga_horaria) }}{{ $ativ->emiteCertificado() ? ' de certificado' : '' }}</span>@endif
                                             </div>
                                         </div>
                                     </article>
@@ -277,6 +277,7 @@
             </div>
 
             {{-- ===== Coluna lateral: inscrição ===== --}}
+            @if($evento->aceitaInscricoes())
             <div class="col-lg-5 col-xl-4">
                 <div class="cartao booking-card" id="inscricao">
                     <div class="booking-header">
@@ -382,6 +383,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
         </div>
     </div>
