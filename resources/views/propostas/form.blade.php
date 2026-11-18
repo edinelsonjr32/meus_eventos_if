@@ -171,7 +171,7 @@
             {{-- 5. Pessoas de apoio --}}
             <div class="glass-card mb-4 pf-sec">
                 <h6 class="fw-bold text-success mb-1"><span class="badge bg-success me-2">5</span> Pessoas de apoio (ajudantes)</h6>
-                <p class="small text-muted">Opcional. Informe quem vai ajudar na atividade (até 5). Nome, e-mail e CPF são obrigatórios para cada pessoa: a organização poderá adicioná-la como participante do evento.</p>
+                <p class="small text-muted">Opcional. Informe quem vai ajudar na atividade (quantas precisar). Nome, e-mail e CPF são obrigatórios para cada pessoa: a organização poderá adicioná-la como participante do evento.</p>
                 <template x-for="(a, i) in apoios" :key="a.uid">
                     <div class="border rounded-3 p-2 mb-2 bg-light">
                         <div class="row g-2 align-items-start">
@@ -186,7 +186,7 @@
                     </div>
                 </template>
                 <div class="text-danger small mb-2" x-show="erros.apoios" x-text="erros.apoios"></div>
-                <button type="button" class="btn btn-sm btn-outline-success" x-show="apoios.length < 5" @click="adicionarApoio()"><i class="fa-solid fa-plus"></i> Adicionar pessoa de apoio</button>
+                <button type="button" class="btn btn-sm btn-outline-success" x-show="apoios.length < 30" @click="adicionarApoio()"><i class="fa-solid fa-plus"></i> Adicionar pessoa de apoio</button>
             </div>
 
             </fieldset>
@@ -234,7 +234,7 @@
                     }
                 },
 
-                adicionarApoio() { if (this.apoios.length < 5) this.apoios.push(novoApoio()); },
+                adicionarApoio() { if (this.apoios.length < 30) this.apoios.push(novoApoio()); },
 
                 // ---- rascunho no navegador ----
                 agendarSalvar() {
