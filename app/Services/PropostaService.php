@@ -178,6 +178,9 @@ class PropostaService
         }
 
         if (empty($d['ignorar_conflito'])) {
+            if ($faltas = $proposta->faltaDisponibilidade($inicio, $fim)) {
+                throw new \DomainException('Fora da disponibilidade informada pelo proponente: ele não marcou ' . implode(', ', $faltas) . '. Marque "aprovar mesmo com conflito" para confirmar assim mesmo.');
+            }
             app(LocalService::class)->garantirLivre($proposta->evento_id, $local->id, $inicio, $fim, $proposta->atividade_id);
             app(LocalService::class)->garantirCapacidade($local->id, (int) $d['vagas']);
         }
@@ -288,7 +291,9 @@ class PropostaService
             'carga_horaria_prevista' => (int) $d['carga_horaria_prevista'], 'vagas_sugeridas' => (int) $d['vagas_sugeridas'],
             'requer_laboratorio' => (bool) ($d['requer_laboratorio'] ?? false), 'espaco_solicitado' => $d['espaco_solicitado'] ?? null,
             'equipamentos_solicitados' => HtmlSeguro::limparSimples($d['equipamentos_solicitados'] ?? null), 'observacoes' => HtmlSeguro::limparSimples($d['observacoes'] ?? null),
-        ];
+            'pre_requisitos' => HtmlSeguro::limparSimples($d['pre_requisitos'] ?? null), 'materiais_participante' => HtmlSeguro::limparSimples($d['materiais_participante'] ?? null),
+            'minicurriculo' => HtmlSeguro::limparSimples($d['minicurriculo'] ?? null), 'contato_whatsapp' => filled($d['contato_whatsapp'] ?? null) ? trim($d['contato_whatsapp']) : null,
+        ] + (array_key_exists('disponibilidade', $d) ? ['disponibilidade_dias' => \App\Support\Disponibilidade::normalizar($d['disponibilidade']) ?: null] : []);
     }
 
     /** Substitui a lista de apoios (preserva os já adicionados ao evento). */

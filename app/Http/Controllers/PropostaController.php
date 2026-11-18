@@ -46,14 +46,14 @@ class PropostaController extends Controller
             }
             $request->session()->put('url.intended', $request->fullUrl());
 
-            return view('propostas.form', ['chamada' => $chamada->load('evento'), 'proposta' => new Proposta(['tipo' => array_key_first($chamada->tiposAceitos()), 'requer_laboratorio' => false]), 'apoios' => [], 'visitante' => true]);
+            return view('propostas.form', ['chamada' => $chamada->load('evento'), 'proposta' => new Proposta(['tipo' => array_key_first($chamada->tiposAceitos()), 'requer_laboratorio' => false]), 'apoios' => [], 'visitante' => true, 'dias' => $chamada->evento->diasDoEvento()]);
         }
 
         if ($erro = $this->bloqueio($request, $chamada)) {
             return redirect()->route('propostas.minhas')->with('error', $erro);
         }
 
-        return view('propostas.form', ['chamada' => $chamada->load('evento'), 'proposta' => new Proposta(['tipo' => array_key_first($chamada->tiposAceitos()), 'requer_laboratorio' => false]), 'apoios' => old('apoios', [])]);
+        return view('propostas.form', ['chamada' => $chamada->load('evento'), 'proposta' => new Proposta(['tipo' => array_key_first($chamada->tiposAceitos()), 'requer_laboratorio' => false]), 'apoios' => old('apoios', []), 'dias' => $chamada->evento->diasDoEvento()]);
     }
 
     public function store(SalvarPropostaRequest $request, ChamadaProposta $chamada)
@@ -92,6 +92,7 @@ class PropostaController extends Controller
         return view('propostas.form', [
             'chamada' => $proposta->chamada->load('evento'), 'proposta' => $proposta,
             'apoios' => old('apoios', $proposta->apoios->map(fn ($a) => ['nome' => $a->nome, 'email' => $a->email, 'cpf' => $a->cpf])->all()),
+            'dias' => $proposta->chamada->evento->diasDoEvento(),
         ]);
     }
 

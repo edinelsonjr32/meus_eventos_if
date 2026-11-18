@@ -25,12 +25,13 @@ beforeEach(function () {
     $this->autor = mkUser('user');
     Participante::create(['user_id' => $this->autor->id, 'nome_completo' => 'Prof. Autor', 'cpf' => '111.444.777-35', 'email' => $this->autor->email, 'tipo_vinculo' => 'servidor']);
     $this->chamada = ChamadaProposta::create(['evento_id' => $this->evento->id, 'titulo' => 'Minicursos', 'tipos_aceitos' => ['minicurso', 'oficina'], 'ativa' => true, 'max_por_usuario' => 2, 'criado_por' => $this->admin->id]);
-    $this->dados = ['tipo' => 'minicurso', 'titulo' => 'Git na prática', 'resumo' => str_repeat('Aprender versionamento. ', 10), 'carga_horaria_prevista' => 4, 'vagas_sugeridas' => 30];
+    $this->dados = ['tipo' => 'minicurso', 'titulo' => 'Git na prática', 'resumo' => str_repeat('Aprender versionamento. ', 10), 'carga_horaria_prevista' => 4, 'vagas_sugeridas' => 30,
+        'minicurriculo' => 'Professor de computação com experiência em ensino de versionamento.', 'contato_whatsapp' => '(93) 91234-5678', 'disponibilidade' => collect(range(0, 3))->mapWithKeys(fn ($i) => [now()->addDays($i)->format('Y-m-d') => ['manha', 'tarde', 'noite']])->all()];
 });
 
 function aprovacao(array $extra = []): array
 {
-    return $extra + ['data_inicio' => now()->addDays(1)->setTime(9, 0), 'data_fim' => now()->addDays(1)->setTime(13, 0), 'local_id' => test()->lab->id, 'vagas' => 25, 'carga_horaria' => 4, 'equipamentos' => 'Projetor'];
+    return $extra + ['data_inicio' => now()->addDays(1)->setTime(8, 0), 'data_fim' => now()->addDays(1)->setTime(12, 0), 'local_id' => test()->lab->id, 'vagas' => 25, 'carga_horaria' => 4, 'equipamentos' => 'Projetor'];
 }
 
 it('exige usuário autenticado e participante com CPF para propor', function () {
@@ -215,7 +216,7 @@ it('valida a decisão: campos da aprovação, janela do evento, carga horária e
     $this->actingAs($this->admin);
     $decide = fn (array $d) => $this->post(route('admin.propostas.decisao', [$this->evento, $p]), $d);
     $dia = $this->evento->data_inicio->copy()->addDay();
-    $ok = ['decisao' => 'aprovada', 'data_inicio' => $dia->copy()->setTime(9, 0)->format('Y-m-d\TH:i'), 'data_fim' => $dia->copy()->setTime(13, 0)->format('Y-m-d\TH:i'), 'local_id' => $this->lab->id, 'vagas' => 20, 'carga_horaria' => 4];
+    $ok = ['decisao' => 'aprovada', 'data_inicio' => $dia->copy()->setTime(8, 0)->format('Y-m-d\TH:i'), 'data_fim' => $dia->copy()->setTime(12, 0)->format('Y-m-d\TH:i'), 'local_id' => $this->lab->id, 'vagas' => 20, 'carga_horaria' => 4];
 
     $decide(['decisao' => 'aprovada'])->assertSessionHasErrors(['data_inicio', 'data_fim', 'local_id', 'vagas', 'carga_horaria']);
     $decide(['decisao' => 'ajustes'])->assertSessionHasErrors('parecer');
@@ -405,7 +406,7 @@ it('criar atividade do evento já cria a demanda de voluntários, que acompanha 
 
     // atividade da aprovação de proposta também gera
     $p = app(PropostaService::class)->enviar($this->autor, $this->chamada, $this->dados);
-    app(PropostaService::class)->decidir($p, $this->admin, 'aprovada', aprovacao(['data_inicio' => now()->addDays(2)->setTime(9, 0), 'data_fim' => now()->addDays(2)->setTime(13, 0)]));
+    app(PropostaService::class)->decidir($p, $this->admin, 'aprovada', aprovacao(['data_inicio' => now()->addDays(2)->setTime(8, 0), 'data_fim' => now()->addDays(2)->setTime(12, 0)]));
     expect(DemandaVoluntario::where('atividade_id', $p->fresh()->atividade_id)->exists())->toBeTrue();
 
     // mudanças na atividade refletem na demanda (título só se o admin não o renomeou)

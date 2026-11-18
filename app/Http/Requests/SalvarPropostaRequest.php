@@ -7,6 +7,7 @@ use App\Models\Proposta;
 use App\Rules\Cpf;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Support\Disponibilidade;
 use App\Support\HtmlSeguro;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,7 @@ use Illuminate\Validation\Rule;
 class SalvarPropostaRequest extends FormRequest
 {
     /** Campos de texto formatado (editor): o tamanho conta o texto visível, não as tags. */
-    public const RICOS = ['resumo', 'objetivos', 'conteudo_programatico', 'metodologia', 'equipamentos_solicitados', 'observacoes'];
+    public const RICOS = ['resumo', 'objetivos', 'conteudo_programatico', 'metodologia', 'equipamentos_solicitados', 'observacoes', 'pre_requisitos', 'materiais_participante', 'minicurriculo'];
 
     public function authorize(): bool
     {
@@ -50,7 +51,17 @@ class SalvarPropostaRequest extends FormRequest
 
         $lab = $this->boolean('requer_laboratorio');
 
+        // WhatsApp padronizado "(93) 91234-5678" quando tem 10 ou 11 dígitos; disponibilidade só com dias do evento e períodos válidos
+        $fone = preg_replace('/\D/', '', (string) $this->input('contato_whatsapp'));
+        $fone = match (strlen($fone)) {
+            11 => sprintf('(%s) %s-%s', substr($fone, 0, 2), substr($fone, 2, 5), substr($fone, 7)),
+            10 => sprintf('(%s) %s-%s', substr($fone, 0, 2), substr($fone, 2, 4), substr($fone, 6)),
+            default => $this->input('contato_whatsapp'),
+        };
+
         $this->merge($ricos + [
+            'contato_whatsapp' => $fone,
+            'disponibilidade' => Disponibilidade::normalizar($this->input('disponibilidade'), $this->chamada()->evento->diasDoEvento()->all()),
             'apoios' => $apoios,
             'requer_laboratorio' => $lab,
             // sem laboratório, o campo de espaço não faz sentido
@@ -68,6 +79,17 @@ class SalvarPropostaRequest extends FormRequest
             'publico_alvo' => ['nullable', 'string', 'max:255'],
             'conteudo_programatico' => ['nullable', 'string', 'max:50000', $this->texto(0, 5000, 'O conteúdo programático')],
             'metodologia' => ['nullable', 'string', 'max:30000', $this->texto(0, 3000, 'A metodologia')],
+            'pre_requisitos' => ['nullable', 'string', 'max:20000', $this->texto(0, 2000, 'Os pré-requisitos')],
+            'materiais_participante' => ['nullable', 'string', 'max:20000', $this->texto(0, 2000, 'Os materiais do participante')],
+            'minicurriculo' => ['required', 'string', 'max:20000', $this->texto(30, 1000, 'O minicurrículo')],
+            'contato_whatsapp' => ['required', 'string', 'max:20', function ($a, $v, $fail) {
+                if (!in_array(strlen(preg_replace('/\D/', '', (string) $v)), [10, 11], true)) {
+                    $fail('Informe o WhatsApp com DDD, por exemplo (93) 91234-5678.');
+                }
+            }],
+            'disponibilidade' => ['required', 'array', 'min:1'],
+            'disponibilidade.*' => ['array'],
+            'disponibilidade.*.*' => [Rule::in(array_keys(\App\Models\Voluntario::PERIODOS))],
             'carga_horaria_prevista' => ['required', 'integer', 'min:1', 'max:40'],
             'vagas_sugeridas' => ['required', 'integer', 'min:1', 'max:500'],
             'requer_laboratorio' => ['boolean'],
@@ -113,6 +135,10 @@ class SalvarPropostaRequest extends FormRequest
             'vagas_sugeridas.integer' => 'As vagas devem ser um número inteiro.',
             'vagas_sugeridas.min' => 'Informe ao menos 1 vaga.',
             'vagas_sugeridas.max' => 'O máximo sugerido é de 500 vagas.',
+            'minicurriculo.required' => 'Escreva um minicurrículo curto: quem é você e sua experiência com o tema.',
+            'contato_whatsapp.required' => 'Informe o seu WhatsApp com DDD: a organização usa para falar com o ministrante.',
+            'disponibilidade.required' => 'Marque ao menos um dia e período em que você pode ministrar a atividade.',
+            'disponibilidade.min' => 'Marque ao menos um dia e período em que você pode ministrar a atividade.',
             'espaco_solicitado.required_if' => 'Informe qual laboratório ou espaço específico você precisa.',
             'apoios.max' => 'Informe no máximo 5 pessoas de apoio.',
             'apoios.*.nome.required' => 'Informe o nome de cada pessoa de apoio.',

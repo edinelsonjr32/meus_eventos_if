@@ -45,9 +45,11 @@
                 <dt class="col-sm-4 text-secondary">Público-alvo</dt><dd class="col-sm-8">{{ $proposta->publico_alvo ?: '—' }}</dd>
                 <dt class="col-sm-4 text-secondary">Laboratório/espaço</dt><dd class="col-sm-8">{{ $proposta->requer_laboratorio ? 'Sim' : 'Não' }}@if($proposta->espaco_solicitado) · {{ $proposta->espaco_solicitado }}@endif</dd>
                 <dt class="col-sm-4 text-secondary">Equipamentos</dt><dd class="col-sm-8 conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->equipamentos_solicitados) ?: '—' !!}</dd>
+                <dt class="col-sm-4 text-secondary">WhatsApp de contato</dt><dd class="col-sm-8">{{ $proposta->contato_whatsapp ?: '—' }}</dd>
+                <dt class="col-sm-4 text-secondary">Disponibilidade</dt><dd class="col-sm-8">{{ $proposta->disponibilidadeResumo() ?: '—' }}</dd>
                 <dt class="col-sm-4 text-secondary">Pessoas de apoio</dt><dd class="col-sm-8">{{ $proposta->apoios->isEmpty() ? '—' : $proposta->apoios->pluck('nome')->implode(', ') }}</dd>
             </dl>
-            @foreach(['objetivos' => 'Objetivos', 'conteudo_programatico' => 'Conteúdo programático', 'metodologia' => 'Metodologia', 'observacoes' => 'Observações'] as $campo => $rotulo)
+            @foreach(['objetivos' => 'Objetivos', 'conteudo_programatico' => 'Conteúdo programático', 'metodologia' => 'Metodologia', 'pre_requisitos' => 'Pré-requisitos', 'materiais_participante' => 'O que o participante deve levar', 'minicurriculo' => 'Minicurrículo', 'observacoes' => 'Observações'] as $campo => $rotulo)
                 @if($proposta->$campo)<div class="mt-3"><div class="small fw-bold text-secondary">{{ $rotulo }}</div><div class="small conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->$campo) !!}</div></div>@endif
             @endforeach
         </div>
@@ -66,4 +68,6 @@
             @endif
         </div>
     </div></div>
+    {{-- Envio concluído: apaga o rascunho guardado no navegador --}}
+    <script>try { ['c' + {{ $proposta->chamada_id }}, 'e' + {{ $proposta->id }}].forEach(k => localStorage.removeItem('proposta-rascunho:' + k + ':{{ auth()->id() }}')); } catch (e) {}</script>
 </x-app-layout>

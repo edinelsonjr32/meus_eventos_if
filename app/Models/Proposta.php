@@ -24,10 +24,11 @@ class Proposta extends Model
     protected $fillable = [
         'chamada_id', 'evento_id', 'user_id', 'participante_id', 'tipo', 'titulo', 'resumo', 'objetivos', 'publico_alvo', 'conteudo_programatico', 'metodologia',
         'carga_horaria_prevista', 'vagas_sugeridas', 'requer_laboratorio', 'espaco_solicitado', 'equipamentos_solicitados', 'observacoes',
+        'pre_requisitos', 'materiais_participante', 'minicurriculo', 'contato_whatsapp', 'disponibilidade_dias',
         'status', 'parecer', 'decidido_por', 'decidido_em', 'atividade_id',
     ];
 
-    protected $casts = ['requer_laboratorio' => 'boolean', 'decidido_em' => 'datetime', 'carga_horaria_prevista' => 'integer', 'vagas_sugeridas' => 'integer'];
+    protected $casts = ['requer_laboratorio' => 'boolean', 'decidido_em' => 'datetime', 'carga_horaria_prevista' => 'integer', 'vagas_sugeridas' => 'integer', 'disponibilidade_dias' => 'array'];
 
     public function chamada(): BelongsTo
     {
@@ -73,6 +74,22 @@ class Proposta extends Model
     public function excluivel(): bool
     {
         return !$this->atividade_id && in_array($this->status, ['enviada', 'em_analise', 'ajustes', 'reprovada', 'retirada'], true);
+    }
+
+    public function temDisponibilidade(): bool
+    {
+        return !empty($this->disponibilidade_dias);
+    }
+
+    /** Dias/períodos do intervalo em que o proponente NÃO marcou disponibilidade (vazio = cobre tudo ou não informou). */
+    public function faltaDisponibilidade(\Carbon\CarbonInterface $inicio, \Carbon\CarbonInterface $fim): array
+    {
+        return $this->temDisponibilidade() ? \App\Support\Disponibilidade::faltas($this->disponibilidade_dias, $inicio, $fim) : [];
+    }
+
+    public function disponibilidadeResumo(): string
+    {
+        return $this->temDisponibilidade() ? \App\Support\Disponibilidade::resumo($this->disponibilidade_dias) : '';
     }
 
     public function editavel(): bool

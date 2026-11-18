@@ -29,9 +29,11 @@
                     <dt class="col-sm-4 text-secondary">Vagas sugeridas</dt><dd class="col-sm-8">{{ $proposta->vagas_sugeridas }}</dd>
                     <dt class="col-sm-4 text-secondary">Público-alvo</dt><dd class="col-sm-8">{{ $proposta->publico_alvo ?: '—' }}</dd>
                     <dt class="col-sm-4 text-secondary">Laboratório</dt><dd class="col-sm-8">{{ $proposta->requer_laboratorio ? 'Sim' : 'Não' }}@if($proposta->espaco_solicitado) · {{ $proposta->espaco_solicitado }}@endif</dd>
+                    <dt class="col-sm-4 text-secondary">WhatsApp</dt><dd class="col-sm-8">@if($proposta->contato_whatsapp)<a href="https://wa.me/55{{ preg_replace('/\D/', '', $proposta->contato_whatsapp) }}" target="_blank" rel="noopener">{{ $proposta->contato_whatsapp }}</a>@else — @endif</dd>
+                    <dt class="col-sm-4 text-secondary">Disponibilidade</dt><dd class="col-sm-8">{{ $proposta->disponibilidadeResumo() ?: 'não informada' }}</dd>
                     <dt class="col-sm-4 text-secondary">Equipamentos</dt><dd class="col-sm-8 conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->equipamentos_solicitados) ?: '—' !!}</dd>
                 </dl>
-                @foreach(['objetivos' => 'Objetivos', 'conteudo_programatico' => 'Conteúdo programático', 'metodologia' => 'Metodologia', 'observacoes' => 'Observações do proponente'] as $campo => $rotulo)
+                @foreach(['objetivos' => 'Objetivos', 'conteudo_programatico' => 'Conteúdo programático', 'metodologia' => 'Metodologia', 'pre_requisitos' => 'Pré-requisitos', 'materiais_participante' => 'O que o participante deve levar', 'minicurriculo' => 'Minicurrículo do ministrante', 'observacoes' => 'Observações do proponente'] as $campo => $rotulo)
                     @if($proposta->$campo)<div class="mt-3"><div class="small fw-bold text-secondary">{{ $rotulo }}</div><div class="small conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->$campo) !!}</div></div>@endif
                 @endforeach
             </div>
@@ -110,6 +112,7 @@
 
                     <div x-show="decisao === 'aprovada'" x-cloak>
                         <div class="small fw-bold text-secondary mb-2">Programação da atividade</div>
+                        @if($proposta->temDisponibilidade())<div class="alert alert-light border small py-2"><i class="fa-regular fa-calendar-check me-1 text-success"></i> O proponente pode ministrar: <strong>{{ $proposta->disponibilidadeResumo() }}</strong>. Fora disso, a aprovação pede confirmação.</div>@endif
                         <div class="row g-2">
                             <div class="col-6"><label class="small">Início *</label><input type="datetime-local" name="data_inicio" class="form-control form-control-sm" value="{{ $v('data_inicio', $a?->data_inicio?->format('Y-m-d\TH:i')) }}"></div>
                             <div class="col-6"><label class="small">Término *</label><input type="datetime-local" name="data_fim" class="form-control form-control-sm" value="{{ $v('data_fim', $a?->data_fim?->format('Y-m-d\TH:i')) }}"></div>
@@ -124,7 +127,7 @@
                             <div class="col-12"><label class="small">Equipamentos que serão disponibilizados</label><textarea name="equipamentos" rows="2" class="form-control form-control-sm">{{ $v('equipamentos', $a?->equipamentos ?? $proposta->equipamentos_solicitados) }}</textarea></div>
                             <div class="col-12"><label class="small">Observações da organização (internas)</label><textarea name="observacoes_organizacao" rows="2" class="form-control form-control-sm">{{ $v('observacoes_organizacao', $a?->observacoes_organizacao) }}</textarea></div>
                         </div>
-                        <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="ignorar_conflito" value="1" id="ic"><label class="form-check-label small" for="ic">Aprovar mesmo com conflito de local/horário ou capacidade</label></div>
+                        <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="ignorar_conflito" value="1" id="ic"><label class="form-check-label small" for="ic">Aprovar mesmo com conflito de local/horário, capacidade ou disponibilidade do proponente</label></div>
                     </div>
 
                     <label class="small fw-bold text-secondary mt-3" x-text="decisao === 'aprovada' ? 'Mensagem ao proponente (opcional)' : 'Mensagem ao proponente (obrigatória)'"></label>
