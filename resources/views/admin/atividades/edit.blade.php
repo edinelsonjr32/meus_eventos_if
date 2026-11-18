@@ -52,7 +52,7 @@
                             <input class="form-check-input" type="checkbox" role="switch" name="gera_certificado" value="1" id="gc" @checked(old('gera_certificado', $atividade->emiteCertificado() ? 1 : 0))>
                             <label class="form-check-label small fw-bold text-secondary" for="gc">Gera certificado de presença</label>
                         </div>
-                        <div class="form-text small">Desmarque para atividades acadêmicas (ex.: jogos): a frequência continua sendo registrada, mas o certificado não é emitido nem exibido.</div>
+                        <div class="form-text small">Desmarque para atividades acadêmicas (ex.: jogos): a frequência continua sendo registrada, mas o certificado não é emitido nem exibido (download e validação ficam bloqueados).@if($atividade->frequencias()->exists()) <strong class="text-danger">Esta atividade já tem {{ $atividade->frequencias()->count() }} presença(s): ao desmarcar, os certificados delas ficam indisponíveis.</strong>@endif</div>
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-secondary" for="vagas">Vagas</label>

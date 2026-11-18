@@ -95,3 +95,27 @@ it('edita as opções de visibilidade e inscrição do evento', function () {
     expect($this->evento->fresh()->exibidoNoPortal())->toBeFalse()->and($this->evento->fresh()->aceitaInscricoes())->toBeFalse();
     $this->get(route('admin.eventos.edit', $this->evento))->assertOk()->assertSee('Evento visível publicamente');
 });
+
+it('painel do inscrito não oferece certificado para atividade sem certificado, mas mostra a presença', function () {
+    $semCert = novaAtividade(['evento_id' => $this->evento->id, 'titulo' => 'Gincana Sem Cert', 'gera_certificado' => false]);
+    $comCert = novaAtividade(['evento_id' => $this->evento->id, 'titulo' => 'Palestra Com Cert', 'tipo' => 'palestra']);
+    $f1 = presencaEm($semCert);
+    $p = $f1->participante;
+    $f2 = Frequencia::create(['participante_id' => $p->id, 'atividade_id' => $comCert->id, 'data_registro' => now(), 'hash_validacao' => (string) \Illuminate\Support\Str::uuid(), 'tipo_participacao' => 'ouvinte']);
+    $user = mkUser('user', 'atleta@x.com');
+    $p->update(['user_id' => $user->id]);
+    \App\Models\Inscricao::create(['evento_id' => $this->evento->id, 'participante_id' => $p->id, 'data_inscricao' => now()]);
+
+    $this->actingAs($user)->get(route('inscrito.dashboard'))->assertOk()
+        ->assertSee(route('certificado.download', $f2->hash_validacao), false)
+        ->assertDontSee(route('certificado.download', $f1->hash_validacao), false)
+        ->assertSee('Presença registrada');
+    expect($f1->fresh()->emiteCertificado())->toBeFalse()->and($f2->fresh()->emiteCertificado())->toBeTrue();
+});
+
+it('avisa ao desmarcar o certificado de atividade que já tem presenças', function () {
+    $a = novaAtividade(['evento_id' => $this->evento->id]);
+    presencaEm($a);
+    $this->get(route('admin.atividades.edit', $a))->assertSee('ao desmarcar, os certificados delas ficam indisponíveis');
+    $this->put(route('admin.atividades.update', $a), $this->dados + ['gera_certificado' => '0'])->assertSessionHas('success', fn ($m) => str_contains($m, 'ficam indisponíveis'));
+});

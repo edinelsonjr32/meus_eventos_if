@@ -20,7 +20,7 @@ class CertificadoController extends Controller
             ->first();
 
         // Atividades sem certificado (ex.: jogos) não têm documento a validar
-        if (!$frequencia || !$frequencia->atividade->emiteCertificado()) {
+        if (!$frequencia || !$frequencia->emiteCertificado()) {
             return view('publico.validar-certificado', ['frequencia' => null, 'hash' => $hash]);
         }
 
@@ -37,7 +37,7 @@ class CertificadoController extends Controller
             ->with(['participante', 'atividade.evento.assinaturas'])
             ->firstOrFail();
 
-        abort_unless($frequencia->atividade->emiteCertificado(), 404);
+        abort_unless($frequencia->emiteCertificado(), 404);
 
         $evento = $frequencia->atividade->evento;
         $atividade = $frequencia->atividade;

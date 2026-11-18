@@ -150,7 +150,12 @@ class AtividadeController extends Controller
             'voluntarios_necessarios' => ($dados['voluntarios_necessarios'] ?? null) ?: null,
         ]);
 
-        return redirect()->route('admin.eventos.show', $atividade->evento_id)->with('success', 'Atividade atualizada.');
+        $aviso = '';
+        if (!$atividade->emiteCertificado() && ($presencas = $atividade->frequencias()->count()) > 0) {
+            $aviso = " Atenção: esta atividade não gera certificado; os certificados das {$presencas} presença(s) já registrada(s) ficam indisponíveis (as presenças continuam valendo).";
+        }
+
+        return redirect()->route('admin.eventos.show', $atividade->evento_id)->with('success', 'Atividade atualizada.' . $aviso);
     }
 
     /** PDF com uma página por atividade: cabeçalho do evento, QR Code de frequência, título e responsável. */

@@ -35,6 +35,12 @@ class Frequencia extends Model
         return $this->belongsTo(Atividade::class);
     }
 
+    /** Esta presença pode virar certificado? Só se a atividade estiver marcada para emitir (regra central: download, validação e telas). */
+    public function emiteCertificado(): bool
+    {
+        return (bool) $this->atividade?->emiteCertificado();
+    }
+
     /** Somente presenças de atividades que emitem certificado. */
     public function scopeComCertificado($q)
     {
