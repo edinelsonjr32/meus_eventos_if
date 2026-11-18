@@ -47,6 +47,14 @@
                         <input id="ch" type="number" name="carga_horaria" class="form-control" min="1" max="1000" required value="{{ old('carga_horaria', $atividade->carga_horaria) }}">
                         <div class="form-text small">Consta no certificado de presença. O horário de término é recalculado por ela.</div>
                     </div>
+                    <div class="col-12">
+                        <input type="hidden" name="gera_certificado" value="0">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" name="gera_certificado" value="1" id="gc" @checked(old('gera_certificado', $atividade->emiteCertificado() ? 1 : 0))>
+                            <label class="form-check-label small fw-bold text-secondary" for="gc">Gera certificado de presença</label>
+                        </div>
+                        <div class="form-text small">Desmarque para atividades acadêmicas (ex.: jogos): a frequência continua sendo registrada, mas o certificado não é emitido nem exibido.</div>
+                    </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-secondary" for="vagas">Vagas</label>
                         <input id="vagas" type="number" name="vagas" class="form-control" min="0" value="{{ old('vagas', $atividade->vagas) }}" placeholder="0 = ilimitado">

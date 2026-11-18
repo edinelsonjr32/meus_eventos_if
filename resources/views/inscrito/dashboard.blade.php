@@ -89,7 +89,7 @@
                             <div class="small text-uppercase tracking-wide opacity-75">Eventos</div>
                         </div>
                         <div class="stat-box">
-                            <div class="fs-2 fw-bold">{{ $participante ? $participante->frequencias->count() : 0 }}</div>
+                            <div class="fs-2 fw-bold">{{ $participante ? $participante->frequencias->filter(fn ($f) => $f->atividade?->emiteCertificado())->count() : 0 }}</div>
                             <div class="small text-uppercase tracking-wide opacity-75">Certificados</div>
                         </div>
                     </div>
@@ -145,7 +145,8 @@
 
                                                 // 2. Verifica Presença/Certificado (Se existe registro na tabela Frequencia)
                                                 $frequencia = $participante->frequencias->where('atividade_id', $atividade->id)->first();
-                                                $temCertificado = $frequencia ? true : false;
+                                                $presente = (bool) $frequencia;
+                                                $temCertificado = $frequencia && $atividade->emiteCertificado();
 
                                                 // 3. Verifica Lotação
                                                 $totalInscritos = $atividade->inscritos()->count();
@@ -153,7 +154,7 @@
 
                                                 // Define classe CSS do card
                                                 $cardClass = 'bg-white';
-                                                if ($temCertificado) $cardClass = 'certified';
+                                                if ($presente) $cardClass = 'certified';
                                                 elseif ($estaInscrito) $cardClass = 'enrolled';
                                                 elseif ($vagasEsgotadas) $cardClass = 'full';
                                             @endphp
@@ -171,9 +172,9 @@
                                                 <div class="flex-grow-1">
                                                     <div class="d-flex gap-2 mb-1">
                                                         <span class="badge bg-white border text-secondary shadow-sm">{{ ucfirst($atividade->tipo) }}</span>
-                                                        @if($vagasEsgotadas && !$estaInscrito && !$temCertificado)
+                                                        @if($vagasEsgotadas && !$estaInscrito && !$presente)
                                                             <span class="badge bg-secondary text-white shadow-sm">Esgotado</span>
-                                                        @elseif(!$temCertificado)
+                                                        @elseif(!$presente)
                                                             <span class="badge bg-light text-secondary border">
                                                                 {{ $totalInscritos }}/{{ $atividade->vagas ?? '∞' }} Vagas
                                                             </span>
@@ -188,6 +189,10 @@
                                                         <small class="text-warning fw-bold d-block mt-1">
                                                             <i class="fa-solid fa-star me-1"></i> Concluído! Certificado disponível.
                                                         </small>
+                                                    @elseif($presente)
+                                                        <small class="text-success fw-bold d-block mt-1">
+                                                            <i class="fa-solid fa-circle-check me-1"></i> Presença registrada.
+                                                        </small>
                                                     @elseif($estaInscrito)
                                                         <small class="text-success fw-bold d-block mt-1">
                                                             <i class="fa-solid fa-check-circle me-1"></i> Sua vaga está garantida.
@@ -201,6 +206,9 @@
                                                         <a href="{{ route('certificado.download', $frequencia->hash_validacao) }}" target="_blank" class="btn btn-warning w-100 fw-bold shadow-sm text-dark">
                                                             <i class="fa-solid fa-award me-2"></i> Certificado
                                                         </a>
+
+                                                    @elseif($presente)
+                                                        <button class="btn btn-light w-100 fw-bold text-success border" disabled><i class="fa-solid fa-check me-2"></i> Presente</button>
 
                                                     @elseif($estaInscrito)
                                                         <form action="{{ route('inscrito.atividade.toggle', $atividade->id) }}" method="POST">

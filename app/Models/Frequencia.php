@@ -34,4 +34,10 @@ class Frequencia extends Model
     {
         return $this->belongsTo(Atividade::class);
     }
+
+    /** Somente presenças de atividades que emitem certificado. */
+    public function scopeComCertificado($q)
+    {
+        return $q->whereHas('atividade', fn ($a) => $a->where('gera_certificado', true));
+    }
 }

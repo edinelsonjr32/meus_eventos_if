@@ -142,6 +142,7 @@
                             <option value="minicurso">Minicurso</option>
                             <option value="oficina">Oficina</option>
                             <option value="mesa_redonda">Mesa Redonda</option>
+                            <option value="jogo">Jogo / Competição</option>
                         </select>
                     </div>
 
@@ -154,6 +155,15 @@
                             <label class="form-label small fw-bold text-secondary">VAGAS</label>
                             <input type="number" name="vagas" value="50" class="form-control" placeholder="0 = ∞">
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input type="hidden" name="gera_certificado" value="0">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" name="gera_certificado" value="1" id="gc-n" checked>
+                            <label class="form-check-label small fw-bold text-secondary" for="gc-n">GERA CERTIFICADO DE PRESENÇA</label>
+                        </div>
+                        <div class="form-text small">Desmarque para atividades acadêmicas (ex.: jogos): a frequência é registrada, mas nenhum certificado é emitido.</div>
                     </div>
 
                     <div class="mb-3">
@@ -222,6 +232,9 @@
                                         <span class="text-secondary small font-monospace">
                                             <i class="fa-regular fa-clock me-1"></i> {{ $atividade->carga_horaria }}h
                                         </span>
+                                        @unless($atividade->emiteCertificado())
+                                            <span class="badge rounded-pill bg-light text-secondary border" title="A frequência é registrada, mas nenhum certificado é emitido"><i class="fa-solid fa-ban me-1"></i> Sem certificado</span>
+                                        @endunless
                                     </div>
 
                                     <h6 class="fw-bold mb-2 text-dark fs-5">{{ $atividade->titulo }}</h6>

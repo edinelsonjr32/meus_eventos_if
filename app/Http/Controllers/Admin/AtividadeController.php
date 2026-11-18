@@ -39,6 +39,7 @@ class AtividadeController extends Controller
             'ignorar_conflito' => 'nullable|boolean',
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
+            'gera_certificado' => 'nullable|boolean',
             'vagas' => 'nullable|integer|min:0',
             'voluntarios_necessarios' => 'nullable|integer|min:0|max:200',
         ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
@@ -63,6 +64,7 @@ class AtividadeController extends Controller
             'data_inicio' => $validated['data_inicio'],
             'data_fim' => $fim, // Agora o Model aceitará este campo
             'carga_horaria' => $horas,
+            'gera_certificado' => $request->boolean('gera_certificado', true),
             'vagas' => $validated['vagas'] ?? null,
             'voluntarios_necessarios' => ($validated['voluntarios_necessarios'] ?? 2) ?: null,
             'token_frequencia' => Str::random(10),
@@ -87,7 +89,7 @@ class AtividadeController extends Controller
         return null;
     }
 
-    public const TIPOS = ['palestra' => 'Palestra', 'minicurso' => 'Minicurso', 'oficina' => 'Oficina', 'mesa_redonda' => 'Mesa Redonda'];
+    public const TIPOS = ['palestra' => 'Palestra', 'minicurso' => 'Minicurso', 'oficina' => 'Oficina', 'mesa_redonda' => 'Mesa Redonda', 'jogo' => 'Jogo / Competição'];
 
     public function edit(Atividade $atividade)
     {
@@ -118,6 +120,7 @@ class AtividadeController extends Controller
             'ignorar_conflito' => 'nullable|boolean',
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
+            'gera_certificado' => 'nullable|boolean',
             'vagas' => 'nullable|integer|min:0',
             'voluntarios_necessarios' => 'nullable|integer|min:0|max:200',
         ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
@@ -142,6 +145,7 @@ class AtividadeController extends Controller
             'data_inicio' => $inicio,
             'data_fim' => $inicio->copy()->addHours((int) $dados['carga_horaria']),
             'carga_horaria' => (int) $dados['carga_horaria'],
+            'gera_certificado' => $request->boolean('gera_certificado', true),
             'vagas' => $dados['vagas'] ?? null,
             'voluntarios_necessarios' => ($dados['voluntarios_necessarios'] ?? null) ?: null,
         ]);

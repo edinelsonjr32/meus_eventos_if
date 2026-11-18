@@ -57,6 +57,7 @@ class Atividade extends Model
         'observacoes_organizacao',
         'proposta_id',
         'carga_horaria',
+        'gera_certificado',
         'vagas',
         'voluntarios_necessarios',
         'data_inicio',
@@ -67,7 +68,14 @@ class Atividade extends Model
     protected $casts = [
         'data_inicio' => 'datetime',
         'data_fim' => 'datetime',
+        'gera_certificado' => 'boolean',
     ];
+
+    /** Só gera certificado de presença se a atividade estiver marcada para isso (jogos e atividades acadêmicas usam apenas a frequência). */
+    public function emiteCertificado(): bool
+    {
+        return (bool) ($this->gera_certificado ?? true);
+    }
 
     public function evento(): BelongsTo
     {

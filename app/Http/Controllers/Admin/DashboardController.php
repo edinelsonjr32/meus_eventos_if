@@ -24,7 +24,7 @@ class DashboardController extends Controller
         })->count();
 
         // Total de certificados (frequências com presença)
-        $totalCertificados = Frequencia::whereHas('atividade.evento', function ($q) use ($adminId) {
+        $totalCertificados = Frequencia::comCertificado()->whereHas('atividade.evento', function ($q) use ($adminId) {
             $q->where('criado_por', $adminId);
         })->count();
 

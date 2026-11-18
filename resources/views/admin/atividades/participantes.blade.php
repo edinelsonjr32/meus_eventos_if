@@ -123,9 +123,11 @@
 
                             <td class="text-end pe-4">
                                 @if($item->status == 'presente')
+                                    @if($atividade->emiteCertificado())
                                     <a href="{{ route('certificado.download', $item->frequencia->hash_validacao) }}" target="_blank" class="btn btn-sm btn-link text-warning p-0 me-3" title="Baixar Certificado">
                                         <i class="fa-solid fa-file-pdf fs-5"></i>
                                     </a>
+                                    @endif
                                     <form action="{{ route('admin.frequencias.destroy', $item->frequencia->id) }}" method="POST" onsubmit="return confirm('Remover presença?');" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-sm btn-link text-danger p-0" title="Remover Presença">

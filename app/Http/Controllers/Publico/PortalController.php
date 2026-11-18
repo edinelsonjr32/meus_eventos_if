@@ -34,7 +34,7 @@ class PortalController extends Controller
             'eventos' => $ids->count(),
             'participantes' => Inscricao::whereIn('evento_id', $ids)->distinct('participante_id')->count('participante_id'),
             'atividades' => Atividade::whereIn('evento_id', $ids)->count(),
-            'certificados' => Frequencia::where('certificado_emitido', true)->whereHas('atividade', fn ($q) => $q->whereIn('evento_id', $ids))->count(),
+            'certificados' => Frequencia::comCertificado()->where('certificado_emitido', true)->whereHas('atividade', fn ($q) => $q->whereIn('evento_id', $ids))->count(),
             'trabalhos' => $edicoesComAnais->sum('total_trabalhos'),
         ];
 
