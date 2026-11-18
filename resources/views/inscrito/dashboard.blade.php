@@ -171,7 +171,7 @@
 
                                                 <div class="flex-grow-1">
                                                     <div class="d-flex gap-2 mb-1">
-                                                        <span class="badge bg-white border text-secondary shadow-sm">{{ ucfirst($atividade->tipo) }}</span>
+                                                        <span class="badge bg-white border text-secondary shadow-sm">{{ $atividade->tipoRotulo() }}</span>
                                                         @if($vagasEsgotadas && !$estaInscrito && !$presente)
                                                             <span class="badge bg-secondary text-white shadow-sm">Esgotado</span>
                                                         @elseif(!$presente)

@@ -201,7 +201,7 @@
                                         </div>
                                         <div class="flex-grow-1 min-w-0">
                                             <div class="d-flex flex-wrap gap-2 align-items-center">
-                                                <span class="selo">{{ ucfirst($ativ->tipo) }}</span>
+                                                <span class="selo">{{ $ativ->tipoRotulo() }}</span>
                                                 @if($restantes !== null)
                                                     <span class="vagas {{ $restantes === 0 ? 'esgotado' : '' }}">{{ $restantes === 0 ? 'Vagas esgotadas' : $restantes . ' vaga(s)' }}</span>
                                                 @endif

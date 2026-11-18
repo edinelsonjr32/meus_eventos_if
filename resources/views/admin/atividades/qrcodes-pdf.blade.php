@@ -35,7 +35,7 @@
             </div>
         </div>
 
-        <div class="tipo">{{ str_replace('_', ' ', $a->tipo) }}</div>
+        <div class="tipo">{{ $a->tipoRotulo() }}</div>
         <div class="atividade">{{ $a->titulo }}</div>
         @if($a->responsavel)<div class="responsavel">Responsável: <strong>{{ $a->responsavel }}</strong></div>@endif
         <div class="horario">{{ $a->data_inicio?->format('d/m/Y \à\s H:i') }} · {{ $a->carga_horaria }}h @if($a->local) · Local: {{ $a->local }} @endif</div>

@@ -20,9 +20,8 @@
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-secondary" for="tipo">Tipo *</label>
-                        <select id="tipo" name="tipo" class="form-select" required>
-                            @foreach($tipos as $k => $r) <option value="{{ $k }}" @selected(old('tipo', $atividade->tipo) === $k)>{{ $r }}</option> @endforeach
-                        </select>
+                        <input id="tipo" type="text" name="tipo" class="form-control" list="tipos-atividade" required minlength="2" maxlength="80" value="{{ old('tipo', $atividade->tipoRotulo()) }}">
+                        <datalist id="tipos-atividade">@foreach($tipos as $r)<option value="{{ $r }}">@endforeach</datalist>
                     </div>
                     <div class="col-md-6">
                         <label class="small fw-bold text-secondary" for="inicio">Data e hora de início *</label>

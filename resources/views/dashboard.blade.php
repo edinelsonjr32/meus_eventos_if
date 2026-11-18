@@ -82,7 +82,7 @@
                                 <div class="flex-grow-1">
                                     <h6 class="fw-bold text-dark m-0">{{ $ativ->titulo }}</h6>
                                     <small class="text-secondary">
-                                        {{ $ativ->evento->titulo }} • {{ ucfirst($ativ->tipo) }}
+                                        {{ $ativ->evento->titulo }} • {{ $ativ->tipoRotulo() }}
                                     </small>
                                 </div>
                                 <a href="{{ route('admin.atividades.participantes', $ativ->id) }}" class="btn btn-sm btn-white border shadow-sm fw-bold text-primary">

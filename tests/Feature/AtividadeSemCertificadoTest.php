@@ -32,6 +32,17 @@ it('atividade gera certificado por padrão e pode ser criada sem certificado (jo
     expect($jogo->emiteCertificado())->toBeFalse()->and($jogo->tipo)->toBe('jogo');
 });
 
+it('tipo da atividade é livre (gincana, filmes, texto próprio) e exibido de forma amigável', function () {
+    foreach (['Gincana de robótica', 'Exibição de filme', 'exposicao'] as $i => $tipo) {
+        $this->post(route('admin.eventos.atividades.store', $this->evento), array_merge($this->dados, ['titulo' => "Atv $i", 'tipo' => $tipo, 'gera_certificado' => '0']))->assertSessionHasNoErrors();
+    }
+    expect(Atividade::pluck('tipo')->all())->toBe(['Gincana de robótica', 'Exibição de filme', 'exposicao']);
+    expect(Atividade::where('tipo', 'exposicao')->first()->tipoRotulo())->toBe('Exposição')
+        ->and(novaAtividade(['evento_id' => $this->evento->id, 'tipo' => 'mesa_redonda'])->tipoRotulo())->toBe('Mesa Redonda');
+    $this->post(route('admin.eventos.atividades.store', $this->evento), array_merge($this->dados, ['tipo' => '']))->assertSessionHasErrors('tipo');
+    $this->get(route('admin.eventos.show', $this->evento))->assertOk()->assertSee('Gincana de robótica');
+});
+
 it('edita a opção de gerar certificado', function () {
     $a = novaAtividade(['evento_id' => $this->evento->id]);
     $this->put(route('admin.atividades.update', $a), $this->dados + ['gera_certificado' => '0'])->assertSessionHasNoErrors();

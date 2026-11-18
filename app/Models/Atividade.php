@@ -71,6 +71,20 @@ class Atividade extends Model
         'gera_certificado' => 'boolean',
     ];
 
+    /** Sugestões de tipo (o campo é livre: qualquer outro texto também vale). */
+    public const TIPOS = [
+        'palestra' => 'Palestra', 'minicurso' => 'Minicurso', 'oficina' => 'Oficina', 'mesa_redonda' => 'Mesa Redonda',
+        'jogo' => 'Jogo / Competição', 'gincana' => 'Gincana', 'torneio' => 'Torneio', 'exibicao_filme' => 'Exibição de filme',
+        'apresentacao_cultural' => 'Apresentação cultural', 'exposicao' => 'Exposição', 'feira' => 'Feira', 'roda_conversa' => 'Roda de conversa',
+        'visita_tecnica' => 'Visita técnica', 'sarau' => 'Sarau', 'cerimonia' => 'Cerimônia', 'outro' => 'Outro',
+    ];
+
+    /** Nome do tipo para exibição (aceita os códigos antigos e textos livres). */
+    public function tipoRotulo(): string
+    {
+        return self::TIPOS[$this->tipo] ?? ucfirst(str_replace('_', ' ', (string) $this->tipo));
+    }
+
     /** Só gera certificado de presença se a atividade estiver marcada para isso (jogos e atividades acadêmicas usam apenas a frequência). */
     public function emiteCertificado(): bool
     {

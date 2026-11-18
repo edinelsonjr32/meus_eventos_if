@@ -33,7 +33,7 @@ class AtividadeController extends Controller
 
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
-            'tipo' => 'required|string',
+            'tipo' => 'required|string|min:2|max:80',
             'responsavel' => 'nullable|string|max:255',
             'local_id' => ['nullable', 'integer', Rule::exists('locais', 'id')->where('evento_id', $evento->id)->where('ativo', true)],
             'ignorar_conflito' => 'nullable|boolean',
@@ -57,7 +57,7 @@ class AtividadeController extends Controller
 
         $evento->atividades()->create([
             'titulo' => $validated['titulo'],
-            'tipo' => $validated['tipo'],
+            'tipo' => trim($validated['tipo']),
             'responsavel' => $validated['responsavel'] ?? null,
             'local_id' => $validated['local_id'] ?? null,
             'local' => null,
@@ -89,7 +89,7 @@ class AtividadeController extends Controller
         return null;
     }
 
-    public const TIPOS = ['palestra' => 'Palestra', 'minicurso' => 'Minicurso', 'oficina' => 'Oficina', 'mesa_redonda' => 'Mesa Redonda', 'jogo' => 'Jogo / Competição'];
+    public const TIPOS = Atividade::TIPOS;
 
     public function edit(Atividade $atividade)
     {
@@ -114,7 +114,7 @@ class AtividadeController extends Controller
 
         $dados = $request->validate([
             'titulo' => 'required|string|max:255',
-            'tipo' => ['required', Rule::in(array_keys(self::TIPOS))],
+            'tipo' => 'required|string|min:2|max:80',
             'responsavel' => 'nullable|string|max:255',
             'local_id' => ['nullable', 'integer', Rule::exists('locais', 'id')->where('evento_id', $atividade->evento_id)->where(fn ($q) => $q->where('ativo', true)->orWhere('id', $atividade->local_id))],
             'ignorar_conflito' => 'nullable|boolean',
@@ -138,7 +138,7 @@ class AtividadeController extends Controller
 
         $atividade->update([
             'titulo' => $dados['titulo'],
-            'tipo' => $dados['tipo'],
+            'tipo' => trim($dados['tipo']),
             'responsavel' => $dados['responsavel'] ?? null,
             'local_id' => $dados['local_id'] ?? null,
             'local' => null,

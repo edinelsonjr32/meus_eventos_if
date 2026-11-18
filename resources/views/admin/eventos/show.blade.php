@@ -137,13 +137,9 @@
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-secondary">TIPO</label>
-                        <select name="tipo" class="form-select">
-                            <option value="palestra">Palestra</option>
-                            <option value="minicurso">Minicurso</option>
-                            <option value="oficina">Oficina</option>
-                            <option value="mesa_redonda">Mesa Redonda</option>
-                            <option value="jogo">Jogo / Competição</option>
-                        </select>
+                        <input type="text" name="tipo" class="form-control" list="tipos-atividade" value="Palestra" required minlength="2" maxlength="80" placeholder="Escolha ou digite: gincana, filme, jogo...">
+                        <datalist id="tipos-atividade">@foreach(\App\Models\Atividade::TIPOS as $rot)<option value="{{ $rot }}">@endforeach</datalist>
+                        <div class="form-text small">Escolha uma sugestão ou digite o seu próprio tipo.</div>
                     </div>
 
                     <div class="row g-2 mb-3">
@@ -227,7 +223,7 @@
                                 <div class="flex-grow-1">
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 text-uppercase" style="font-size: 0.65rem;">
-                                            {{ ucfirst($atividade->tipo) }}
+                                            {{ $atividade->tipoRotulo() }}
                                         </span>
                                         <span class="text-secondary small font-monospace">
                                             <i class="fa-regular fa-clock me-1"></i> {{ $atividade->carga_horaria }}h
