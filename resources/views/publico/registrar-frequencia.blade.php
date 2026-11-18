@@ -74,6 +74,7 @@
                     <div class="mb-3"><i class="fa-solid fa-circle-check fs-1 text-success"></i></div>
                     <h6 class="fw-bold text-success">Presença já registrada</h6>
                     <p class="small text-muted mb-0">Você já registrou presença nesta atividade em {{ $frequenciaExistente->data_registro?->format('d/m/Y \à\s H:i') }}. Não é necessário preencher novamente.</p>
+                    <a href="{{ route('frequencia.confirmada', $atividade->token_frequencia) }}" class="btn btn-sm btn-outline-success mt-3">Ver comprovante</a>
                 </div>
             @else
             <form id="formPresenca" action="{{ route('frequencia.store', $atividade->token_frequencia) }}" method="POST">

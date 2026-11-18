@@ -67,6 +67,7 @@ Route::get('/frequencia/sucesso', function () {
 })->name('frequencia.sucesso');
 
 Route::get('/frequencia/{token}', [FrequenciaController::class, 'index'])->name('frequencia.form');
+Route::get('/frequencia/{token}/confirmada', [FrequenciaController::class, 'confirmada'])->middleware('auth')->name('frequencia.confirmada');
 Route::get('/frequencia/{token}/csrf', [FrequenciaController::class, 'csrf'])->name('frequencia.csrf');
 Route::get('/frequencia/{token}/acesso/{modo}', [FrequenciaController::class, 'acesso'])->where('modo', 'entrar|cadastrar')->name('frequencia.acesso');
 // A presença exige conta: sem login a requisição é barrada (JSON recebe 401)

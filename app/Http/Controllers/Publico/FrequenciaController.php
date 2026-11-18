@@ -43,6 +43,20 @@ class FrequenciaController extends Controller
         return view('publico.registrar-frequencia', compact('atividade', 'turmas', 'participanteLogado', 'frequenciaExistente'));
     }
 
+    /** Confirmação: diz qual atividade teve a presença registrada, quando e em nome de quem (também serve de comprovante ao recarregar). */
+    public function confirmada(Request $request, $token)
+    {
+        $atividade = Atividade::with(['evento', 'localCadastrado'])->where('token_frequencia', $token)->firstOrFail();
+        $participante = app(ParticipanteDaConta::class)->daConta($request->user());
+        $frequencia = $participante ? Frequencia::where('atividade_id', $atividade->id)->where('participante_id', $participante->id)->first() : null;
+
+        if (!$frequencia) {
+            return redirect()->route('frequencia.form', $atividade->token_frequencia);
+        }
+
+        return view('publico.frequencia-confirmada', compact('atividade', 'participante', 'frequencia'));
+    }
+
     /** Guarda a página do QR como destino e leva ao login ou ao cadastro (a presença exige conta). */
     public function acesso($token, string $modo)
     {
@@ -153,14 +167,10 @@ class FrequenciaController extends Controller
 
             // Redireciona para sucesso
             if ($request->expectsJson()) {
-                session()->flash('participante', $participante->nome_completo);
-                session()->flash('mensagem_extra', 'Presença confirmada na atividade: ' . $atividade->titulo);
-                return response()->json(['redirect' => route('evento.publico.sucesso', $evento->slug)]);
+                return response()->json(['redirect' => route('frequencia.confirmada', $atividade->token_frequencia)]);
             }
 
-            return redirect()->route('evento.publico.sucesso', $evento->slug)
-                ->with('participante', $participante->nome_completo)
-                ->with('mensagem_extra', 'Presença confirmada na atividade: ' . $atividade->titulo);
+            return redirect()->route('frequencia.confirmada', $atividade->token_frequencia);
         } catch (\DomainException $e) {
             DB::rollBack();
 

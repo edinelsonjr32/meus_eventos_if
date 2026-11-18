@@ -149,3 +149,25 @@ it('conta sem cadastro de participante e sem CPF no envio recebe aviso claro, n�
         ->toThrow(\DomainException::class, 'Informe seu CPF e nome completo');
     expect(Participante::count())->toBe(0);
 });
+
+it('confirmação da presença mostra qual atividade foi registrada e vira comprovante; sem registro volta ao formulário', function () {
+    $user = mkUser('user', 'conf@x.com');
+    Participante::create(['user_id' => $user->id, 'nome_completo' => 'Joana Confirmada', 'cpf' => '111.444.777-35', 'email' => 'conf@x.com', 'tipo_vinculo' => 'externo']);
+
+    // antes de registrar: volta ao formulário
+    $this->actingAs($user)->get(route('frequencia.confirmada', 'QR-TESTE'))->assertRedirect(route('frequencia.form', 'QR-TESTE'));
+
+    $this->post($this->url, ['tipo_vinculo' => 'externo'], ['Accept' => 'application/json'])->assertOk()->assertJsonPath('redirect', route('frequencia.confirmada', 'QR-TESTE'));
+
+    $this->get(route('frequencia.confirmada', 'QR-TESTE'))->assertOk()
+        ->assertSee('Presença registrada!')->assertSee('Joana Confirmada')->assertSee('Palestra QR')->assertSee($this->evento->titulo)->assertSee('certificado desta atividade');
+
+    // atividade sem certificado: aviso próprio
+    $this->atividade->update(['gera_certificado' => false]);
+    $this->get(route('frequencia.confirmada', 'QR-TESTE'))->assertSee('apenas controle de frequência')->assertDontSee('certificado desta atividade');
+
+    // visitante é levado ao login; a tela "já registrada" oferece o comprovante
+    auth()->logout();
+    $this->get(route('frequencia.confirmada', 'QR-TESTE'))->assertRedirect(route('login'));
+    $this->actingAs($user)->get(route('frequencia.form', 'QR-TESTE'))->assertSee('Ver comprovante');
+});
