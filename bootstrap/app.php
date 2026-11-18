@@ -21,6 +21,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Sessão expirada (419) ao enviar um formulário: volta para a mesma tela com o que foi digitado (exceto senhas e arquivos),
+        // em vez de uma página de erro que obriga a escrever tudo de novo
+        // (o Laravel converte TokenMismatchException em HttpException 419 antes de chamar estes tratadores)
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() !== 419 || $request->expectsJson() || !in_array($request->method(), ['POST', 'PUT', 'PATCH'], true)) {
+                return null;
+            }
+
+            return redirect()->back(fallback: url('/'))
+                ->withInput($request->except(['_token', 'password', 'password_confirmation', 'current_password', 'arquivo']))
+                ->with('erro_sessao', 'Sua sessão expirou por inatividade. Seus dados foram mantidos: confira e envie novamente (se for pedido, entre de novo).');
+        });
+
         // Todo erro registrado no log leva um código de referência e o contexto da requisição (sem dados digitados, sem senha,
         // sem query string). O mesmo código aparece na página de erro 500, para o usuário informar e o log ser achado pelo código.
         $exceptions->context(function (\Throwable $e): array {

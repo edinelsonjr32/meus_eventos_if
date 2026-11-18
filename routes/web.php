@@ -114,6 +114,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/atividade/{atividade}/toggle', [AgendaController::class, 'toggleAtividade'])->name('atividade.toggle');
     });
 
+    // Mantém o login vivo enquanto a pessoa preenche formulários longos
+    Route::get('/sessao/ping', fn () => response()->noContent())->name('sessao.ping');
+
     // --- TRABALHOS (autor) ---
     Route::get('/minha-area/trabalhos', [\App\Http\Controllers\TrabalhoController::class, 'index'])->name('trabalhos.index');
     Route::post('/e/{slug}/trabalhos', [\App\Http\Controllers\TrabalhoController::class, 'store'])->name('trabalhos.store');

@@ -207,19 +207,21 @@ class SalvarTrabalhoRequest extends FormRequest
 
             // O autor apresentador (e o principal) precisam de dados de contato; os demais, apenas nome e instituição
             foreach ($autores as $i => $a) {
-                if (!($a['apresentador'] || $a['tipo_autor'] === 'autor_principal')) {
+                // Linhas que o formulário não preenche (ex.: "demais autores" não têm CPF) chegam sem a chave: nunca assumir que existe
+                if (!(!empty($a['apresentador']) || ($a['tipo_autor'] ?? null) === 'autor_principal')) {
                     continue;
                 }
-                $n = $i + 1;
+                $quem = $i === 0 ? 'do autor apresentador' : 'do autor ' . ($i + 1) . ($a['nome_completo'] ?? null ? ' (' . $a['nome_completo'] . ')' : '') . ', definido como apresentador';
 
-                if (blank($a['email'])) {
-                    $validator->errors()->add("autores.{$i}.email", 'Informe o e-mail do autor apresentador.');
+                if (blank($a['email'] ?? null)) {
+                    $validator->errors()->add("autores.{$i}.email", "Informe o e-mail {$quem}.");
                 }
                 if (blank($a['categoria_autor'] ?? null)) {
-                    $validator->errors()->add("autores.{$i}.categoria_autor", 'Informe se o autor apresentador é docente ou discente.');
+                    $validator->errors()->add("autores.{$i}.categoria_autor", "Informe se o autor {$quem} é docente ou discente.");
                 }
-                if (($config->exige_cpf_apresentador ?? true) && blank($a['cpf'])) {
-                    $validator->errors()->add("autores.{$i}.cpf", 'Informe o CPF do autor apresentador (usado no certificado).');
+                // O CPF só é cobrado quando o formulário o oferece (apresentador do formulário); nos demais, vale o CPF já gravado
+                if (($config->exige_cpf_apresentador ?? true) && array_key_exists('cpf', $a) && blank($a['cpf'])) {
+                    $validator->errors()->add("autores.{$i}.cpf", "Informe o CPF {$quem} (usado no certificado).");
                 }
             }
 

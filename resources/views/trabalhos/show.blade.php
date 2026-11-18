@@ -275,4 +275,6 @@
             </div>
         </div>
     </div>
+    {{-- Envio concluído: apaga o rascunho guardado no navegador para este evento --}}
+    <script>try { localStorage.removeItem('trabalho-rascunho:{{ $trabalho->evento_id }}:{{ auth()->id() }}'); } catch (e) {}</script>
 </x-app-layout>

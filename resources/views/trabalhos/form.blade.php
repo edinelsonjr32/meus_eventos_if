@@ -28,6 +28,14 @@
     $palavrasAtuais = old('palavras_chave', $trabalho->palavras_chave ?? []);
     $palavrasAtuais = is_array($palavrasAtuais) ? $palavrasAtuais : \App\Http\Requests\SalvarTrabalhoRequest::palavras($palavrasAtuais);
 
+    // Erros de cada autor (autores.N.campo): o primeiro de cada linha aparece no cartão do autor
+    $errosAutores = [];
+    foreach ($errors->getMessages() as $chave => $mensagens) {
+        if (preg_match('/^autores\.(\d+)\.\w+$/', $chave, $m) && !isset($errosAutores[(int) $m[1]])) {
+            $errosAutores[(int) $m[1]] = $mensagens[0];
+        }
+    }
+
     $maisAutores = old('mais_autores', count($autores) > 1 ? 'sim' : 'nao');
     $dadosJs = [
         'autores' => $autores,
@@ -39,6 +47,11 @@
         'exigePalavras' => (bool) $exigePalavras,
         'exigeCpf' => (bool) $exigeCpf,
         'erros' => $errosServidor,
+        'errosAutores' => (object) $errosAutores,
+        'temErroServidor' => $errors->any(),
+        'logado' => auth()->check(),
+        'pingUrl' => auth()->check() ? route('sessao.ping') : null,
+        'chaveRascunho' => auth()->check() && !$editando && !$modoGestao ? 'trabalho-rascunho:' . $evento->id . ':' . auth()->id() : null,
         'maisAutores' => $maisAutores,
         'tipo' => old('tipo_trabalho', $trabalho->tipo_trabalho),
         'modalidade' => old('modalidade_apresentacao', $trabalho->modalidade_apresentacao),
@@ -102,6 +115,7 @@
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
             @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
             <x-aviso-login acao="preencher e submeter seu trabalho" />
+            @if(session('erro_sessao')) <div class="alert alert-warning"><i class="fa-solid fa-clock me-1"></i> {{ session('erro_sessao') }}</div> @endif
             @if($errors->any())
                 <div class="alert alert-danger" id="alerta-erros" role="alert" tabindex="-1">
                     <strong><i class="fa-solid fa-circle-exclamation me-1"></i> Não foi possível salvar. Corrija os campos abaixo:</strong>
@@ -117,6 +131,12 @@
                 @csrf
                 <fieldset @disabled(auth()->guest()) style="border:0;padding:0;margin:0;min-width:0">
                 @if($editando) @method('PUT') @endif
+
+                {{-- Dados digitados e não enviados (a página foi recarregada, a sessão expirou ou houve erro): oferece restaurar --}}
+                <div x-show="rascunhoSalvo" x-cloak><div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <span><i class="fa-solid fa-clock-rotate-left me-1"></i> Encontramos dados que você digitou e <strong>não chegou a enviar</strong>. Quer continuar de onde parou? <span class="small text-muted">(o PDF precisa ser selecionado de novo)</span></span>
+                    <span class="d-flex gap-2"><button type="button" class="btn btn-sm btn-primary-custom fw-bold" @click="restaurarRascunho()">Restaurar</button><button type="button" class="btn btn-sm btn-light border" @click="descartarRascunho()">Descartar</button></span>
+                </div></div>
 
                 {{-- Erros encontrados no navegador (antes de enviar) --}}
                 <div class="alert alert-danger d-none" id="alerta-erros-cliente" role="alert" tabindex="-1" :class="{ 'd-none': !listaErros.length }">
@@ -329,6 +349,8 @@
                                     <input type="hidden" :name="`autores[${i + 1}][id]`" :value="a.id || ''">
                                     <input type="hidden" :name="`autores[${i + 1}][apresentador]`" :value="a.apresentador ? 1 : 0">
                                     <input type="hidden" :name="`autores[${i + 1}][correspondente]`" :value="a.correspondente ? 1 : 0">
+                                    <div class="alert alert-danger py-1 px-2 small mb-2" x-show="a.erroServidor" x-text="a.erroServidor"></div>
+                                    <div class="alert alert-warning py-1 px-2 small mb-2" x-show="a.apresentador"><i class="fa-solid fa-microphone me-1"></i> Este autor foi definido como <strong>apresentador</strong>: o e-mail e a categoria são obrigatórios.</div>
                                     <div class="row g-2">
                                         <div class="col-md-6">
                                             <label class="small fw-bold text-secondary" x-text="'Nome completo do autor ' + (i + 2) + ' *'"></label>
@@ -356,7 +378,7 @@
                                             </select>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="small fw-bold text-secondary">E-mail <span class="fw-normal">(opcional)</span></label>
+                                            <label class="small fw-bold text-secondary">E-mail <span class="fw-normal" x-text="a.apresentador ? '*' : '(opcional)'"></span></label>
                                             <input type="email" class="form-control form-control-sm" :name="`autores[${i + 1}][email]`" x-model="a.email">
                                         </div>
                                     </div>
@@ -403,6 +425,7 @@
                             @if($config->avaliacao_cega) <strong>Avaliação cega:</strong> envie a versão <u>sem identificação dos autores</u>. @endif
                         </div>
                         <div class="text-danger small" x-show="erros.arquivo" x-text="erros.arquivo"></div>
+                        <div class="small text-warning-emphasis mt-1" x-show="avisoArquivo" x-cloak><i class="fa-solid fa-paperclip me-1"></i> Por segurança, o navegador não guarda o arquivo depois de um erro: <strong>selecione o PDF novamente</strong>.</div>
                     </div>
 
                     <hr>
@@ -452,11 +475,12 @@
     <script>
         function formTrabalho(cfg) {
             let seq = 0;
-            const vazio = () => ({ uid: ++seq, id: null, nome_completo: '', cpf: '', email: '', instituicao: '', categoria_autor: '', tipo_autor: 'coautor', apresentador: false, correspondente: false, erroNome: '', erroIes: '' });
-            const normaliza = (d = {}) => {
+            const vazio = () => ({ uid: ++seq, id: null, nome_completo: '', cpf: '', email: '', instituicao: '', categoria_autor: '', tipo_autor: 'coautor', apresentador: false, correspondente: false, erroNome: '', erroIes: '', erroServidor: '' });
+            const normaliza = (d = {}, idx = 0) => {
                 const o = vazio();
                 ['id', 'nome_completo', 'cpf', 'email', 'instituicao', 'categoria_autor', 'tipo_autor'].forEach(k => { if (d[k]) o[k] = d[k]; });
                 o.apresentador = !!d.apresentador; o.correspondente = !!d.correspondente;
+                o.erroServidor = (cfg.errosAutores && cfg.errosAutores[idx]) || '';
                 return o;
             };
 
@@ -469,14 +493,63 @@
                 maisAutores: cfg.maisAutores, titulo: cfg.titulo || '', tipo: cfg.tipo || '', modalidade: cfg.modalidade || '',
                 resumo: cfg.resumo || '', palavras: cfg.palavras || [], novaPalavra: '', resumoMin: cfg.resumoMin, resumoMax: cfg.resumoMax,
                 listaErros: [], maxAutores: cfg.maxAutores, decl1: !!cfg.decl1, decl2: !!cfg.decl2, erros: cfg.erros || {},
-                apresentador: normaliza(lista[0]),
-                extras: lista.slice(1).map(normaliza),
+                apresentador: normaliza(lista[0], 0),
+                extras: lista.slice(1).map((d, i) => normaliza(d, i + 1)),
+                rascunhoSalvo: false, avisoArquivo: !!cfg.temErroServidor && !cfg.temArquivo && !cfg.modoGestao, _tSalvar: null,
 
                 init() {
                     // Erro vindo do servidor: leva a pessoa direto ao alerta (os dados continuam preenchidos)
                     const alerta = document.getElementById('alerta-erros');
                     if (alerta) this.$nextTick(() => { alerta.scrollIntoView({ behavior: 'smooth', block: 'center' }); alerta.focus({ preventScroll: true }); });
+
+                    // Ao corrigir um campo, o erro dele some na hora (não é preciso recarregar a página)
+                    ['titulo', 'tipo', 'modalidade', 'resumo', 'palavras', 'decl1', 'decl2', 'maisAutores', 'apresentador', 'extras'].forEach(p => this.$watch(p, () => { this.revalidar(); this.agendarSalvar(); }));
+
+                    this.iniciarSessaoViva();
+                    this.iniciarRascunho();
                 },
+
+                // ---- sessão: mantém o login vivo enquanto o formulário está aberto (preencher leva tempo) ----
+                iniciarSessaoViva() {
+                    if (!cfg.pingUrl) return;
+                    const ping = () => fetch(cfg.pingUrl, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => {});
+                    setInterval(ping, 5 * 60 * 1000);
+                    document.addEventListener('visibilitychange', () => { if (!document.hidden) ping(); });
+                },
+
+                // ---- rascunho no navegador: nada se perde se a página recarregar, a sessão expirar ou houver erro ----
+                lerRascunho() { try { return JSON.parse(localStorage.getItem(cfg.chaveRascunho) || 'null'); } catch (e) { return null; } },
+                iniciarRascunho() {
+                    if (!cfg.chaveRascunho || cfg.temErroServidor) return;
+                    const salvo = this.lerRascunho();
+                    const vazio = !this.titulo.trim() && !this.resumo.trim();
+                    this.rascunhoSalvo = !!(salvo && vazio && (salvo.titulo || salvo.resumo));
+                },
+                agendarSalvar() {
+                    if (!cfg.chaveRascunho || this.rascunhoSalvo) return;
+                    clearTimeout(this._tSalvar);
+                    this._tSalvar = setTimeout(() => {
+                        const a = this.apresentador;
+                        const dados = { titulo: this.titulo, tipo: this.tipo, modalidade: this.modalidade, resumo: this.resumo, palavras: this.palavras, maisAutores: this.maisAutores, decl1: this.decl1, decl2: this.decl2,
+                            apresentador: { nome_completo: a.nome_completo, cpf: a.cpf, email: a.email, instituicao: a.instituicao, categoria_autor: a.categoria_autor },
+                            extras: this.extras.map(x => ({ nome_completo: x.nome_completo, instituicao: x.instituicao, tipo_autor: x.tipo_autor, categoria_autor: x.categoria_autor, email: x.email })) };
+                        try { if (dados.titulo || dados.resumo) localStorage.setItem(cfg.chaveRascunho, JSON.stringify(dados)); } catch (e) {}
+                    }, 800);
+                },
+                restaurarRascunho() {
+                    const d = this.lerRascunho(); if (!d) { this.rascunhoSalvo = false; return; }
+                    this.titulo = d.titulo || ''; this.tipo = d.tipo || ''; this.modalidade = d.modalidade || ''; this.resumo = d.resumo || '';
+                    this.palavras = d.palavras || []; this.maisAutores = d.maisAutores || ''; this.decl1 = !!d.decl1; this.decl2 = !!d.decl2;
+                    Object.assign(this.apresentador, d.apresentador || {});
+                    this.extras = (d.extras || []).map(x => ({ ...normaliza(x), nome_completo: x.nome_completo || '' }));
+                    this.rascunhoSalvo = false;
+                    // os campos que não são "x-model" (tipo, modalidade, categoria) acompanham o estado
+                    this.$nextTick(() => {
+                        const marca = (nome, valor) => this.$root.querySelectorAll('input[name="' + nome + '"]').forEach(r => { r.checked = r.value === valor; });
+                        marca('tipo_trabalho', this.tipo); marca('modalidade_apresentacao', this.modalidade); marca('autores[0][categoria_autor]', this.apresentador.categoria_autor);
+                    });
+                },
+                descartarRascunho() { try { localStorage.removeItem(cfg.chaveRascunho); } catch (e) {} this.rascunhoSalvo = false; },
 
                 get palavrasResumo() { const t = (this.resumo || '').trim(); return t ? t.split(/\s+/).length : 0; },
 
@@ -503,6 +576,33 @@
                 // ---- validação no navegador (o servidor continua sendo a validação definitiva) ----
                 validarTudo() {
                     this.adicionarPalavra();
+                    const e = this.calcularErros(true);
+                    this.erros = e;
+                    this.listaErros = Object.values(e);
+                    return e;
+                },
+                // Só recalcula o que a pessoa já tinha visto como erro: o que foi corrigido some, sem acusar campos ainda não preenchidos
+                revalidar() {
+                    const novos = this.calcularErros(false);
+                    const atuais = {};
+                    Object.keys(this.erros || {}).forEach(k => { if (this.erros[k] && novos[k]) atuais[k] = novos[k]; });
+                    this.erros = atuais;
+                    if (this.listaErros.length) this.listaErros = Object.values(atuais);
+                    this.extras.forEach(x => {
+                        if (x.erroNome && x.nome_completo.trim()) x.erroNome = '';
+                        if (x.erroIes && x.instituicao.trim()) x.erroIes = '';
+                        x.erroServidor = '';
+                    });
+                    if (!Object.keys(atuais).length) this.avisoCorrigido();
+                },
+                avisoCorrigido() {
+                    const a = document.getElementById('alerta-erros');
+                    if (!a || a.dataset.corrigido) return;
+                    a.dataset.corrigido = '1';
+                    a.className = 'alert alert-success';
+                    a.innerHTML = '<strong><i class="fa-solid fa-circle-check me-1"></i> Tudo certo!</strong> <span class="small">Os campos com problema foram corrigidos. Revise e clique em Enviar novamente.</span>';
+                },
+                calcularErros(marcarExtras) {
                     const e = {};
                     if (!this.titulo.trim()) e.titulo = 'Informe o título do trabalho.';
                     if (!this.tipo) e.tipo = 'Selecione a categoria do trabalho.';
@@ -521,9 +621,10 @@
 
                     if (this.maisAutores === 'sim') {
                         this.extras.forEach((x, i) => {
-                            x.erroNome = x.nome_completo.trim() ? '' : 'Informe o nome completo.';
-                            x.erroIes = x.instituicao.trim() ? '' : 'Informe a instituição.';
-                            if ((x.erroNome || x.erroIes) && !e.extras) e.extras = `Complete os dados do autor ${i + 2} (nome e instituição).`;
+                            const faltaNome = !x.nome_completo.trim(), faltaIes = !x.instituicao.trim();
+                            if (marcarExtras) { x.erroNome = faltaNome ? 'Informe o nome completo.' : ''; x.erroIes = faltaIes ? 'Informe a instituição.' : ''; }
+                            if ((faltaNome || faltaIes) && !e.extras) e.extras = `Complete os dados do autor ${i + 2} (nome e instituição).`;
+                            if (x.apresentador && !emailOk(x.email)) { e['extra_email_' + i] = `Informe um e-mail válido para o autor ${i + 2}, definido como apresentador.`; }
                         });
                     }
 
@@ -533,8 +634,6 @@
                         if (!cfg.temArquivo && !(arq && arq.files.length)) e.arquivo = 'Envie o arquivo PDF do trabalho.';
                         if (!this.decl1 || !this.decl2) e.declaracoes = 'É necessário aceitar as duas declarações obrigatórias.';
                     }
-                    this.erros = e;
-                    this.listaErros = Object.values(e);
                     return e;
                 },
                 irParaPrimeiroErro(e) {
@@ -571,7 +670,7 @@
                     let msg = '';
                     if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') msg = 'O arquivo deve ser um PDF.';
                     else if (f.size > cfg.maxArquivoMb * 1048576) msg = `O arquivo excede ${cfg.maxArquivoMb} MB.`;
-                    if (msg) { ev.target.value = ''; this.erros = { ...this.erros, arquivo: msg }; }
+                    if (msg) { ev.target.value = ''; this.erros = { ...this.erros, arquivo: msg }; } else { this.avisoArquivo = false; this.revalidar(); }
                 },
             };
         }
