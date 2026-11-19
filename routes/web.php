@@ -147,6 +147,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/voluntariado/{voluntario}/desistir', [\App\Http\Controllers\VoluntarioController::class, 'desistir'])->name('voluntariado.desistir');
     Route::get('/voluntariado/{voluntario}/certificado', [\App\Http\Controllers\VoluntarioController::class, 'certificado'])->name('voluntariado.certificado');
 
+    // --- Entrar na sala da apresentação oral (autor, avaliador da apresentação ou gestão) ---
+    Route::get('/apresentacoes/{trabalho}/sala', [\App\Http\Controllers\ApresentacaoSalaController::class, 'entrar'])->name('apresentacao.sala');
+
     // --- AVALIADOR (somente as próprias avaliações; autorização por Policy) ---
     Route::prefix('avaliador/avaliacoes')->name('avaliador.avaliacoes.')->group(function () {
         $c = \App\Http\Controllers\Avaliador\AvaliacaoController::class;
@@ -207,6 +210,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/premiacao/certificado/{certificado}', [$pr, 'certificado'])->name('premiacao.certificado');
         Route::get('/evento/{evento}/exportar-notas', [$c, 'exportarNotas'])->name('exportar-notas');
         $ap = \App\Http\Controllers\Gestao\ApresentacaoAvaliacaoGestaoController::class;
+        $ag = \App\Http\Controllers\Gestao\AgendaApresentacaoController::class;
+        Route::get('/evento/{evento}/agenda-orais', [$ag, 'index'])->name('agenda.index');
+        Route::post('/evento/{evento}/agenda-orais/salas', [$ag, 'salaSalvar'])->name('agenda.salas.store');
+        Route::put('/evento/{evento}/agenda-orais/salas/{sala}', [$ag, 'salaSalvar'])->name('agenda.salas.update');
+        Route::delete('/evento/{evento}/agenda-orais/salas/{sala}', [$ag, 'salaExcluir'])->name('agenda.salas.destroy');
+        Route::post('/evento/{evento}/agenda-orais/programar', [$ag, 'programar'])->name('agenda.programar');
+        Route::post('/evento/{evento}/agenda-orais/notificar', [$ag, 'notificar'])->name('agenda.notificar');
+        Route::delete('/evento/{evento}/agenda-orais/{trabalho}', [$ag, 'limpar'])->name('agenda.limpar');
         Route::get('/evento/{evento}/apresentacoes', [$ap, 'index'])->name('apresentacoes.index');
         Route::put('/evento/{evento}/apresentacoes/config', [$ap, 'salvarConfig'])->name('apresentacoes.config');
         Route::post('/evento/{evento}/apresentacoes/lote', [$ap, 'lote'])->name('apresentacoes.lote');

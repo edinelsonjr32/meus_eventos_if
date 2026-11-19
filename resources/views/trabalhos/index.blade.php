@@ -62,6 +62,16 @@
                 </div>
             @endif
 
+            @php $comSala = $trabalhos->filter(fn ($t) => $t->status === 'aprovado' && $t->agendado() && $t->situacaoDaApresentacao() !== 'encerrada')->sortBy('apresentacao_inicio'); @endphp
+            @if($comSala->isNotEmpty())
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-video text-success me-2"></i> Minhas apresentações orais</h5>
+                <div class="row g-3 mb-4">
+                    @foreach($comSala as $t)
+                        <div class="col-lg-6"><div class="small fw-bold mb-1">{{ $t->codigo }} · {{ \Illuminate\Support\Str::limit($t->titulo, 60) }}</div><x-sala-apresentacao :trabalho="$t" :compacto="true" /></div>
+                    @endforeach
+                </div>
+            @endif
+
             <h5 class="fw-bold mb-3"><i class="fa-regular fa-file-lines text-success me-2"></i> Meus trabalhos submetidos</h5>
 
             @if($trabalhos->isEmpty())

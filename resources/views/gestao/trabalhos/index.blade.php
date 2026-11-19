@@ -31,6 +31,7 @@
 
             <nav class="gt-nav" aria-label="Áreas da gestão de trabalhos">
                 <a href="{{ route('gestao.trabalhos.apresentacoes.index', $evento) }}"><i class="fa-solid fa-person-chalkboard"></i> Apresentações</a>
+                <a href="{{ route('gestao.trabalhos.agenda.index', $evento) }}"><i class="fa-solid fa-video"></i> Agenda das orais</a>
                 <a href="{{ route('gestao.trabalhos.ranking', $evento) }}"><i class="fa-solid fa-ranking-star"></i> Notas e ranking</a>
                 <a href="{{ route('gestao.trabalhos.premiacao.index', $evento) }}"><i class="fa-solid fa-trophy"></i> Premiação</a>
                 <a href="{{ route('gestao.trabalhos.certificados.index', $evento) }}"><i class="fa-solid fa-award"></i> Certificados</a>

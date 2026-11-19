@@ -9,6 +9,7 @@
                     <h3 class="fw-bold m-0">Avaliação das apresentações</h3>
                     <small class="text-secondary">{{ $evento->titulo }} · trabalhos aprovados avaliados na feira/sessão de apresentação</small>
                 </div>
+                <a href="{{ route('gestao.trabalhos.agenda.index', $evento) }}" class="btn btn-outline-secondary btn-sm fw-bold ms-auto"><i class="fa-solid fa-video me-1"></i> Agenda das orais (salas e horários)</a>
             </div>
 
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif

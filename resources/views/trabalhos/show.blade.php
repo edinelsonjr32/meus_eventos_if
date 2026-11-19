@@ -226,6 +226,10 @@
                         @endif
                     @endunless
 
+                    @unless($gestao)
+                        <x-sala-apresentacao :trabalho="$trabalho" class="mb-4" />
+                    @endunless
+
                     <div class="glass-card bg-white mb-4">
                         <h6 class="fw-bold text-success mb-3">Arquivo</h6>
                         @if($trabalho->arquivoAtual)

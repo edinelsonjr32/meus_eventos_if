@@ -18,7 +18,7 @@ class ApresentacaoAvaliacaoController extends Controller
 
     public function index(Request $request)
     {
-        $todas = ApresentacaoAvaliacao::with(['trabalho.evento.trabalhoConfig', 'trabalho.sessao'])
+        $todas = ApresentacaoAvaliacao::with(['trabalho.evento.trabalhoConfig', 'trabalho.sessao', 'trabalho.sala'])
             ->where('avaliador_id', $request->user()->id)->where('status', '!=', 'recusada')
             ->get()
             ->sortBy(fn ($a) => $a->trabalho->sessao?->data_inicio?->timestamp ?? PHP_INT_MAX);

@@ -16,7 +16,10 @@
                             @if($a->prazo) <span class="{{ $a->atrasada() ? 'text-danger fw-bold' : 'text-muted' }}">{{ $a->atrasada() ? 'Em atraso — prazo' : 'Prazo' }} {{ $a->prazo->format('d/m/Y') }}</span> @endif
                         </div>
                     </div>
-                    <a href="{{ route('avaliador.apresentacoes.show', $a) }}" class="btn btn-primary-custom btn-sm fw-bold">{{ $a->status === 'em_andamento' ? 'Continuar' : 'Avaliar' }}</a>
+                    <div class="d-flex flex-column gap-2 align-items-stretch">
+                        @if($a->trabalho->agendado()) <x-sala-apresentacao :trabalho="$a->trabalho" :compacto="true" class="p-2" /> @endif
+                        <a href="{{ route('avaliador.apresentacoes.show', $a) }}" class="btn btn-primary-custom btn-sm fw-bold">{{ $a->status === 'em_andamento' ? 'Continuar' : 'Avaliar' }}</a>
+                    </div>
                 </div>
             @empty
                 <div class="glass-card bg-white text-center text-muted py-4 mb-4">Nenhuma apresentação pendente.</div>

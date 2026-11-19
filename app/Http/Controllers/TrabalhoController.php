@@ -21,7 +21,7 @@ class TrabalhoController extends Controller
 
     public function index(Request $request)
     {
-        $trabalhos = Trabalho::with(['evento.trabalhoConfig', 'autores', 'certificados', 'premiacao'])
+        $trabalhos = Trabalho::with(['evento.trabalhoConfig', 'autores', 'certificados', 'premiacao', 'sala'])
             ->doAutor($request->user())
             ->latest()
             ->get();

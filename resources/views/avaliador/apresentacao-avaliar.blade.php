@@ -22,6 +22,7 @@
             @if($errors->any())
                 <div class="alert alert-danger"><ul class="mb-0 small">@foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul></div>
             @endif
+            @if($trabalho->agendado()) <x-sala-apresentacao :trabalho="$trabalho" class="mb-3" /> @endif
             <div class="alert alert-info small"><i class="fa-solid fa-person-chalkboard me-1"></i> Você está avaliando a <strong>apresentação</strong> do trabalho (oral/pôster), não o texto.</div>
             @if($cega)
                 <div class="alert alert-info small"><i class="fa-solid fa-user-secret me-1"></i> Avaliação cega: a identificação dos autores não é exibida.</div>

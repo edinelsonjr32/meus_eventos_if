@@ -56,6 +56,11 @@ class Evento extends Model
         return (bool) ($this->configuracoes['inscricoes_abertas'] ?? true);
     }
 
+    public function salasApresentacao(): HasMany
+    {
+        return $this->hasMany(SalaApresentacao::class);
+    }
+
     /** A organização escolheu mostrar a logo nas páginas públicas? (padrão: sim) */
     public function exibeLogo(): bool
     {

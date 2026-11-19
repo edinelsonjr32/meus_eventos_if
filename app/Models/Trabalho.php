@@ -64,7 +64,7 @@ class Trabalho extends Model
 
     protected $fillable = [
         'evento_id', 'codigo', 'submetido_por', 'titulo', 'resumo', 'abstract', 'palavras_chave', 'tipo_trabalho',
-        'area_tematica_id', 'atividade_id', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
+        'area_tematica_id', 'atividade_id', 'sala_apresentacao_id', 'apresentacao_inicio', 'apresentacao_fim', 'agenda_notificada_em', 'agenda_alterada_em', 'lembrete_enviado_em', 'modalidade_apresentacao', 'agencia_fomento', 'projeto_pesquisa', 'comite_etica',
         'status', 'nota_final', 'nota_apresentacao', 'resultado_apresentacao', 'decisao', 'decisao_justificativa', 'decisao_em', 'decidido_por', 'prazo_correcao',
         'apresentado', 'apresentado_em', 'apresentacao_origem', 'versao_final_pendente', 'versao_final_enviada_em',
         'autoriza_publicacao', 'autorizou_em', 'autorizacao_solicitada_em', 'submetido_em',
@@ -81,6 +81,11 @@ class Trabalho extends Model
         'prazo_correcao' => 'datetime',
         'apresentado' => 'boolean',
         'apresentado_em' => 'datetime',
+        'apresentacao_inicio' => 'datetime',
+        'apresentacao_fim' => 'datetime',
+        'agenda_notificada_em' => 'datetime',
+        'agenda_alterada_em' => 'datetime',
+        'lembrete_enviado_em' => 'datetime',
         'nota_final' => 'float',
         'versao_final_pendente' => 'boolean',
         'versao_final_enviada_em' => 'datetime',
@@ -106,6 +111,35 @@ class Trabalho extends Model
     public function sessao(): BelongsTo
     {
         return $this->belongsTo(Atividade::class, 'atividade_id');
+    }
+
+    public function sala(): BelongsTo
+    {
+        return $this->belongsTo(SalaApresentacao::class, 'sala_apresentacao_id');
+    }
+
+    /** Tem sala e horário definidos para a apresentação. */
+    public function agendado(): bool
+    {
+        return $this->sala_apresentacao_id && $this->apresentacao_inicio;
+    }
+
+    /** 'futura' | 'agora' | 'encerrada' (null se não houver horário). */
+    public function situacaoDaApresentacao(): ?string
+    {
+        if (!$this->apresentacao_inicio) {
+            return null;
+        }
+        $fim = $this->apresentacao_fim ?? $this->apresentacao_inicio->copy()->addMinutes(15);
+
+        return now()->lt($this->apresentacao_inicio) ? 'futura' : (now()->lte($fim) ? 'agora' : 'encerrada');
+    }
+
+    /** Há sala/horário ainda não avisado (nunca avisado ou alterado depois do último aviso). */
+    public function agendaPendenteDeAviso(): bool
+    {
+        // agenda_alterada_em é zerada a cada aviso: se existe, houve mudança depois do último aviso
+        return $this->agendado() && (!$this->agenda_notificada_em || $this->agenda_alterada_em !== null);
     }
 
     public function premiacao(): \Illuminate\Database\Eloquent\Relations\HasOne
