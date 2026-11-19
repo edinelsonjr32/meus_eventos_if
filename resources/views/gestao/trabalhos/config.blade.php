@@ -131,8 +131,9 @@
                         <div class="col-md-8 d-flex align-items-end">
                             <div class="form-check form-switch">
                                 <input type="hidden" name="avaliacao_cega" value="0">
-                                <input class="form-check-input" type="checkbox" name="avaliacao_cega" value="1" id="cega" @checked(old('avaliacao_cega', $config->avaliacao_cega))>
-                                <label class="form-check-label" for="cega">Avaliação cega (o PDF deve vir sem identificação dos autores)</label>
+                                <input class="form-check-input" type="checkbox" name="avaliacao_cega" value="1" id="cega" @checked(old('avaliacao_cega', $config->exists ? $config->avaliacao_cega : true))>
+                                <label class="form-check-label" for="cega"><strong>Anonimato dos autores:</strong> esconder o nome dos autores do avaliador (avaliação cega)</label>
+                                <div class="form-text small">Com a opção ligada, o avaliador vê só protocolo, título, resumo e PDF: sem autores nas telas de avaliação escrita e de apresentação, e o arquivo baixa com nome neutro. O sistema não apaga nomes de dentro do PDF; por isso os autores são orientados a enviar a versão sem identificação.</div>
                             </div>
                         </div>
                     </div>

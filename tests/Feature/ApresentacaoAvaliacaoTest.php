@@ -349,3 +349,27 @@ it('apresentado pela avaliação habilita o resultado e o fluxo de certificado',
     $t = $this->trabalho->fresh();
     expect($t->resultado_apresentacao)->toBe('aprovado')->and($t->statusFinal())->toBe('aguardando_certificado');
 });
+
+it('anonimato dos autores: avaliador não vê nomes na avaliação da apresentação nem nas listas; opção aparece na configuração (ligada por padrão em chamada nova)', function () {
+    $this->svc->atribuir($this->trabalho, $this->av1, $this->gestor);
+    $a1 = $this->trabalho->avaliacoesApresentacao()->where('avaliador_id', $this->av1->id)->first();
+    $nomeAutor = $this->trabalho->autores()->first()?->nome_completo;
+    expect($nomeAutor)->not->toBeNull();
+
+    $this->evento->trabalhoConfig->update(['avaliacao_cega' => false]);
+    $this->actingAs($this->av1)->get(route('avaliador.apresentacoes.show', $a1))->assertOk()->assertSee($nomeAutor);
+
+    $this->evento->trabalhoConfig->update(['avaliacao_cega' => true]);
+    foreach ([route('avaliador.apresentacoes.show', $a1), route('avaliador.apresentacoes.index'), route('avaliador.avaliacoes.index')] as $url) {
+        $this->actingAs($this->av1)->get($url)->assertOk()->assertDontSee($nomeAutor);
+    }
+    $this->actingAs($this->av1)->get(route('avaliador.apresentacoes.show', $a1))->assertSee('Avaliação cega');
+
+    $this->actingAs($this->gestor)->get(route('gestao.trabalhos.config', $this->evento))->assertOk()->assertSee('Anonimato dos autores');
+
+    // chamada nova (sem configuração salva): a opção já vem marcada
+    $outro = mkEvento($this->dono);
+    $outro->trabalhoConfig()?->delete();
+    $html = $this->actingAs($this->dono)->get(route('gestao.trabalhos.config', $outro))->getContent();
+    expect($html)->toMatch('/name="avaliacao_cega" value="1" id="cega"\s+checked/');
+});
