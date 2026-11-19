@@ -63,7 +63,7 @@ class TrabalhoController extends Controller
             return redirect()->route('evento.publico.show', $evento->slug)->with('error', $erro);
         }
 
-        $trabalho = $this->workflow->salvar($evento, $request->user(), $request->validated(), null, $request->file('arquivo'));
+        $trabalho = $this->workflow->salvar($evento, $request->user(), $request->validated(), null, $request->file('arquivo'), $request->file('arquivo_anonimo'));
 
         return $this->concluir($request, $trabalho, 'Rascunho salvo. Você pode continuar depois em "Meus Trabalhos".');
     }
@@ -87,7 +87,7 @@ class TrabalhoController extends Controller
             return redirect()->route('trabalhos.show', $trabalho)->with('error', $erro);
         }
 
-        $trabalho = $this->workflow->salvar($trabalho->evento, $request->user(), $request->validated(), $trabalho, $request->file('arquivo'));
+        $trabalho = $this->workflow->salvar($trabalho->evento, $request->user(), $request->validated(), $trabalho, $request->file('arquivo'), $request->file('arquivo_anonimo'));
 
         return $this->concluir($request, $trabalho, 'Alterações salvas.');
     }

@@ -195,6 +195,39 @@ class TrabalhoGestaoController extends Controller
     // Cadastro e edição pela gestão (em nome dos autores)
     // ------------------------------------------------------------------
 
+    /** Gestão envia (ou troca) o PDF sem identificação de um trabalho, p.ex. os enviados antes da avaliação cega. */
+    public function enviarAnonimo(Request $request, Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+        abort_if(in_array($trabalho->status, [Trabalho::RASCUNHO, Trabalho::RETIRADO], true), 404);
+
+        $limite = ($trabalho->evento->trabalhoConfig?->max_arquivo_mb ?? 20) * 1024;
+        $request->validate(['arquivo_anonimo' => ['required', 'file', 'mimes:pdf', 'max:' . $limite]], [
+            'arquivo_anonimo.required' => 'Selecione o PDF sem identificação.', 'arquivo_anonimo.mimes' => 'O arquivo deve ser um PDF.', 'arquivo_anonimo.max' => 'O arquivo excede o tamanho máximo.',
+        ]);
+
+        $arquivo = $request->file('arquivo_anonimo');
+        if (@file_get_contents($arquivo->getRealPath(), false, null, 0, 5) !== '%PDF-') {
+            return back()->with('error', 'O arquivo enviado não é um PDF válido.');
+        }
+
+        $this->workflow->anexarArquivoAnonimo($trabalho, $request->user(), $arquivo, true);
+
+        return back()->with('success', 'PDF sem identificação enviado. É ele que o avaliador passa a abrir.');
+    }
+
+    public function baixarAnonimo(Trabalho $trabalho)
+    {
+        $this->authorize('gerirTrabalhos', $trabalho->evento);
+
+        $arquivo = $trabalho->arquivoAnonimo;
+        abort_unless($arquivo && \Illuminate\Support\Facades\Storage::disk('trabalhos')->exists($arquivo->path), 404, 'Arquivo não encontrado.');
+
+        return \Illuminate\Support\Facades\Storage::disk('trabalhos')->response($arquivo->path, "trabalho-{$trabalho->codigo}-sem-identificacao.pdf", [
+            'Content-Type' => 'application/pdf', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
     /** Cadastrar um trabalho recebido por outro meio (e-mail, papel...). */
     public function novo(Evento $evento)
     {
@@ -218,7 +251,7 @@ class TrabalhoGestaoController extends Controller
         // Sem conta do autor, o gestor figura como responsável pela submissão (o apresentador recebe os e-mails)
         $dono = $responsavel ?? $request->user();
 
-        $trabalho = $this->workflow->salvar($evento, $dono, $dados, null, $request->file('arquivo'));
+        $trabalho = $this->workflow->salvar($evento, $dono, $dados, null, $request->file('arquivo'), $request->file('arquivo_anonimo'));
         $trabalho = $this->workflow->submeter($trabalho, $dono);
         $this->workflow->registrar($trabalho, $request->user(), $trabalho->status, $trabalho->status, 'Cadastrado pela gestão em nome dos autores');
 
@@ -253,10 +286,10 @@ class TrabalhoGestaoController extends Controller
             return back()->withInput()->with('error', 'Não é possível remover autor(es) com certificado emitido: ' . $bloqueados->pluck('nome_completo')->implode(', ') . '. Revogue o certificado antes.');
         }
 
-        $this->workflow->salvar($trabalho->evento, $request->user(), $dados, $trabalho, $request->file('arquivo'));
+        $this->workflow->salvar($trabalho->evento, $request->user(), $dados, $trabalho, $request->file('arquivo'), $request->file('arquivo_anonimo'));
         $this->workflow->registrar(
             $trabalho, $request->user(), $trabalho->status, $trabalho->status,
-            'Dados editados pela gestão' . ($request->hasFile('arquivo') ? ' (PDF substituído)' : '')
+            'Dados editados pela gestão' . ($request->hasFile('arquivo') ? ' (PDF substituído)' : '') . ($request->hasFile('arquivo_anonimo') ? ' (PDF sem identificação enviado)' : '')
         );
 
         return redirect()->route('gestao.trabalhos.show', $trabalho)->with('success', 'Dados do trabalho atualizados. Certificados já emitidos passam a refletir as correções.');
@@ -593,7 +626,11 @@ class TrabalhoGestaoController extends Controller
         // Critérios com notas lançadas não mudam de nome/peso/máximo, mas podem ser removidos (ficam desativados, preservando as notas)
         $criteriosUsados = \App\Models\TrabalhoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->pluck('criterio_id')->unique()->values()->all();
 
-        return view('gestao.trabalhos.config', compact('evento', 'config', 'areas', 'criterios', 'criteriosUsados'));
+        // Trabalhos já enviados (ainda em andamento) que o avaliador abriria pelo PDF principal por não terem versão sem identificação
+        $semAnonima = $evento->trabalhos()->whereNotIn('status', [Trabalho::RASCUNHO, Trabalho::RETIRADO, 'reprovado', 'concluido'])
+            ->with(['evento.trabalhoConfig', 'arquivoAtual', 'arquivoAnonimo'])->get()->filter(fn ($t) => $t->arquivoAtual && !$t->arquivoAnonimoVigente())->count();
+
+        return view('gestao.trabalhos.config', compact('evento', 'config', 'areas', 'criterios', 'criteriosUsados', 'semAnonima'));
     }
 
     public function updateConfig(Request $request, Evento $evento)
@@ -645,6 +682,7 @@ class TrabalhoGestaoController extends Controller
             'chamada_tema' => ['nullable', 'string', 'max:255'],
             'chamada_intro' => ['nullable', 'string', 'max:50000', $tamanhoMax(5000, 'O texto de abertura')],
             'template_url' => ['nullable', 'url', 'max:500'],
+            'template_anonimo_url' => ['nullable', 'url', 'max:500'],
             'exige_resumo' => ['nullable', 'boolean'],
             'exige_palavras_chave' => ['nullable', 'boolean'],
             'exige_cpf_apresentador' => ['nullable', 'boolean'],
@@ -688,6 +726,7 @@ class TrabalhoGestaoController extends Controller
                 'chamada_tema' => $dados['chamada_tema'] ?? null,
                 'chamada_intro' => $dados['chamada_intro'] ?? null,
                 'template_url' => $dados['template_url'] ?? null,
+                'template_anonimo_url' => $dados['template_anonimo_url'] ?? null,
                 'exige_resumo' => (bool) ($dados['exige_resumo'] ?? false),
                 'exige_palavras_chave' => (bool) ($dados['exige_palavras_chave'] ?? false),
                 'exige_cpf_apresentador' => (bool) ($dados['exige_cpf_apresentador'] ?? false),

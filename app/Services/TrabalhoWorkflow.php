@@ -46,9 +46,9 @@ class TrabalhoWorkflow
     public const STATUS_ATRIBUICAO = ['em_triagem', 'em_avaliacao', 'avaliado'];
 
     /** Cria ou atualiza o trabalho (rascunho ou reenvio), seus autores e o PDF. */
-    public function salvar(Evento $evento, User $user, array $dados, ?Trabalho $trabalho = null, ?UploadedFile $arquivo = null): Trabalho
+    public function salvar(Evento $evento, User $user, array $dados, ?Trabalho $trabalho = null, ?UploadedFile $arquivo = null, ?UploadedFile $arquivoAnonimo = null): Trabalho
     {
-        return DB::transaction(function () use ($evento, $user, $dados, $trabalho, $arquivo) {
+        return DB::transaction(function () use ($evento, $user, $dados, $trabalho, $arquivo, $arquivoAnonimo) {
             $campos = [
                 'titulo' => $dados['titulo'],
                 'resumo' => $dados['resumo'] ?? null,
@@ -76,6 +76,10 @@ class TrabalhoWorkflow
 
             if ($arquivo) {
                 $this->anexarArquivo($trabalho, $user, $arquivo);
+            }
+            // Sempre depois do principal: a versão anônima só vale se for mais nova que o PDF principal
+            if ($arquivoAnonimo) {
+                $this->anexarArquivoAnonimo($trabalho, $user, $arquivoAnonimo);
             }
 
             return $trabalho->fresh(['autores', 'arquivoAtual']);
@@ -310,6 +314,33 @@ class TrabalhoWorkflow
         Notificacoes::trabalho($trabalho->fresh(), 'Versão final recebida', 'Recebemos a versão final corrigida do seu trabalho. Obrigado! A gestão foi avisada.', 'ok');
 
         return $trabalho->fresh();
+    }
+
+    /**
+     * PDF sem identificação dos autores, para a avaliação cega. Não substitui o PDF principal (fica inativo para as demais
+     * telas) e só é aberto pelo avaliador.
+     */
+    public function anexarArquivoAnonimo(Trabalho $trabalho, User $user, UploadedFile $arquivo, bool $registrar = false): TrabalhoArquivo
+    {
+        $versao = ((int) $trabalho->arquivos()->max('versao')) + 1;
+        $path = $arquivo->storeAs("{$trabalho->evento_id}/{$trabalho->id}", sprintf('anonimo-v%d-%s.pdf', $versao, Str::random(24)), 'trabalhos');
+
+        if ($path === false) {
+            throw ValidationException::withMessages(['arquivo_anonimo' => 'Não foi possível gravar o arquivo. Tente novamente.']);
+        }
+
+        $registro = $trabalho->arquivos()->create([
+            'versao' => $versao, 'tipo' => 'anonimizado', 'anonimo' => true, 'path' => $path,
+            'nome_original' => Str::limit($arquivo->getClientOriginalName(), 200, ''), 'mime' => 'application/pdf',
+            'tamanho' => $arquivo->getSize(), 'sha256' => hash_file('sha256', $arquivo->getRealPath()),
+            'enviado_por' => $user->id, 'ativo' => false,
+        ]);
+
+        if ($registrar) {
+            $this->registrar($trabalho, $user, $trabalho->status, $trabalho->status, 'PDF sem identificação (avaliação cega) enviado');
+        }
+
+        return $registro;
     }
 
     private function anexarArquivo(Trabalho $trabalho, User $user, UploadedFile $arquivo, ?string $tipoForcado = null): TrabalhoArquivo

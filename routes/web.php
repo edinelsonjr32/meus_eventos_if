@@ -173,6 +173,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $c = \App\Http\Controllers\Gestao\TrabalhoGestaoController::class;
         Route::get('/', [$c, 'eventos'])->name('eventos');
         Route::get('/evento/{evento}', [$c, 'index'])->name('index');
+        Route::post('/{trabalho}/arquivo-anonimo', [$c, 'enviarAnonimo'])->name('arquivo-anonimo');
+        Route::get('/{trabalho}/arquivo-anonimo', [$c, 'baixarAnonimo'])->name('arquivo-anonimo.baixar');
         Route::get('/evento/{evento}/config', [$c, 'config'])->name('config');
         Route::put('/evento/{evento}/config', [$c, 'updateConfig'])->name('config.update');
         $a = \App\Http\Controllers\Gestao\ApresentacaoCertificadoController::class;

@@ -240,6 +240,26 @@
                             <p class="small text-muted m-0">Nenhum arquivo enviado.</p>
                         @endif
 
+                        @if($trabalho->evento->trabalhoConfig?->avaliacao_cega && $trabalho->arquivoAtual)
+                            @php $anonimo = $trabalho->arquivoAnonimoVigente(); @endphp
+                            <hr>
+                            <div class="small fw-bold mb-1"><i class="fa-solid fa-user-secret me-1"></i> Versão para avaliação cega</div>
+                            @if($anonimo)
+                                <p class="small text-muted mb-2">{{ $anonimo->nome_original }} · v{{ $anonimo->versao }} (é a que o avaliador abre)</p>
+                                @if($gestao)<a href="{{ route('gestao.trabalhos.arquivo-anonimo.baixar', $trabalho) }}" target="_blank" class="btn btn-sm btn-outline-secondary w-100 mb-2"><i class="fa-solid fa-eye me-1"></i> Abrir PDF sem identificação</a>@endif
+                            @else
+                                <div class="alert alert-warning small py-2 mb-2">Sem versão sem identificação: o avaliador abre o PDF principal. @if($gestao) Envie a versão cega abaixo. @else A gestão pode solicitar o envio. @endif</div>
+                            @endif
+                            @if($gestao && !in_array($trabalho->status, ['rascunho', 'retirado']))
+                                <form action="{{ route('gestao.trabalhos.arquivo-anonimo', $trabalho) }}" method="POST" enctype="multipart/form-data">
+                                    @csrf
+                                    <input type="file" name="arquivo_anonimo" accept="application/pdf,.pdf" class="form-control form-control-sm mb-2" required>
+                                    @error('arquivo_anonimo') <div class="text-danger small mb-1">{{ $message }}</div> @enderror
+                                    <button class="btn btn-sm btn-primary-custom w-100">{{ $anonimo ? 'Substituir' : 'Enviar' }} PDF sem identificação</button>
+                                </form>
+                            @endif
+                        @endif
+
                         @unless($gestao)
                             @can('update', $trabalho)
                                 <a href="{{ route('trabalhos.edit', $trabalho) }}" class="btn btn-sm btn-primary-custom w-100 mt-3">

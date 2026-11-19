@@ -94,6 +94,8 @@ class SalvarTrabalhoRequest extends FormRequest
         $submeter = $this->submeter();
         $trabalho = $this->route('trabalho');
         $jaTemArquivo = $trabalho instanceof Trabalho && $trabalho->arquivoAtual()->exists();
+        // Avaliação cega: envio novo (ou rascunho) precisa da versão sem identificação; trabalhos já enviados antes desta opção não são obrigados
+        $exigeAnonimo = $submeter && $config->avaliacao_cega && (!($trabalho instanceof Trabalho) || $trabalho->status === Trabalho::RASCUNHO) && !($trabalho instanceof Trabalho && $trabalho->arquivoAnonimoVigente());
 
         $obrigatorio = $submeter ? 'required' : 'nullable';
         $exigeResumo = $submeter && ($config->exige_resumo ?? true);
@@ -135,6 +137,10 @@ class SalvarTrabalhoRequest extends FormRequest
                 $submeter && !$jaTemArquivo ? 'required' : 'nullable',
                 'file', 'mimes:pdf', 'max:' . ($config->max_arquivo_mb * 1024),
             ],
+            'arquivo_anonimo' => [
+                $exigeAnonimo ? 'required' : 'nullable',
+                'file', 'mimes:pdf', 'max:' . ($config->max_arquivo_mb * 1024),
+            ],
         ];
     }
 
@@ -160,6 +166,9 @@ class SalvarTrabalhoRequest extends FormRequest
             'arquivo.required' => 'Envie o arquivo PDF do trabalho.',
             'arquivo.mimes' => 'O arquivo deve estar em formato PDF.',
             'arquivo.max' => 'O arquivo excede o tamanho máximo permitido.',
+            'arquivo_anonimo.required' => 'Envie também o PDF sem identificação dos autores (avaliação cega).',
+            'arquivo_anonimo.mimes' => 'O PDF sem identificação deve estar em formato PDF.',
+            'arquivo_anonimo.max' => 'O PDF sem identificação excede o tamanho máximo permitido.',
         ];
     }
 
@@ -185,6 +194,12 @@ class SalvarTrabalhoRequest extends FormRequest
                 $cabecalho = @file_get_contents($arquivo->getRealPath(), false, null, 0, 5);
                 if ($cabecalho !== '%PDF-') {
                     $validator->errors()->add('arquivo', 'O arquivo enviado não é um PDF válido.');
+                }
+            }
+
+            if ($anonimo = $this->file('arquivo_anonimo')) {
+                if (@file_get_contents($anonimo->getRealPath(), false, null, 0, 5) !== '%PDF-') {
+                    $validator->errors()->add('arquivo_anonimo', 'O PDF sem identificação não é um PDF válido.');
                 }
             }
 

@@ -44,6 +44,7 @@ class GestaoSalvarTrabalhoRequest extends SalvarTrabalhoRequest
         $regras['declaracao_ineditismo'] = ['nullable'];
         $regras['declaracao_regulamento'] = ['nullable'];
         $regras['arquivo'][0] = 'nullable';                       // o PDF pode ser enviado depois
+        $regras['arquivo_anonimo'][0] = 'nullable';               // idem para a versão sem identificação
         $regras['responsavel_email'] = ['nullable', 'email', 'max:255'];
 
         return $regras;

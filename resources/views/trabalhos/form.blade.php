@@ -12,11 +12,16 @@
     $exigeCpf = $config->exige_cpf_apresentador ?? true;
     $tema = $config->chamada_tema;
     $templateUrl = $config->template_url;
+    $templateAnonimoUrl = $config->template_anonimo_url;
+    // Avaliação cega: segundo PDF, sem identificação (obrigatório em envio novo; trabalhos já enviados antes não são obrigados)
+    $cega = (bool) $config->avaliacao_cega;
+    $anonimoVigente = $editando ? $trabalho->arquivoAnonimoVigente() : null;
+    $exigeAnonimo = $cega && !$modoGestao && (!$editando || $trabalho->status === \App\Models\Trabalho::RASCUNHO) && !$anonimoVigente;
 
     // Erros do servidor viram mensagens junto de cada campo (além do alerta no topo)
     $mapaErros = [
         'titulo' => 'titulo', 'tipo_trabalho' => 'tipo', 'resumo' => 'resumo', 'palavras_chave' => 'palavras', 'modalidade_apresentacao' => 'modalidade',
-        'arquivo' => 'arquivo', 'autores' => 'autores', 'autores.0.nome_completo' => 'ap_nome', 'autores.0.cpf' => 'ap_cpf', 'autores.0.email' => 'ap_email',
+        'arquivo' => 'arquivo', 'arquivo_anonimo' => 'arquivo_anonimo', 'autores' => 'autores', 'autores.0.nome_completo' => 'ap_nome', 'autores.0.cpf' => 'ap_cpf', 'autores.0.email' => 'ap_email',
         'autores.0.instituicao' => 'ap_ies', 'autores.0.categoria_autor' => 'ap_categoria', 'declaracao_ineditismo' => 'declaracoes', 'declaracao_regulamento' => 'declaracoes',
     ];
     $errosServidor = [];
@@ -58,6 +63,7 @@
         'titulo' => old('titulo', $trabalho->titulo),
         'palavras' => array_values(array_filter($palavrasAtuais, 'is_string')),
         'temArquivo' => (bool) $arquivoAtual,
+        'exigeAnonimo' => $exigeAnonimo,
         'maxArquivoMb' => (int) $config->max_arquivo_mb,
         'decl1' => (bool) old('declaracao_ineditismo'),
         'decl2' => (bool) old('declaracao_regulamento'),
@@ -409,7 +415,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="small fw-bold text-secondary">Envio de arquivo (Formato PDF) {{ $modoGestao ? '(opcional: envie para cadastrar ou substituir o PDF)' : '*' }}</label>
+                        <label class="small fw-bold text-secondary">{{ $cega ? 'PDF do trabalho completo, com os autores' : 'Envio de arquivo (Formato PDF)' }} {{ $modoGestao ? '(opcional: envie para cadastrar ou substituir o PDF)' : '*' }}</label>
                         @if($arquivoAtual)
                             <div class="alert alert-light border small py-2">
                                 Arquivo atual: <strong>{{ $arquivoAtual->nome_original }}</strong>
@@ -422,11 +428,28 @@
                         <div class="form-text">
                             Somente PDF, até {{ $config->max_arquivo_mb }} MB.
                             @if($templateUrl) Use o <a href="{{ $templateUrl }}" target="_blank" rel="noopener">template</a> do evento. @endif
-                            @if($config->avaliacao_cega) <strong>Avaliação cega:</strong> envie a versão <u>sem identificação dos autores</u>. @endif
+                            @if($cega) <strong>Avaliação cega:</strong> este PDF fica com a organização (pode ter os autores); o avaliador abre apenas a versão sem identificação, enviada abaixo. @endif
                         </div>
                         <div class="text-danger small" x-show="erros.arquivo" x-text="erros.arquivo"></div>
                         <div class="small text-warning-emphasis mt-1" x-show="avisoArquivo" x-cloak><i class="fa-solid fa-paperclip me-1"></i> Por segurança, o navegador não guarda o arquivo depois de um erro: <strong>selecione o PDF novamente</strong>.</div>
                     </div>
+
+                    @if($cega)
+                    <div class="mb-3 p-3 rounded-3 border" style="background:#f8fafc;">
+                        <label class="small fw-bold text-secondary"><i class="fa-solid fa-user-secret me-1"></i> PDF sem identificação dos autores (avaliação cega) {{ $exigeAnonimo ? '*' : ($modoGestao ? '(opcional)' : '(opcional agora)') }}</label>
+                        @if($anonimoVigente)
+                            <div class="alert alert-light border small py-2">Versão atual: <strong>{{ $anonimoVigente->nome_original }}</strong> (versão {{ $anonimoVigente->versao }}). Envie outro arquivo somente para substituí-la.</div>
+                        @elseif($editando && $arquivoAtual)
+                            <div class="alert alert-warning small py-2">Ainda não há versão sem identificação: o avaliador abrirá o PDF principal. @unless($modoGestao) Se este PDF tiver os autores, envie a versão sem identificação abaixo. @endunless</div>
+                        @endif
+                        <input type="file" name="arquivo_anonimo" accept="application/pdf,.pdf" class="form-control" @change="validarArquivo($event, 'arquivo_anonimo')">
+                        <div class="form-text">
+                            Mesmo trabalho, sem nomes, instituições, agradecimentos ou qualquer pista de autoria. Somente PDF, até {{ $config->max_arquivo_mb }} MB.
+                            @if($templateAnonimoUrl) Use o <a href="{{ $templateAnonimoUrl }}" target="_blank" rel="noopener">modelo sem identificação</a>. @endif
+                        </div>
+                        <div class="text-danger small" x-show="erros.arquivo_anonimo" x-text="erros.arquivo_anonimo"></div>
+                    </div>
+                    @endif
 
                     <hr>
                     @unless($modoGestao)
@@ -487,7 +510,7 @@
             const lista = (cfg.autores && cfg.autores.length) ? cfg.autores : [{}];
             const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
             // Onde rolar para cada campo com problema
-            const ancora = { titulo: 'input[name=titulo]', tipo: '[name=tipo_trabalho]', resumo: 'textarea[name=resumo]', palavras: '[x-model=novaPalavra]', ap_nome: '[name="autores[0][nome_completo]"]', ap_email: '[name="autores[0][email]"]', ap_ies: '[name="autores[0][instituicao]"]', ap_categoria: '[name="autores[0][categoria_autor]"]', ap_cpf: '[name="autores[0][cpf]"]', autores: '#sec-apresentador', extras: '#sec-autores', modalidade: '[name=modalidade_apresentacao]', arquivo: 'input[name=arquivo]', declaracoes: '#d1' };
+            const ancora = { titulo: 'input[name=titulo]', tipo: '[name=tipo_trabalho]', resumo: 'textarea[name=resumo]', palavras: '[x-model=novaPalavra]', ap_nome: '[name="autores[0][nome_completo]"]', ap_email: '[name="autores[0][email]"]', ap_ies: '[name="autores[0][instituicao]"]', ap_categoria: '[name="autores[0][categoria_autor]"]', ap_cpf: '[name="autores[0][cpf]"]', autores: '#sec-apresentador', extras: '#sec-autores', modalidade: '[name=modalidade_apresentacao]', arquivo_anonimo: 'input[name=arquivo_anonimo]', arquivo: 'input[name=arquivo]', declaracoes: '#d1' };
 
             return {
                 maisAutores: cfg.maisAutores, titulo: cfg.titulo || '', tipo: cfg.tipo || '', modalidade: cfg.modalidade || '',
@@ -632,6 +655,8 @@
                     const arq = this.$root.querySelector('input[name=arquivo]');
                     if (!cfg.modoGestao) {
                         if (!cfg.temArquivo && !(arq && arq.files.length)) e.arquivo = 'Envie o arquivo PDF do trabalho.';
+                        const anon = this.$root.querySelector('input[name=arquivo_anonimo]');
+                        if (cfg.exigeAnonimo && !(anon && anon.files.length)) e.arquivo_anonimo = 'Envie também o PDF sem identificação dos autores.';
                         if (!this.decl1 || !this.decl2) e.declaracoes = 'É necessário aceitar as duas declarações obrigatórias.';
                     }
                     return e;
@@ -663,14 +688,14 @@
                     const aviso = cfg.modoGestao ? 'Salvar as alterações deste trabalho?' : 'Após enviar, o trabalho será encaminhado à gestão do evento. Deseja continuar?';
                     if (!confirm(aviso)) ev.preventDefault();
                 },
-                validarArquivo(ev) {
-                    this.erros = { ...this.erros, arquivo: '' };
+                validarArquivo(ev, campo = 'arquivo') {
+                    this.erros = { ...this.erros, [campo]: '' };
                     const f = ev.target.files[0];
                     if (!f) return;
                     let msg = '';
                     if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') msg = 'O arquivo deve ser um PDF.';
                     else if (f.size > cfg.maxArquivoMb * 1048576) msg = `O arquivo excede ${cfg.maxArquivoMb} MB.`;
-                    if (msg) { ev.target.value = ''; this.erros = { ...this.erros, arquivo: msg }; } else { this.avisoArquivo = false; this.revalidar(); }
+                    if (msg) { ev.target.value = ''; this.erros = { ...this.erros, [campo]: msg }; } else { this.avisoArquivo = false; this.revalidar(); }
                 },
             };
         }

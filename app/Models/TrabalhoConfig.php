@@ -48,7 +48,7 @@ class TrabalhoConfig extends Model
     protected $fillable = [
         'evento_id', 'ativo', 'submissao_inicio', 'submissao_fim', 'avaliacao_fim', 'avaliadores_por_trabalho', 'nota_minima_aprovacao', 'divergencia_maxima', 'autor_ve_notas', 'autor_ve_pareceres', 'exige_apresentacao_para_certificado', 'cert_trab_cabecalho', 'cert_trab_corpo', 'cert_trab_rodape', 'max_autores', 'max_arquivo_mb',
         'resumo_min_palavras', 'resumo_max_palavras', 'max_trabalhos_por_usuario', 'avaliacao_cega',
-        'tipos_permitidos', 'regras_texto', 'chamada_tema', 'chamada_intro', 'template_url', 'exige_resumo',
+        'tipos_permitidos', 'regras_texto', 'chamada_tema', 'chamada_intro', 'template_url', 'template_anonimo_url', 'exige_resumo',
         'exige_palavras_chave', 'exige_cpf_apresentador',
         'avaliacao_apresentacao_ativa', 'peso_apresentacao', 'nota_minima_apresentacao', 'premiacao_divulgada_em', 'cert_premio_cabecalho', 'cert_premio_corpo', 'cert_premio_rodape', 'autor_ve_nota_apresentacao',
     ];

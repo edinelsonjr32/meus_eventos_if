@@ -94,7 +94,7 @@ class ApresentacaoAvaliacaoController extends Controller
         $this->authorize('view', $avaliacao);
         abort_if($avaliacao->status === 'recusada', 403);
 
-        $arquivo = $avaliacao->trabalho->arquivoAtual;
+        $arquivo = $avaliacao->trabalho->loadMissing(['evento.trabalhoConfig', 'arquivoAtual', 'arquivoAnonimo'])->arquivoParaAvaliacao();
         abort_unless($arquivo && Storage::disk('trabalhos')->exists($arquivo->path), 404, 'Arquivo não encontrado.');
 
         return Storage::disk('trabalhos')->response($arquivo->path, "trabalho-{$avaliacao->trabalho->codigo}.pdf", [

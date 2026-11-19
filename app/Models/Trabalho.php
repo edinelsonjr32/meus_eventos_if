@@ -131,7 +131,42 @@ class Trabalho extends Model
     public function arquivoAtual(): HasOne
     {
         // O filtro vai DENTRO da subconsulta: senão um arquivo inativo de versão maior (ex.: PDF final dos Trabalhos Publicados) esconderia o ativo
-        return $this->hasOne(TrabalhoArquivo::class)->ofMany(['versao' => 'max'], fn ($q) => $q->where('ativo', true));
+        return $this->hasOne(TrabalhoArquivo::class)->ofMany(['versao' => 'max'], fn ($q) => $q->where('ativo', true)->where('anonimo', false));
+    }
+
+    /** Última versão sem identificação enviada (pode estar vencida: ver arquivoAnonimoVigente). */
+    public function arquivoAnonimo(): HasOne
+    {
+        return $this->hasOne(TrabalhoArquivo::class)->ofMany(['versao' => 'max'], fn ($q) => $q->where('anonimo', true));
+    }
+
+    /**
+     * Versão sem identificação que vale para o PDF principal atual: só conta se foi enviada depois dele
+     * (trocar o PDF principal sem trocar o anônimo deixa o anônimo vencido).
+     */
+    public function arquivoAnonimoVigente(): ?TrabalhoArquivo
+    {
+        $anonimo = $this->arquivoAnonimo;
+        $principal = $this->arquivoAtual;
+
+        return $anonimo && (!$principal || $anonimo->versao > $principal->versao) ? $anonimo : null;
+    }
+
+    /**
+     * PDF que o avaliador abre. Com avaliação cega, a versão sem identificação; trabalhos enviados antes desta opção
+     * (sem versão anônima) continuam com o PDF único de sempre, como já era a orientação da chamada.
+     */
+    public function arquivoParaAvaliacao(): ?TrabalhoArquivo
+    {
+        $cega = (bool) $this->evento?->trabalhoConfig?->avaliacao_cega;
+
+        return ($cega ? $this->arquivoAnonimoVigente() : null) ?? $this->arquivoAtual;
+    }
+
+    /** Avaliação cega ligada, mas o avaliador ainda verá o PDF principal (sem versão anônima vigente). */
+    public function semVersaoAnonima(): bool
+    {
+        return (bool) $this->evento?->trabalhoConfig?->avaliacao_cega && $this->arquivoAtual && !$this->arquivoAnonimoVigente();
     }
 
     public function avaliacoes(): HasMany

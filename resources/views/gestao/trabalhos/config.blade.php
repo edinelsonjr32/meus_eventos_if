@@ -84,6 +84,11 @@
                         <input type="url" name="template_url" class="form-control" maxlength="500" value="{{ old('template_url', $config->template_url) }}" placeholder="https://docs.google.com/document/d/...">
                         <div class="form-text">Aparece na abertura do formulário e junto ao envio do PDF.</div>
                     </div>
+                    <div class="mt-3">
+                        <label class="small fw-bold text-secondary">Link do modelo sem identificação dos autores (avaliação cega)</label>
+                        <input type="url" name="template_anonimo_url" class="form-control" maxlength="500" value="{{ old('template_anonimo_url', $config->template_anonimo_url) }}" placeholder="https://docs.google.com/document/d/...">
+                        <div class="form-text">Opcional. Com o anonimato ligado, o autor envia dois PDFs: o completo (com autores, do template acima) e este, sem identificação, que é o único que o avaliador abre.</div>
+                    </div>
                 </div>
 
                 <div class="glass-card bg-white mb-4">
@@ -133,7 +138,10 @@
                                 <input type="hidden" name="avaliacao_cega" value="0">
                                 <input class="form-check-input" type="checkbox" name="avaliacao_cega" value="1" id="cega" @checked(old('avaliacao_cega', $config->exists ? $config->avaliacao_cega : true))>
                                 <label class="form-check-label" for="cega"><strong>Anonimato dos autores:</strong> esconder o nome dos autores do avaliador (avaliação cega)</label>
-                                <div class="form-text small">Com a opção ligada, o avaliador vê só protocolo, título, resumo e PDF: sem autores nas telas de avaliação escrita e de apresentação, e o arquivo baixa com nome neutro. O sistema não apaga nomes de dentro do PDF; por isso os autores são orientados a enviar a versão sem identificação.</div>
+                                <div class="form-text small">Com a opção ligada, o avaliador vê só protocolo, título, resumo e PDF: sem autores nas telas de avaliação escrita e de apresentação, e o arquivo baixa com nome neutro. O autor envia <strong>dois PDFs</strong>: o completo (fica com a organização) e o sem identificação (o único que o avaliador abre).</div>
+                                @if($config->exists && $config->avaliacao_cega && ($semAnonima ?? 0) > 0)
+                                    <div class="alert alert-warning small py-2 mt-2 mb-0"><i class="fa-solid fa-triangle-exclamation me-1"></i> {{ $semAnonima }} trabalho(s) já enviado(s) ainda não têm a versão sem identificação: o avaliador abre o PDF principal deles. A gestão pode enviar a versão cega na página de cada trabalho.</div>
+                                @endif
                             </div>
                         </div>
                     </div>

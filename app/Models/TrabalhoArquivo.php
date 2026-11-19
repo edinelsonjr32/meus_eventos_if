@@ -10,10 +10,10 @@ class TrabalhoArquivo extends Model
     protected $table = 'trabalho_arquivos';
 
     protected $fillable = [
-        'trabalho_id', 'versao', 'tipo', 'path', 'nome_original', 'mime', 'tamanho', 'sha256', 'enviado_por', 'ativo',
+        'trabalho_id', 'versao', 'tipo', 'anonimo', 'path', 'nome_original', 'mime', 'tamanho', 'sha256', 'enviado_por', 'ativo',
     ];
 
-    protected $casts = ['ativo' => 'boolean'];
+    protected $casts = ['ativo' => 'boolean', 'anonimo' => 'boolean'];
 
     public function trabalho(): BelongsTo
     {
