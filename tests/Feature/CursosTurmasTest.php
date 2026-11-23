@@ -76,7 +76,7 @@ it('os cursos e turmas cadastrados aparecem nas telas de inscrição de alunos',
     $dono = $this->admin;
     $evento = mkEvento($dono);
 
-    $this->actingAs($this->usuario)->get(route('evento.publico.show', $evento->slug))->assertOk()->assertSee('Curso Novo Visível')->assertSee('2031');
+    $this->actingAs($this->usuario)->get(route('evento.publico.show', $evento->slug))->assertOk()->assertSee('Selecione o curso')->assertSee('Curso Novo Vis', false)->assertSee('2031');
 });
 
 it('o menu da gestão mostra Cursos e Turmas apenas para administradores', function () {
