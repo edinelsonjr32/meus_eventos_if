@@ -171,3 +171,28 @@ it('confirmação da presença mostra qual atividade foi registrada e vira compr
     $this->get(route('frequencia.confirmada', 'QR-TESTE'))->assertRedirect(route('login'));
     $this->actingAs($user)->get(route('frequencia.form', 'QR-TESTE'))->assertSee('Ver comprovante');
 });
+
+it('erros da frequência trazem um código e dados para o modal: fora do raio, sem localização, encerrada, já registrada; sem vazar detalhe técnico', function () {
+    $this->evento->update(['latitude' => -1.9, 'longitude' => -55.5, 'raio_permitido' => 300]);
+    $user = mkUser('user', 'longe@x.com');
+    $p = Participante::create(['user_id' => $user->id, 'nome_completo' => 'Longe Demais', 'cpf' => '111.444.777-35', 'email' => 'longe@x.com', 'tipo_vinculo' => 'externo', 'vinculo_confirmado_em' => now()]);
+    $this->actingAs($user);
+    $json = ['Accept' => 'application/json'];
+
+    // sem coordenadas
+    $this->post($this->url, [], $json)->assertStatus(422)->assertJsonPath('codigo', 'sem_localizacao');
+
+    // longe: distância, raio e local para o aviso
+    $r = $this->post($this->url, ['user_lat' => -1.8, 'user_lng' => -55.5], $json)->assertForbidden()->assertJsonPath('codigo', 'fora_do_raio')->assertJsonPath('raio', 300)->assertJsonPath('local', $this->evento->local);
+    expect($r->json('distancia'))->toBeGreaterThan(300);
+    expect(Frequencia::count())->toBe(0);
+
+    // dentro do raio registra; depois, já registrada
+    $this->post($this->url, ['user_lat' => -1.9, 'user_lng' => -55.5], $json)->assertOk();
+    $this->post($this->url, ['user_lat' => -1.9, 'user_lng' => -55.5], $json)->assertStatus(409)->assertJsonPath('codigo', 'ja_registrada');
+
+    // a tela traz o modal de feedback
+    $this->get(route('frequencia.form', 'QR-TESTE'))->assertOk()->assertSee('fb-modal', false)->assertSee('abrirModal', false);
+    $html = $this->actingAs(mkUser('user', 'outro@x.com'))->get(route('frequencia.form', 'QR-TESTE'))->getContent();
+    expect($html)->toContain('Você está longe do local')->toContain('Atualizar localização')->toContain('Sem conexão');
+});

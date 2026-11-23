@@ -83,10 +83,13 @@ class FrequenciaController extends Controller
             ->header('Cache-Control', 'no-store, private');
     }
 
-    private function falha(Request $request, string $mensagem, int $status)
+    /**
+     * Resposta de erro. Em JSON leva um "codigo" para a tela escolher o aviso certo (modal) e dados extras (distância, raio...).
+     */
+    private function falha(Request $request, string $mensagem, int $status, string $codigo = 'erro', array $extra = [])
     {
         if ($request->expectsJson()) {
-            return response()->json(['message' => $mensagem], $status);
+            return response()->json(['message' => $mensagem, 'codigo' => $codigo] + $extra, $status);
         }
 
         return back()->with('error', $mensagem)->withInput();
@@ -103,7 +106,7 @@ class FrequenciaController extends Controller
         $evento = $atividade->evento;
 
         if (!$evento) {
-            return $this->falha($request, 'Evento não encontrado para esta atividade.', 404);
+            return $this->falha($request, 'Evento não encontrado para esta atividade.', 404, 'erro');
         }
 
         // 2. Validação dos dados: a presença exige conta logada; CPF, nome e e-mail vêm do cadastro da conta
@@ -112,25 +115,25 @@ class FrequenciaController extends Controller
         // 1.1 Presença já registrada por esta conta: não permite registrar outra vez
         $existente = $contas->daConta($request->user());
         if ($existente && Frequencia::where('atividade_id', $atividade->id)->where('participante_id', $existente->id)->exists()) {
-            return $this->falha($request, 'Você já registrou presença nesta atividade.', 409);
+            return $this->falha($request, 'Você já registrou presença nesta atividade.', 409, 'ja_registrada');
         }
         // Frequência encerrada (manual ou no horário de fechamento): o QR Code não registra mais
         if (!$atividade->frequenciaAberta()) {
-            return $this->falha($request, 'A frequência desta atividade foi encerrada. Procure a organização do evento.', 403);
+            return $this->falha($request, 'A frequência desta atividade foi encerrada. Procure a organização do evento.', 403, 'encerrada');
         }
         $request->validate($contas->regras($contas->daConta($request->user()) !== null, $request->tipo_vinculo, $contas->daConta($request->user()), $request->all()));
 
         // 2.1 Validação de localização (somente se o evento tiver coordenadas configuradas)
         if (filled($evento->latitude) && filled($evento->longitude)) {
             if (!is_numeric($request->user_lat) || !is_numeric($request->user_lng)) {
-                return $this->falha($request, 'Não foi possível obter sua localização. Permita o acesso ao GPS e tente novamente.', 422);
+                return $this->falha($request, 'Não foi possível obter sua localização. Permita o acesso ao GPS e tente novamente.', 422, 'sem_localizacao');
             }
 
             $distancia = $this->calcularDistancia($request->user_lat, $request->user_lng, $evento->latitude, $evento->longitude);
             $raio = (int) ($evento->raio_permitido ?: 300);
 
             if ($distancia > $raio) {
-                return $this->falha($request, "Você está a {$distancia} m do local do evento (máximo permitido: {$raio} m).", 403);
+                return $this->falha($request, "Você está a {$distancia} m do local do evento (máximo permitido: {$raio} m).", 403, 'fora_do_raio', ['distancia' => (int) $distancia, 'raio' => $raio, 'local' => $evento->local]);
             }
         }
 
@@ -178,15 +181,15 @@ class FrequenciaController extends Controller
         } catch (\DomainException $e) {
             DB::rollBack();
 
-            return $this->falha($request, $e->getMessage(), 422);
+            return $this->falha($request, $e->getMessage(), 422, 'dados');
         } catch (\Exception $e) {
             DB::rollBack();
+            report($e);   // o detalhe técnico fica no log; a pessoa recebe uma mensagem clara
+            $mensagem = 'Não foi possível registrar sua presença agora. Tente novamente em instantes; se continuar, avise a organização do evento.';
             if ($request->expectsJson()) {
-                return response()->json(['message' => 'Erro ao registrar presença: ' . $e->getMessage()], 500);
+                return response()->json(['message' => $mensagem, 'codigo' => 'erro'], 500);
             }
-            return back()
-                ->with('error', 'Erro ao registrar presença: ' . $e->getMessage())
-                ->withInput();
+            return back()->with('error', $mensagem)->withInput();
         }
     }
 

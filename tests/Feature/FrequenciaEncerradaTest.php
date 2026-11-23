@@ -20,14 +20,14 @@ it('organização encerra e reabre a frequência; o QR deixa de registrar e volt
     expect($this->atividade->fresh()->frequenciaAberta())->toBeFalse()->and($this->atividade->fresh()->estadoDaFrequencia())->toBe('encerrada');
 
     // página mostra o aviso e nenhum formulário; o envio é recusado e nada é gravado
-    $this->actingAs($this->user)->get(route('frequencia.form', 'ENC-QR'))->assertOk()->assertSee('Frequência encerrada')->assertDontSee('id="formPresenca"', false);
+    $this->actingAs($this->user)->get(route('frequencia.form', 'ENC-QR'))->assertOk()->assertSee('já foi encerrado')->assertDontSee('id="formPresenca"', false);
     $this->post(route('frequencia.store', 'ENC-QR'), [], ['Accept' => 'application/json'])->assertForbidden()->assertJsonPath('message', 'A frequência desta atividade foi encerrada. Procure a organização do evento.');
     $this->post(route('frequencia.store', 'ENC-QR'))->assertSessionHas('error');
     expect(Frequencia::count())->toBe(0);
 
     // visitante sem login também vê que encerrou (em vez do convite para entrar)
     auth()->logout();
-    $this->get(route('frequencia.form', 'ENC-QR'))->assertOk()->assertSee('Frequência encerrada')->assertDontSee('Entre ou crie sua conta');
+    $this->get(route('frequencia.form', 'ENC-QR'))->assertOk()->assertSee('já foi encerrado')->assertDontSee('Entre ou crie sua conta');
 
     $this->actingAs($this->dono)->post(route('admin.atividades.frequencia.reabrir', $this->atividade))->assertSessionHas('success');
     $this->actingAs($this->user)->post(route('frequencia.store', 'ENC-QR'), [], ['Accept' => 'application/json'])->assertOk();
@@ -38,7 +38,7 @@ it('quem já registrou continua vendo o comprovante depois do encerramento; o re
     $this->actingAs($this->user)->post(route('frequencia.store', 'ENC-QR'), [], ['Accept' => 'application/json'])->assertOk();
     $this->atividade->update(['frequencia_encerrada_em' => now()]);
 
-    $this->actingAs($this->user)->get(route('frequencia.form', 'ENC-QR'))->assertOk()->assertSee('Presença já registrada')->assertDontSee('Frequência encerrada');
+    $this->actingAs($this->user)->get(route('frequencia.form', 'ENC-QR'))->assertOk()->assertSee('Presença já registrada')->assertDontSee('já foi encerrado');
     $this->get(route('frequencia.confirmada', 'ENC-QR'))->assertOk()->assertSee('Presença registrada!');
     $this->post(route('frequencia.store', 'ENC-QR'), [], ['Accept' => 'application/json'])->assertStatus(409);
 
