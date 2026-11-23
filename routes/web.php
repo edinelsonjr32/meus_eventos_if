@@ -344,6 +344,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::get('/manual', [AtividadeController::class, 'createManual'])->name('manual');
         // Exportar Excel/CSV
         Route::get('/exportar', [AtividadeController::class, 'exportar'])->name('exportar');
+        // Encerrar/reabrir a frequência (QR Code)
+        Route::post('/frequencia/fechar', [AtividadeController::class, 'fecharFrequencia'])->name('frequencia.fechar');
+        Route::post('/frequencia/reabrir', [AtividadeController::class, 'reabrirFrequencia'])->name('frequencia.reabrir');
     });
 
     // Check-in Rápido (Converte inscrição em presença)

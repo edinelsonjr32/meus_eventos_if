@@ -46,6 +46,11 @@
                         <input id="ch" type="number" name="carga_horaria" class="form-control" min="1" max="1000" required value="{{ old('carga_horaria', $atividade->carga_horaria) }}">
                         <div class="form-text small">Consta no certificado de presença. O horário de término é recalculado por ela.</div>
                     </div>
+                    <div class="col-md-6">
+                        <label class="small fw-bold text-secondary" for="fecha">Fechar a frequência automaticamente em</label>
+                        <input id="fecha" type="datetime-local" name="frequencia_fecha_em" class="form-control" value="{{ old('frequencia_fecha_em', $atividade->frequencia_fecha_em?->format('Y-m-d\TH:i')) }}">
+                        <div class="form-text small">Opcional. Depois desse horário o QR Code não registra mais presença. Você também pode encerrar ou reabrir à mão na lista de presença.</div>
+                    </div>
                     <div class="col-12">
                         <input type="hidden" name="gera_certificado" value="0">
                         <div class="form-check form-switch">

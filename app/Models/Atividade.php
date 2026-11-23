@@ -62,12 +62,16 @@ class Atividade extends Model
         'voluntarios_necessarios',
         'data_inicio',
         'data_fim', // <--- Essencial para corrigir o erro SQLSTATE[HY000]
-        'token_frequencia'
+        'token_frequencia',
+        'frequencia_encerrada_em',
+        'frequencia_fecha_em',
     ];
 
     protected $casts = [
         'data_inicio' => 'datetime',
         'data_fim' => 'datetime',
+        'frequencia_encerrada_em' => 'datetime',
+        'frequencia_fecha_em' => 'datetime',
         'gera_certificado' => 'boolean',
     ];
 
@@ -83,6 +87,22 @@ class Atividade extends Model
     public function tipoRotulo(): string
     {
         return self::TIPOS[$this->tipo] ?? ucfirst(str_replace('_', ' ', (string) $this->tipo));
+    }
+
+    /** A frequência (QR Code) está aberta? Fecha ao ser encerrada pela organização ou ao chegar o horário de fechamento automático. */
+    public function frequenciaAberta(): bool
+    {
+        return $this->frequencia_encerrada_em === null && !($this->frequencia_fecha_em && $this->frequencia_fecha_em->isPast());
+    }
+
+    /** Texto do estado da frequência para as telas: 'aberta', 'encerrada' (manual) ou 'encerrada_auto'. */
+    public function estadoDaFrequencia(): string
+    {
+        if ($this->frequencia_encerrada_em !== null) {
+            return 'encerrada';
+        }
+
+        return $this->frequencia_fecha_em && $this->frequencia_fecha_em->isPast() ? 'encerrada_auto' : 'aberta';
     }
 
     /** Só gera certificado de presença se a atividade estiver marcada para isso (jogos e atividades acadêmicas usam apenas a frequência). */

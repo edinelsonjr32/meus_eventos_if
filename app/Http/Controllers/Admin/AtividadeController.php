@@ -123,6 +123,7 @@ class AtividadeController extends Controller
             'gera_certificado' => 'nullable|boolean',
             'vagas' => 'nullable|integer|min:0',
             'voluntarios_necessarios' => 'nullable|integer|min:0|max:200',
+            'frequencia_fecha_em' => 'nullable|date',
         ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
 
         $inscritos = $atividade->inscritos()->count();
@@ -148,6 +149,7 @@ class AtividadeController extends Controller
             'gera_certificado' => $request->boolean('gera_certificado', true),
             'vagas' => $dados['vagas'] ?? null,
             'voluntarios_necessarios' => ($dados['voluntarios_necessarios'] ?? null) ?: null,
+            'frequencia_fecha_em' => $dados['frequencia_fecha_em'] ?? null,
         ]);
 
         $aviso = '';
@@ -156,6 +158,26 @@ class AtividadeController extends Controller
         }
 
         return redirect()->route('admin.eventos.show', $atividade->evento_id)->with('success', 'Atividade atualizada.' . $aviso);
+    }
+
+    /** Encerra a frequência: o QR Code deixa de registrar presença (o registro manual pela organização continua). */
+    public function fecharFrequencia(Atividade $atividade)
+    {
+        $this->authorize('gerenciar', $atividade->evento);
+
+        $atividade->update(['frequencia_encerrada_em' => now()]);
+
+        return back()->with('success', "Frequência de \"{$atividade->titulo}\" encerrada. O QR Code não registra mais presença.");
+    }
+
+    /** Reabre a frequência (também cancela um fechamento automático já vencido). */
+    public function reabrirFrequencia(Atividade $atividade)
+    {
+        $this->authorize('gerenciar', $atividade->evento);
+
+        $atividade->update(['frequencia_encerrada_em' => null, 'frequencia_fecha_em' => $atividade->frequencia_fecha_em?->isPast() ? null : $atividade->frequencia_fecha_em]);
+
+        return back()->with('success', "Frequência de \"{$atividade->titulo}\" reaberta.");
     }
 
     /** PDF com uma página por atividade: cabeçalho do evento, QR Code de frequência, título e responsável. */

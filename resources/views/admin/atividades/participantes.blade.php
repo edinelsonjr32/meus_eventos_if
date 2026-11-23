@@ -11,6 +11,24 @@
 
     <div x-data="{ showModal: false, search: '' }">
 
+        @php $estadoFreq = $atividade->estadoDaFrequencia(); @endphp
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 rounded-3 border mb-4 {{ $estadoFreq === 'aberta' ? 'bg-success-subtle border-success-subtle' : 'bg-light' }}">
+            <div>
+                @if($estadoFreq === 'aberta')
+                    <span class="fw-bold text-success"><i class="fa-solid fa-lock-open me-1"></i> Frequência aberta</span>
+                    <span class="small text-muted ms-2">O QR Code está registrando presença{{ $atividade->frequencia_fecha_em ? ' até ' . $atividade->frequencia_fecha_em->format('d/m/Y H:i') : '' }}.</span>
+                @else
+                    <span class="fw-bold text-secondary"><i class="fa-solid fa-lock me-1"></i> Frequência encerrada</span>
+                    <span class="small text-muted ms-2">{{ $estadoFreq === 'encerrada' ? 'Encerrada em ' . $atividade->frequencia_encerrada_em->format('d/m/Y H:i') . '.' : 'Encerrou automaticamente em ' . $atividade->frequencia_fecha_em->format('d/m/Y H:i') . '.' }} O QR Code não registra mais; o registro manual abaixo continua disponível.</span>
+                @endif
+            </div>
+            @if($estadoFreq === 'aberta')
+                <form action="{{ route('admin.atividades.frequencia.fechar', $atividade->id) }}" method="POST" onsubmit="return confirm('Encerrar a frequência? O QR Code deixa de registrar presença.')">@csrf<button class="btn btn-sm btn-outline-danger fw-bold"><i class="fa-solid fa-lock me-1"></i> Encerrar frequência</button></form>
+            @else
+                <form action="{{ route('admin.atividades.frequencia.reabrir', $atividade->id) }}" method="POST">@csrf<button class="btn btn-sm btn-success fw-bold"><i class="fa-solid fa-lock-open me-1"></i> Reabrir frequência</button></form>
+            @endif
+        </div>
+
         <div class="row g-3 mb-4">
             <div class="col-md-3">
                 <div class="glass-card p-3 d-flex align-items-center gap-3">

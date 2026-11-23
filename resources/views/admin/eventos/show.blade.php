@@ -228,6 +228,9 @@
                                         <span class="text-secondary small font-monospace">
                                             <i class="fa-regular fa-clock me-1"></i> {{ $atividade->carga_horaria }}h
                                         </span>
+                                        @unless($atividade->frequenciaAberta())
+                                            <span class="badge rounded-pill bg-secondary" title="O QR Code não registra mais presença"><i class="fa-solid fa-lock me-1"></i> Frequência encerrada</span>
+                                        @endunless
                                         @unless($atividade->emiteCertificado())
                                             <span class="badge rounded-pill bg-light text-secondary border" title="A frequência é registrada, mas nenhum certificado é emitido"><i class="fa-solid fa-ban me-1"></i> Sem certificado</span>
                                         @endunless

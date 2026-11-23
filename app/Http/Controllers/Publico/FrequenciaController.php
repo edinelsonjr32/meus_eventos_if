@@ -114,6 +114,10 @@ class FrequenciaController extends Controller
         if ($existente && Frequencia::where('atividade_id', $atividade->id)->where('participante_id', $existente->id)->exists()) {
             return $this->falha($request, 'Você já registrou presença nesta atividade.', 409);
         }
+        // Frequência encerrada (manual ou no horário de fechamento): o QR Code não registra mais
+        if (!$atividade->frequenciaAberta()) {
+            return $this->falha($request, 'A frequência desta atividade foi encerrada. Procure a organização do evento.', 403);
+        }
         $request->validate($contas->regras($contas->daConta($request->user()) !== null, $request->tipo_vinculo, $contas->daConta($request->user()), $request->all()));
 
         // 2.1 Validação de localização (somente se o evento tiver coordenadas configuradas)

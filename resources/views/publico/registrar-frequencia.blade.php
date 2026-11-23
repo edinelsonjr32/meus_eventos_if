@@ -59,9 +59,18 @@
 
             <div class="text-center mb-4">
                 <h5 class="fw-bold text-dark">{{ $atividade->titulo }}</h5>
+                @if($atividade->frequenciaAberta() || ($frequenciaExistente ?? null))
                 <p class="text-secondary small">{{ auth()->check() ? 'Confirme seus dados para registrar a presença.' : 'Entre ou crie sua conta para registrar a presença.' }}</p>
+                @endif
             </div>
 
+            @if(!$atividade->frequenciaAberta() && !($frequenciaExistente ?? null))
+                <div class="text-center py-2">
+                    <div class="mb-3"><i class="fa-solid fa-lock fs-1 text-secondary"></i></div>
+                    <h6 class="fw-bold text-secondary">Frequência encerrada</h6>
+                    <p class="small text-muted mb-0">O registro de presença desta atividade já foi encerrado{{ $atividade->estadoDaFrequencia() === 'encerrada_auto' ? ' (' . $atividade->frequencia_fecha_em->format('d/m/Y \à\s H:i') . ')' : '' }}. Se você participou, procure a organização do evento para que a presença seja lançada.</p>
+                </div>
+            @else
             @guest
                 <div class="text-center">
                     <div class="mb-3"><i class="fa-solid fa-user-lock fs-1 text-success"></i></div>
@@ -110,6 +119,7 @@
 
             </form>
             @endguest
+            @endif
         </div>
     </div>
 
