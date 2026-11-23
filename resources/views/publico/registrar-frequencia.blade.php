@@ -104,31 +104,7 @@
                     </div>
                 @endif
 
-                <div class="mb-3">
-                    <label class="fw-bold small text-secondary">Vínculo</label>
-                    <select name="tipo_vinculo" x-model="tipoVinculo" class="form-select">
-                        <option value="aluno">Aluno</option>
-                        <option value="servidor">Servidor</option>
-                        <option value="externo">Externo</option>
-                    </select>
-                </div>
-
-                <div x-show="['aluno', 'servidor'].includes(tipoVinculo)" class="bg-light p-3 rounded-3 mb-4 border">
-                    <div class="mb-2">
-                        <label class="fw-bold small text-dark">Matrícula</label>
-                        <input type="text" name="matricula" class="form-control bg-white" value="{{ old('matricula', $participanteLogado?->matricula) }}">
-                    </div>
-
-                    <div x-show="tipoVinculo === 'aluno'">
-                        <label class="fw-bold small text-dark mt-2">Turma</label>
-                        <select name="turma_id" class="form-select bg-white">
-                            <option value="">Selecione...</option>
-                            @foreach($turmas as $turma)
-                                <option value="{{ $turma->id }}" @selected((string) old('turma_id', $participanteLogado?->turma_id) === (string) $turma->id)>{{ $turma->nome_completo }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
+                @include('partials.vinculo-participante')
 
                 <x-gps-button :exige-gps="$exigeGps" />
 

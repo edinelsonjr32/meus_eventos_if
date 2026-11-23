@@ -89,12 +89,12 @@ class EventoPublicoController extends Controller
         }
 
         $contas = app(ParticipanteDaConta::class);
-        $request->validate($contas->regras($contas->daConta($user) !== null, $request->tipo_vinculo));
+        $request->validate($contas->regras($contas->daConta($user) !== null, $request->tipo_vinculo, $contas->daConta($user), $request->all()));
 
         try {
             $participante = null;
             DB::transaction(function () use ($request, $evento, $user, $contas, &$participante) {
-                $participante = $contas->resolver($user, $request->only(['cpf', 'nome_completo', 'tipo_vinculo', 'matricula', 'turma_id']));
+                $participante = $contas->resolver($user, $request->only(['cpf', 'nome_completo', 'tipo_vinculo', 'matricula', 'turma_id', 'confirmacao_vinculo']));
 
                 if (Inscricao::where('evento_id', $evento->id)->where('participante_id', $participante->id)->exists()) {
                     throw new \DomainException('Você já possui uma inscrição confirmada neste evento.');

@@ -341,33 +341,7 @@
                                 @if($participanteLogado) <div class="form-text">CPF e nome vêm do seu cadastro. Para corrigir, use <a href="{{ route('profile.edit') }}">Minha Conta</a>.</div> @endif
                             </div>
 
-                            <div class="mb-4">
-                                <label class="fw-bold small text-secondary text-uppercase mb-1">Vínculo</label>
-                                <select name="tipo_vinculo" x-model="tipo" class="form-select">
-                                    <option value="aluno">Aluno (Discente)</option>
-                                    <option value="servidor">Servidor (Técnico/Docente)</option>
-                                    <option value="externo">Comunidade Externa</option>
-                                </select>
-                            </div>
-
-                            <div x-show="['aluno', 'servidor'].includes(tipo)" x-transition class="bg-light p-3 rounded-3 mb-4 border border-dashed">
-                                <div class="mb-3">
-                                    <label class="fw-bold small text-dark mb-1" x-text="tipo === 'aluno' ? 'Matrícula Acadêmica' : 'Matrícula SIAPE'"></label>
-                                    <input type="text" name="matricula" class="form-control bg-white" value="{{ old('matricula', $participanteLogado?->matricula) }}">
-                                </div>
-
-                                <div x-show="tipo === 'aluno'">
-                                    <label class="fw-bold small text-dark mb-1">Turma / Curso</label>
-                                    <select name="turma_id" class="form-select bg-white">
-                                        <option value="">Selecione sua turma...</option>
-                                        @foreach($turmas as $turma)
-                                            <option value="{{ $turma->id }}" {{ (string) old('turma_id', $participanteLogado?->turma_id) === (string) $turma->id ? 'selected' : '' }}>
-                                                {{ $turma->nome_completo }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
+                            @include('partials.vinculo-participante')
 
                             <button type="submit" class="btn w-100 py-3 fw-bold text-white shadow-lg text-uppercase"
                                     style="background-color: var(--brand); border-radius: 12px; transition: transform 0.2s;">

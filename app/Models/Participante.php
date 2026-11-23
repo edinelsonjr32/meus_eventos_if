@@ -16,8 +16,11 @@ class Participante extends Model
         'email',
         'tipo_vinculo',
         'matricula',
-        'turma_id'
+        'turma_id',
+        'vinculo_confirmado_em',
     ];
+
+    protected $casts = ['vinculo_confirmado_em' => 'datetime'];
 
     /**
      * Relação com o Usuário de Login (Opcional)

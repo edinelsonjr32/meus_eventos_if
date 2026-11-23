@@ -5,7 +5,7 @@
             <i class="fa-solid fa-user-plus fs-3"></i>
         </div>
         <h4 class="fw-bold text-dark mb-1">Crie sua Conta</h4>
-        <p class="text-secondary small mb-0">Informe seu CPF para recuperar seu histórico de certificados.</p>
+        <p class="text-secondary small mb-0">Informe seu CPF para recuperar seu histórico de certificados e escolha seu tipo de cadastro (aluno, servidor ou comunidade externa).</p>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -32,6 +32,8 @@
             <div class="form-text small text-muted">Usaremos seu CPF para vincular certificados anteriores.</div>
             @error('cpf') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
         </div>
+
+        <x-campos-vinculo tipo="aluno" />
 
         <div class="mb-3">
             <label class="form-label small fw-bold text-uppercase text-secondary">Email</label>

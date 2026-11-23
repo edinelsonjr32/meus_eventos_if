@@ -25,6 +25,24 @@ class ProfileController extends Controller
         ]);
     }
 
+    /** Tipo de cadastro (opcional no envio: formulários antigos não o enviam e o cadastro fica como está). */
+    private function regrasDoVinculo(Request $request): array
+    {
+        if (!$request->filled('tipo_vinculo')) {
+            return [];
+        }
+        $r = app(\App\Services\ParticipanteDaConta::class)->regras(false, $request->input('tipo_vinculo'), null, $request->all());
+
+        return ['tipo_vinculo' => ['required', 'in:aluno,servidor,externo'], 'matricula' => $r['matricula'], 'turma_id' => $r['turma_id']];
+    }
+
+    private function aplicarVinculo(Participante $participante, Request $request): void
+    {
+        if ($request->filled('tipo_vinculo')) {
+            app(\App\Services\ParticipanteDaConta::class)->aplicarVinculo($participante, $request->input('tipo_vinculo'), $request->input('matricula'), $request->input('turma_id'));
+        }
+    }
+
     /**
      * Update the user's profile information.
      */
@@ -38,9 +56,9 @@ class ProfileController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
             // Validação do CPF: obrigatório e no formato correto
             'cpf' => ['required', 'string', 'size:14', new Cpf],
-        ]);
+        ] + $this->regrasDoVinculo($request));
 
-        $user->fill($validated);
+        $user->fill(collect($validated)->only(['name', 'email', 'cpf'])->all());
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
@@ -68,20 +86,24 @@ class ProfileController extends Controller
         if ($participante) {
             // CENÁRIO A: O participante já existia (ex: foi a um evento no passado).
             // Atualizamos os dados e garantimos o vínculo com o usuário atual.
-            $participante->update([
+            $participante->fill([
                 'user_id' => $user->id,
                 'nome_completo' => $user->name, // Mantém sincronizado
                 'email' => $user->email,         // Mantém sincronizado
             ]);
+            $this->aplicarVinculo($participante, $request);
+            $participante->save();
         } else {
             // CENÁRIO B: CPF novo no sistema. Cria o registro do participante.
-            Participante::create([
+            $novo = new Participante([
                 'user_id' => $user->id,
                 'cpf' => $cpf,
                 'nome_completo' => $user->name,
                 'email' => $user->email,
-                'tipo_vinculo' => 'externo' // Padrão, pode ser alterado depois se necessário
+                'tipo_vinculo' => 'externo',
             ]);
+            $this->aplicarVinculo($novo, $request);
+            $novo->save();
         }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');

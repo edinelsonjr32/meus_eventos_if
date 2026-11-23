@@ -73,6 +73,12 @@
                                 @error('email') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
 
+                            <div class="border-top pt-4">
+                                <h5 class="fw-bold mb-1">Tipo de cadastro</h5>
+                                <p class="small text-muted">Define como você aparece nas listas de presença e nos relatórios dos professores. É aqui que se corrige o tipo (aluno, servidor ou externo), a matrícula, o curso e a turma.</p>
+                                <x-campos-vinculo :tipo="$user->participante?->tipo_vinculo ?? 'aluno'" :matricula="$user->participante?->matricula" :turma-id="$user->participante?->turma_id" />
+                            </div>
+
                             <div class="flex items-center gap-4 pt-2">
                                 <button type="submit" class="btn btn-dark px-4 font-bold">Salvar Alterações</button>
                                 @if (session('status') === 'profile-updated')

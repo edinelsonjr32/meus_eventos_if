@@ -114,7 +114,7 @@ class FrequenciaController extends Controller
         if ($existente && Frequencia::where('atividade_id', $atividade->id)->where('participante_id', $existente->id)->exists()) {
             return $this->falha($request, 'Você já registrou presença nesta atividade.', 409);
         }
-        $request->validate($contas->regras($contas->daConta($request->user()) !== null, $request->tipo_vinculo));
+        $request->validate($contas->regras($contas->daConta($request->user()) !== null, $request->tipo_vinculo, $contas->daConta($request->user()), $request->all()));
 
         // 2.1 Validação de localização (somente se o evento tiver coordenadas configuradas)
         if (filled($evento->latitude) && filled($evento->longitude)) {
@@ -134,7 +134,7 @@ class FrequenciaController extends Controller
             DB::beginTransaction();
 
             // 3. Participante da conta (nunca cria um cadastro paralelo para o mesmo CPF/e-mail)
-            $participante = $contas->resolver($request->user(), $request->only(['cpf', 'nome_completo', 'tipo_vinculo', 'matricula', 'turma_id']));
+            $participante = $contas->resolver($request->user(), $request->only(['cpf', 'nome_completo', 'tipo_vinculo', 'matricula', 'turma_id', 'confirmacao_vinculo']));
 
             // 5. Garante a Inscrição no Evento (Silencioso)
             // Se já existe, ele apenas retorna o registro. Se não existe, cria.
