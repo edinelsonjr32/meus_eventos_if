@@ -81,7 +81,7 @@ it('cadastro em dia não muda de tipo pela frequência (só em Minha Conta) e al
     $p = Participante::create(['user_id' => $user->id, 'nome_completo' => 'Aluna Ok', 'cpf' => '111.444.777-35', 'email' => 'ok@x.com', 'tipo_vinculo' => 'aluno', 'matricula' => '55', 'turma_id' => $this->turma->id]);
     $this->actingAs($user);
 
-    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()->assertDontSee('Confirme seu tipo')->assertSee('Matrícula 55')->assertSee('Turma 2026')->assertSee('Já corrigi, atualizar')->assertSee('Técnico em Informática')->assertSee('Editar dados do perfil');
+    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()->assertDontSee('Confirme seu tipo')->assertSee('Matrícula 55')->assertSee('Turma 2026')->assertSee('Salvar alterações')->assertSee('Técnico em Informática')->assertSee('Editar dados do perfil');
     // tentativa de forçar outro tipo pela frequência é ignorada
     $this->post(route('frequencia.store', 'TIPO-QR'), ['tipo_vinculo' => 'externo', 'matricula' => 'x'], ['Accept' => 'application/json'])->assertOk();
     expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and($p->fresh()->matricula)->toBe('55');
@@ -115,4 +115,33 @@ it('Minha Conta altera o tipo de cadastro (aluno, matrícula, curso e turma) e m
     // sem o campo (formulário antigo) o tipo não muda
     $this->patch(route('profile.update'), $base)->assertSessionHasNoErrors();
     expect($p->fresh()->tipo_vinculo)->toBe('aluno');
+});
+
+it('modal "Editar dados do perfil": atualiza tipo, matrícula, curso e turma sem sair da frequência e a tela mostra o aviso', function () {
+    $user = mkUser('user', 'modal@x.com');
+    $p = Participante::create(['user_id' => $user->id, 'nome_completo' => 'Modal Teste', 'cpf' => '111.444.777-35', 'email' => 'modal@x.com', 'tipo_vinculo' => 'externo', 'vinculo_confirmado_em' => now()]);
+    $this->actingAs($user);
+
+    // a tela de frequência traz o modal com os dados atuais e o endereço de salvamento
+    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()
+        ->assertSee('Editar dados do perfil')->assertSee(route('profile.vinculo'), false)->assertSee('Salvar alterações')->assertSee('abrir-vinculo', false)->assertSee('x-teleport', false);
+
+    // erros de validação voltam em JSON (422) para aparecerem dentro do modal
+    $this->postJson(route('profile.vinculo'), ['tipo_vinculo' => 'aluno'])->assertStatus(422)->assertJsonValidationErrors(['matricula', 'turma_id']);
+    $this->postJson(route('profile.vinculo'), ['tipo_vinculo' => 'astronauta'])->assertStatus(422)->assertJsonValidationErrors('tipo_vinculo');
+    expect($p->fresh()->tipo_vinculo)->toBe('externo');
+
+    $this->postJson(route('profile.vinculo'), ['tipo_vinculo' => 'aluno', 'matricula' => '2026777', 'turma_id' => $this->turma->id])->assertOk()->assertJson(['ok' => true]);
+    $p = $p->fresh();
+    expect($p->tipo_vinculo)->toBe('aluno')->and($p->matricula)->toBe('2026777')->and($p->turma_id)->toBe($this->turma->id)->and($p->vinculo_confirmado_em)->not->toBeNull();
+
+    // a recarga da tela de frequência mostra o aviso de sucesso e o cadastro atualizado
+    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()->assertSee('Dados atualizados!')->assertSee('Matrícula 2026777')->assertSee('Turma 2026');
+    $this->get(route('frequencia.form', 'TIPO-QR'))->assertDontSee('Dados atualizados!');
+
+    // visitante e conta sem cadastro de participante não usam o modal
+    auth()->logout();
+    $this->postJson(route('profile.vinculo'), ['tipo_vinculo' => 'externo'])->assertUnauthorized();
+    $semCadastro = mkUser('user', 'sem@x.com');
+    $this->actingAs($semCadastro)->postJson(route('profile.vinculo'), ['tipo_vinculo' => 'externo'])->assertStatus(422)->assertJsonPath('message', 'Complete seu cadastro (CPF) em Minha Conta antes de editar o tipo de cadastro.');
 });

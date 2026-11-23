@@ -246,6 +246,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- PERFIL DO USUÁRIO ---
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    // Corrigir tipo de cadastro, matrícula, curso e turma sem sair da tela de frequência/inscrição (modal)
+    Route::post('/profile/vinculo', [ProfileController::class, 'atualizarVinculo'])->name('profile.vinculo');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 

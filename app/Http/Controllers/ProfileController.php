@@ -43,6 +43,25 @@ class ProfileController extends Controller
         }
     }
 
+    /** Atualiza só o tipo de cadastro (modal das telas de frequência e inscrição). Responde JSON; o erro de validação segue o padrão 422. */
+    public function atualizarVinculo(Request $request)
+    {
+        $participante = Participante::where('user_id', $request->user()->id)->first();
+        if (!$participante) {
+            return response()->json(['message' => 'Complete seu cadastro (CPF) em Minha Conta antes de editar o tipo de cadastro.'], 422);
+        }
+
+        $r = app(\App\Services\ParticipanteDaConta::class)->regras(false, $request->input('tipo_vinculo'), null, $request->all());
+        $request->validate(['tipo_vinculo' => ['required', 'in:aluno,servidor,externo'], 'matricula' => $r['matricula'], 'turma_id' => $r['turma_id']]);
+
+        $this->aplicarVinculo($participante, $request);
+        $participante->save();
+
+        session()->flash('vinculo_atualizado', true);
+
+        return $request->expectsJson() ? response()->json(['ok' => true]) : back();
+    }
+
     /**
      * Update the user's profile information.
      */
