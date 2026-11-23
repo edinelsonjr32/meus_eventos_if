@@ -51,14 +51,14 @@ it('cadastro antigo como externo é perguntado na frequência; confirmar como ex
     $p = Participante::create(['user_id' => $user->id, 'nome_completo' => 'Antigo Externo', 'cpf' => '111.444.777-35', 'email' => 'antigo@x.com', 'tipo_vinculo' => 'externo']);
 
     $this->actingAs($user)->get(route('frequencia.form', 'TIPO-QR'))->assertOk()
-        ->assertSee('Confirme seu tipo de cadastro')->assertSee('Sim, sou da comunidade externa')->assertSee('Minha Conta › Editar dados do perfil');
+        ->assertSee('Confirme seu tipo de cadastro')->assertSee('Sim, sou da comunidade externa')->assertSee('Editar dados do perfil')->assertSee(route('profile.edit'), false);
 
     $this->post(route('frequencia.store', 'TIPO-QR'), ['confirmacao_vinculo' => 'externo'], ['Accept' => 'application/json'])->assertOk();
     expect($p->fresh()->tipo_vinculo)->toBe('externo')->and($p->fresh()->vinculo_confirmado_em)->not->toBeNull();
 
     // outra atividade: não pergunta mais, só mostra o tipo e o caminho para mudar
     Atividade::create(['evento_id' => $this->evento->id, 'titulo' => 'Outra', 'tipo' => 'jogo', 'data_inicio' => now(), 'data_fim' => now()->addHour(), 'carga_horaria' => 1, 'token_frequencia' => 'TIPO-QR2']);
-    $this->get(route('frequencia.form', 'TIPO-QR2'))->assertOk()->assertDontSee('Confirme seu tipo de cadastro')->assertSee('Tipo de cadastro')->assertSee('Comunidade externa')->assertSee('Editar dados do perfil');
+    $this->get(route('frequencia.form', 'TIPO-QR2'))->assertOk()->assertDontSee('Confirme seu tipo de cadastro')->assertSee('Seu cadastro')->assertSee('Comunidade externa')->assertSee('Editar dados do perfil');
 });
 
 it('cadastro antigo como externo pode ser corrigido para aluno na frequência, com matrícula e turma', function () {
@@ -81,7 +81,7 @@ it('cadastro em dia não muda de tipo pela frequência (só em Minha Conta) e al
     $p = Participante::create(['user_id' => $user->id, 'nome_completo' => 'Aluna Ok', 'cpf' => '111.444.777-35', 'email' => 'ok@x.com', 'tipo_vinculo' => 'aluno', 'matricula' => '55', 'turma_id' => $this->turma->id]);
     $this->actingAs($user);
 
-    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()->assertDontSee('Confirme seu tipo')->assertSee('matrícula 55')->assertSee('Editar dados do perfil');
+    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()->assertDontSee('Confirme seu tipo')->assertSee('Matrícula 55')->assertSee('Turma 2026')->assertSee('Técnico em Informática')->assertSee('Editar dados do perfil');
     // tentativa de forçar outro tipo pela frequência é ignorada
     $this->post(route('frequencia.store', 'TIPO-QR'), ['tipo_vinculo' => 'externo', 'matricula' => 'x'], ['Accept' => 'application/json'])->assertOk();
     expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and($p->fresh()->matricula)->toBe('55');

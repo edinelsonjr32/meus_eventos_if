@@ -1,3 +1,21 @@
+<style>
+    .vp-card { position: relative; border: 1px solid #d1fae5; border-radius: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 70%); padding: 1rem 1rem 1rem 1.15rem; margin-bottom: 1rem; box-shadow: 0 6px 18px -10px rgba(5, 150, 105, .45); overflow: hidden; }
+    .vp-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(180deg, #10b981, #047857); }
+    .vp-topo { display: flex; align-items: center; gap: .8rem; }
+    .vp-ico { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #fff; background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 6px 12px -6px rgba(4, 120, 87, .8); }
+    .vp-rot { font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
+    .vp-tipo { font-weight: 800; font-size: 1.05rem; color: #065f46; line-height: 1.2; }
+    .vp-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0 .2rem; }
+    .vp-chip { display: inline-flex; align-items: center; gap: .35rem; background: #fff; border: 1px solid #d1fae5; color: #334155; border-radius: 999px; padding: .25rem .7rem; font-size: .8rem; font-weight: 600; }
+    .vp-chip i { color: #059669; }
+    .vp-acao { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: .9rem; padding-top: .8rem; border-top: 1px dashed #bbf7d0; }
+    .vp-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .55rem 1.1rem; border-radius: 999px; font-weight: 700; font-size: .88rem; color: #fff !important; text-decoration: none !important; background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 8px 16px -8px rgba(4, 120, 87, .9); transition: transform .15s, box-shadow .15s; }
+    .vp-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 20px -8px rgba(4, 120, 87, .95); }
+    .vp-btn:focus-visible { outline: 3px solid #a7f3d0; outline-offset: 2px; }
+    .vp-dica { font-size: .78rem; color: #64748b; }
+    .vp-atualizar { background: none; border: 0; padding: 0; color: #047857; font-weight: 700; font-size: .78rem; text-decoration: underline; cursor: pointer; }
+    .vp-alerta { border-radius: 16px; border: 1px solid #fcd34d; background: #fffbeb; padding: 1rem; margin-bottom: 1rem; }
+</style>
 @php
     $contas = app(\App\Services\ParticipanteDaConta::class);
     $p = $participanteLogado ?? null;
@@ -12,35 +30,48 @@
 
 @elseif($ehExterno)
     {{-- Cadastro antigo como externo, nunca confirmado: pergunta uma única vez --}}
-    <div class="border border-warning rounded-3 p-3 mb-3 bg-warning-subtle" x-data="{ decisao: @js(old('confirmacao_vinculo', '')) }">
+    <div class="vp-alerta" x-data="{ decisao: @js(old('confirmacao_vinculo', '')) }">
         <div class="fw-bold mb-1"><i class="fa-solid fa-circle-question me-1"></i> Confirme seu tipo de cadastro</div>
         <p class="small mb-2">Seu cadastro consta como <strong>Comunidade externa</strong>. Isso está correto? (Pedimos uma única vez: os relatórios dos professores usam essa informação.)</p>
         <div class="form-check"><input class="form-check-input" type="radio" name="confirmacao_vinculo" value="externo" id="cf-ext" x-model="decisao" required><label class="form-check-label" for="cf-ext">Sim, sou da comunidade externa</label></div>
         <div class="form-check mb-2"><input class="form-check-input" type="radio" name="confirmacao_vinculo" value="corrigir" id="cf-cor" x-model="decisao"><label class="form-check-label" for="cf-cor">Não, sou aluno ou servidor do IFPA</label></div>
         <template x-if="decisao === 'corrigir'"><div class="mt-3"><x-campos-vinculo tipo="aluno" /></div></template>
         @error('confirmacao_vinculo') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
-        <div class="small text-muted mt-2"><i class="fa-solid fa-circle-info me-1"></i> Depois de responder, para mudar o tipo de cadastro será preciso ir em <a href="{{ route('profile.edit') }}" target="_blank">Minha Conta › Editar dados do perfil</a>.</div>
+        <div class="vp-acao"><a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a><span class="vp-dica">Depois de responder, o tipo só muda em <strong>Minha Conta</strong>.</span></div>
     </div>
 
 @elseif($pendente)
     {{-- Aluno/servidor com matrícula ou turma faltando: completa os dados --}}
-    <div class="border border-warning rounded-3 p-3 mb-3 bg-warning-subtle">
+    <div class="vp-alerta">
         <div class="fw-bold mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> Complete seu cadastro</div>
         <p class="small mb-2">Seu cadastro de <strong>{{ $rotulos[$p->tipo_vinculo] ?? $p->tipo_vinculo }}</strong> está sem {{ $p->tipo_vinculo === 'aluno' ? 'matrícula ou turma' : 'a matrícula' }}. Informe abaixo (uma única vez).</p>
         <input type="hidden" name="confirmacao_vinculo" value="corrigir">
         <x-campos-vinculo :tipo="$p->tipo_vinculo" :matricula="$p->matricula" :turma-id="$p->turma_id" />
-        <div class="small text-muted"><i class="fa-solid fa-circle-info me-1"></i> Para mudar o tipo de cadastro depois, use <a href="{{ route('profile.edit') }}" target="_blank">Minha Conta › Editar dados do perfil</a>.</div>
+        <div class="vp-acao"><a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a><span class="vp-dica">Para mudar o tipo de cadastro depois, use <strong>Minha Conta</strong>.</span></div>
     </div>
 
 @else
     {{-- Cadastro em dia: só mostra; a mudança é feita no perfil --}}
-    <div class="mb-3">
-        <label class="fw-bold small text-secondary text-uppercase mb-1">Tipo de cadastro</label>
-        <div class="form-control bg-light" style="height:auto;">
-            <strong>{{ $rotulos[$p->tipo_vinculo] ?? $p->tipo_vinculo }}</strong>
-            @if($p->matricula) · matrícula {{ $p->matricula }} @endif
-            @if($p->turma) · {{ $p->turma->nome_completo }} @endif
+    @php $icone = ['aluno' => 'fa-graduation-cap', 'servidor' => 'fa-id-badge', 'externo' => 'fa-user'][$p->tipo_vinculo] ?? 'fa-user'; @endphp
+    <div class="vp-card">
+        <div class="vp-topo">
+            <div class="vp-ico"><i class="fa-solid {{ $icone }}"></i></div>
+            <div>
+                <div class="vp-rot">Seu cadastro</div>
+                <div class="vp-tipo">{{ $rotulos[$p->tipo_vinculo] ?? $p->tipo_vinculo }}</div>
+            </div>
         </div>
-        <div class="form-text">Para alterar o tipo de cadastro, vá em <a href="{{ route('profile.edit') }}" target="_blank">Minha Conta › Editar dados do perfil</a>.</div>
+        @if($p->matricula || $p->turma)
+            <div class="vp-chips">
+                @if($p->matricula)<span class="vp-chip"><i class="fa-solid fa-hashtag"></i> Matrícula {{ $p->matricula }}</span>@endif
+                @if($p->turma?->curso)<span class="vp-chip"><i class="fa-solid fa-book-open"></i> {{ $p->turma->curso->nome }}</span>@endif
+                @if($p->turma)<span class="vp-chip"><i class="fa-solid fa-users"></i> Turma {{ $p->turma->ano }}</span>@endif
+            </div>
+        @endif
+        <div class="vp-acao">
+            <a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a>
+            <span class="vp-dica">Dados errados? Corrija em <strong>Minha Conta</strong>.
+                <button type="button" class="vp-atualizar" onclick="location.reload()">Já corrigi, atualizar</button></span>
+        </div>
     </div>
 @endif
