@@ -1,19 +1,23 @@
 <style>
     .vp-card { position: relative; border: 1px solid #d1fae5; border-radius: 16px; background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 70%); padding: 1rem 1rem 1rem 1.15rem; margin-bottom: 1rem; box-shadow: 0 6px 18px -10px rgba(5, 150, 105, .45); overflow: hidden; }
     .vp-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(180deg, #10b981, #047857); }
-    .vp-topo { display: flex; align-items: center; gap: .8rem; }
+    .vp-topo { display: flex; align-items: center; justify-content: center; gap: .8rem; text-align: left; }
     .vp-ico { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #fff; background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 6px 12px -6px rgba(4, 120, 87, .8); }
     .vp-rot { font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
     .vp-tipo { font-weight: 800; font-size: 1.05rem; color: #065f46; line-height: 1.2; }
-    .vp-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0 .2rem; }
+    .vp-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin: .8rem 0 .2rem; }
     .vp-chip { display: inline-flex; align-items: center; gap: .35rem; background: #fff; border: 1px solid #d1fae5; color: #334155; border-radius: 999px; padding: .25rem .7rem; font-size: .8rem; font-weight: 600; }
     .vp-chip i { color: #059669; }
-    .vp-acao { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: .9rem; padding-top: .8rem; border-top: 1px dashed #bbf7d0; }
-    .vp-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .55rem 1.1rem; border-radius: 999px; font-weight: 700; font-size: .88rem; color: #fff !important; text-decoration: none !important; background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 8px 16px -8px rgba(4, 120, 87, .9); transition: transform .15s, box-shadow .15s; }
+    .vp-acao { display: flex; flex-direction: column; align-items: center; gap: .65rem; margin-top: .9rem; padding-top: .9rem; border-top: 1px dashed #bbf7d0; text-align: center; }
+    .vp-botoes { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; width: 100%; }
+    .vp-btn, .vp-btn-sec { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .6rem 1.2rem; border-radius: 10px; font-weight: 700; font-size: .88rem; text-decoration: none !important; cursor: pointer; transition: transform .15s, box-shadow .15s, background .15s; min-width: 190px; }
+    .vp-btn { color: #fff !important; border: 0; background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 8px 16px -8px rgba(4, 120, 87, .9); }
     .vp-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 20px -8px rgba(4, 120, 87, .95); }
-    .vp-btn:focus-visible { outline: 3px solid #a7f3d0; outline-offset: 2px; }
-    .vp-dica { font-size: .78rem; color: #64748b; }
-    .vp-atualizar { background: none; border: 0; padding: 0; color: #047857; font-weight: 700; font-size: .78rem; text-decoration: underline; cursor: pointer; }
+    .vp-btn-sec { color: #047857 !important; background: #fff; border: 2px solid #34d399; }
+    .vp-btn-sec:hover { background: #ecfdf5; transform: translateY(-1px); }
+    .vp-btn-sec i { transition: transform .4s; } .vp-btn-sec:hover i { transform: rotate(180deg); }
+    .vp-btn:focus-visible, .vp-btn-sec:focus-visible { outline: 3px solid #a7f3d0; outline-offset: 2px; }
+    .vp-dica { font-size: .78rem; color: #64748b; max-width: 340px; }
     .vp-alerta { border-radius: 16px; border: 1px solid #fcd34d; background: #fffbeb; padding: 1rem; margin-bottom: 1rem; }
 </style>
 @php
@@ -37,7 +41,7 @@
         <div class="form-check mb-2"><input class="form-check-input" type="radio" name="confirmacao_vinculo" value="corrigir" id="cf-cor" x-model="decisao"><label class="form-check-label" for="cf-cor">Não, sou aluno ou servidor do IFPA</label></div>
         <template x-if="decisao === 'corrigir'"><div class="mt-3"><x-campos-vinculo tipo="aluno" /></div></template>
         @error('confirmacao_vinculo') <small class="text-danger d-block mt-1">{{ $message }}</small> @enderror
-        <div class="vp-acao"><a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a><span class="vp-dica">Depois de responder, o tipo só muda em <strong>Minha Conta</strong>.</span></div>
+        <div class="vp-acao"><div class="vp-botoes"><a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a></div><span class="vp-dica">Depois de responder, o tipo só muda em <strong>Minha Conta</strong>.</span></div>
     </div>
 
 @elseif($pendente)
@@ -47,7 +51,7 @@
         <p class="small mb-2">Seu cadastro de <strong>{{ $rotulos[$p->tipo_vinculo] ?? $p->tipo_vinculo }}</strong> está sem {{ $p->tipo_vinculo === 'aluno' ? 'matrícula ou turma' : 'a matrícula' }}. Informe abaixo (uma única vez).</p>
         <input type="hidden" name="confirmacao_vinculo" value="corrigir">
         <x-campos-vinculo :tipo="$p->tipo_vinculo" :matricula="$p->matricula" :turma-id="$p->turma_id" />
-        <div class="vp-acao"><a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a><span class="vp-dica">Para mudar o tipo de cadastro depois, use <strong>Minha Conta</strong>.</span></div>
+        <div class="vp-acao"><div class="vp-botoes"><a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a></div><span class="vp-dica">Para mudar o tipo de cadastro depois, use <strong>Minha Conta</strong>.</span></div>
     </div>
 
 @else
@@ -69,9 +73,11 @@
             </div>
         @endif
         <div class="vp-acao">
-            <a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a>
-            <span class="vp-dica">Dados errados? Corrija em <strong>Minha Conta</strong>.
-                <button type="button" class="vp-atualizar" onclick="location.reload()">Já corrigi, atualizar</button></span>
+            <div class="vp-botoes">
+                <a href="{{ route('profile.edit') }}" target="_blank" rel="noopener" class="vp-btn"><i class="fa-solid fa-user-pen"></i> Editar dados do perfil</a>
+                <button type="button" class="vp-btn-sec" onclick="location.reload()" title="Recarrega a tela com os dados que você acabou de corrigir"><i class="fa-solid fa-rotate"></i> Já corrigi, atualizar</button>
+            </div>
+            <span class="vp-dica">Dados errados? Corrija em <strong>Minha Conta</strong> e volte aqui.</span>
         </div>
     </div>
 @endif

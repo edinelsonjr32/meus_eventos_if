@@ -81,7 +81,7 @@ it('cadastro em dia não muda de tipo pela frequência (só em Minha Conta) e al
     $p = Participante::create(['user_id' => $user->id, 'nome_completo' => 'Aluna Ok', 'cpf' => '111.444.777-35', 'email' => 'ok@x.com', 'tipo_vinculo' => 'aluno', 'matricula' => '55', 'turma_id' => $this->turma->id]);
     $this->actingAs($user);
 
-    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()->assertDontSee('Confirme seu tipo')->assertSee('Matrícula 55')->assertSee('Turma 2026')->assertSee('Técnico em Informática')->assertSee('Editar dados do perfil');
+    $this->get(route('frequencia.form', 'TIPO-QR'))->assertOk()->assertDontSee('Confirme seu tipo')->assertSee('Matrícula 55')->assertSee('Turma 2026')->assertSee('Já corrigi, atualizar')->assertSee('Técnico em Informática')->assertSee('Editar dados do perfil');
     // tentativa de forçar outro tipo pela frequência é ignorada
     $this->post(route('frequencia.store', 'TIPO-QR'), ['tipo_vinculo' => 'externo', 'matricula' => 'x'], ['Accept' => 'application/json'])->assertOk();
     expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and($p->fresh()->matricula)->toBe('55');
