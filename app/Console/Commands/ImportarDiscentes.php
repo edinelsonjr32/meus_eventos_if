@@ -160,7 +160,13 @@ class ImportarDiscentes extends Command
             if (!isset($idx[$obrig])) return null;
         }
 
-        $texto = fn ($v) => is_float($v) ? number_format($v, 0, '', '') : trim((string) $v);   // número do Excel (2.0241E+11) vira texto inteiro
+        // Algumas planilhas vêm com acentos corrompidos ("T…CNICO", "JO√O"): bytes ISO-8859-1 lidos como MacRoman
+        $reparar = $this->planilhaCorrompida($linhas, $idx['curso']);
+        if ($reparar) {
+            $this->warn('Acentos corrompidos na planilha (codificação MacRoman): reparando automaticamente.');
+        }
+
+        $texto = fn ($v) => $reparar && is_string($v) ? self::repararAcentos($v) : (is_float($v) ? number_format($v, 0, '', '') : trim((string) $v));
 
         $saida = [];
         foreach ($linhas as $c) {
@@ -181,6 +187,28 @@ class ImportarDiscentes extends Command
         }
 
         return $saida;
+    }
+
+    /** A coluna Curso deveria ter "TÉCNICO/TECNOLOGIA…": se só tem depois de reparar, o arquivo inteiro está corrompido. */
+    private function planilhaCorrompida(array $linhas, int $colCurso): bool
+    {
+        $esperado = '/T[EÉ]CNIC|TECNOLOG|BACHAREL|LICENCIATURA|ENGENHARIA|ESPECIALIZA/iu';
+        foreach ($linhas as $l) {
+            $c = is_string($l[$colCurso] ?? null) ? $l[$colCurso] : '';
+            if (trim($c) === '') continue;
+
+            return !preg_match($esperado, $c) && preg_match($esperado, self::repararAcentos($c));
+        }
+
+        return false;
+    }
+
+    /** Desfaz "ISO-8859-1 lido como MacRoman". Se o texto não tiver como ser convertido, devolve como veio. */
+    public static function repararAcentos(string $texto): string
+    {
+        $bytes = @iconv('UTF-8', 'MACINTOSH', $texto);
+
+        return $bytes === false ? trim($texto) : trim(mb_convert_encoding($bytes, 'UTF-8', 'ISO-8859-1'));
     }
 
     private function linhasDoCsv(string $arquivo): array

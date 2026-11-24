@@ -84,3 +84,20 @@ it('lê também planilha .xlsx (matrícula e CPF numéricos, CPF sem o zero à e
     $this->artisan('participantes:importar-discentes', ['arquivo' => $caminho, '--aplicar' => true])->assertSuccessful();
     expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and($p->fresh()->matricula)->toBe('20231551173')->and($p->fresh()->turma->ano)->toBe('2023');
 });
+
+it('repara planilha com acentos corrompidos (ISO-8859-1 lido como MacRoman) antes de comparar e criar cursos', function () {
+    $moj = fn (string $s) => iconv('MACINTOSH', 'UTF-8', mb_convert_encoding($s, 'ISO-8859-1', 'UTF-8'));
+    expect($moj('TÉCNICO'))->not->toBe('TÉCNICO');
+
+    $p = mkPart('João da Conceição', '529.982.247-25');
+    $planilha = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $planilha->getActiveSheet()->fromArray([
+        ['Campus', 'Matrícula', 'Nome', 'Curso', 'Status', 'CPF', 'AnoIngresso'],
+        ['OBI', 20241, $moj('JOÃO DA CONCEIÇÃO'), $moj('TÉCNICO EM AGROPECUÁRIA INTEGRADO AO ENSINO MÉDIO'), 'ATIVO', 52998224725, 2024],
+    ]);
+    $caminho = tempnam(sys_get_temp_dir(), 'disc') . '.xlsx';
+    (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($planilha))->save($caminho);
+
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $caminho, '--aplicar' => true, '--criar-cursos' => true])->assertSuccessful();
+    expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and(Curso::first()->nome)->toBe('Técnico em Agropecuária Integrado ao Ensino Médio');
+});
