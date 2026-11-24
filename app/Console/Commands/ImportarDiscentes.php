@@ -69,7 +69,7 @@ class ImportarDiscentes extends Command
             if ($p->matricula) $porMatricula[$p->matricula] = $p;
         }
 
-        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0, 'conflitos_corrigidos' => 0, 'cadastros_unificados' => 0, 'bloqueados' => 0];
+        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0, 'conflitos_corrigidos' => 0, 'cadastros_unificados' => 0, 'bloqueados' => 0, 'achados_pelo_cpf' => 0];
         $cursosFaltando = [];
         $relatorio = [];
         $matriculasUsadas = Participante::whereNotNull('matricula')->pluck('id', 'matricula')->all();
@@ -84,17 +84,21 @@ class ImportarDiscentes extends Command
                 if ($corrigir) {
                     $grupo = [];
                     foreach ($candidatos as $c) $grupo[$c->id] = $c;
-                    // Dono do CPF/matrícula com OUTRO nome é outra pessoa: nunca é unificado
+                    // CPF igual é a mesma pessoa, mesmo que o nome tenha sido digitado diferente ("Ana Clara" x "Ana Clara Barros").
+                    // Matrícula igual com nome E CPF diferentes é outra pessoa: nunca é unificada (vai para revisão manual).
                     $outraPessoa = null;
-                    foreach ([$l['cpf'] ? ($porCpf[$l['cpf']] ?? null) : null, $porMatricula[$l['matricula']] ?? null] as $dono) {
-                        if (!$dono) continue;
-                        if (self::normalizar($dono->nome_completo) === $chave) $grupo[$dono->id] = $dono; else $outraPessoa = $dono;
+                    $donoCpf = $l['cpf'] ? ($porCpf[$l['cpf']] ?? null) : null;
+                    if ($donoCpf && self::normalizar($donoCpf->nome_completo) !== $chave) $grupo = [];   // o CPF achou a pessoa com outro nome: quem só tem o mesmo nome pode ser um homônimo
+                    if ($donoCpf) $grupo[$donoCpf->id] = $donoCpf;
+                    if ($dono = ($porMatricula[$l['matricula']] ?? null)) {
+                        if (self::normalizar($dono->nome_completo) === $chave || ($donoCpf && $donoCpf->id === $dono->id)) $grupo[$dono->id] = $dono; else $outraPessoa = $dono;
                     }
-                    if ($outraPessoa) { $resumo['bloqueados']++; $relatorio[] = [$l['nome'], $l['matricula'], 'bloqueado', "CPF ou matrícula pertence ao cadastro #{$outraPessoa->id} de outra pessoa: não alterado"]; continue; }
+                    if ($outraPessoa) { $resumo['bloqueados']++; $relatorio[] = [$l['nome'], $l['matricula'], 'bloqueado', "matrícula já está no cadastro #{$outraPessoa->id} ({$outraPessoa->nome_completo}), de outra pessoa: não alterado"]; continue; }
                     $grupo = array_values($grupo);
 
                     $unico = count($grupo) === 1 ? $grupo[0] : null;
                     $cpfUnico = $unico ? self::soDigitos($unico->cpf) : '';
+                    $nomeDiferente = $unico && self::normalizar($unico->nome_completo) !== $chave;
                     $conflito = count($grupo) > 1 || ($unico && ($unico->tipo_vinculo === 'servidor' || ($l['cpf'] && strlen($cpfUnico) === 11 && $cpfUnico !== $l['cpf'])));
 
                     if ($conflito) {
@@ -107,6 +111,12 @@ class ImportarDiscentes extends Command
                             $matriculasUsadas[$l['matricula']] = $p->id;
                             $porMatricula[$l['matricula']] = $p;
                         }
+                    } elseif ($nomeDiferente) {
+                        // achado pelo CPF, com o nome escrito de outro jeito no cadastro
+                        $p = $unico;
+                        $forcado = true;
+                        $resumo['achados_pelo_cpf']++;
+                        $relatorio[] = [$l['nome'], $l['matricula'], 'achado_pelo_cpf', "cadastro #{$p->id} está como \"{$p->nome_completo}\""];
                     }
                 }
 

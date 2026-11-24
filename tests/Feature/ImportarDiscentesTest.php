@@ -148,3 +148,22 @@ it('--corrigir-conflitos: servidor vira aluno, CPF divergente é corrigido e dup
     // Dono do CPF com outro nome: bloqueado, nada alterado
     expect(Participante::where('nome_completo', 'Fulana Bloqueada')->first()->tipo_vinculo)->toBe('externo')->and($outraPessoa->fresh())->not->toBeNull();
 });
+
+it('--corrigir-conflitos: acha pelo CPF quem digitou o nome diferente da planilha; matrícula de outra pessoa continua bloqueada', function () {
+    Curso::create(['nome' => 'Técnico em Meio Ambiente']);
+    $abreviado = mkPart('Ana Clara Barros', '529.982.247-25');                         // nome incompleto, CPF igual
+    $homonimo = mkPart('Joana Souza Lima', '390.533.447-05');                           // mesmo nome da planilha, mas CPF diferente
+    $donoDaMatricula = mkPart('Pessoa Diferente', '168.995.350-09'); $donoDaMatricula->update(['matricula' => '555']);
+    mkPart('Beltrana Teste', '111.444.777-35');
+
+    $csv = csvDiscentes([
+        'OBI;20241;ANA CLARA BARROS FERREIRA;TÉCNICO EM MEIO AMBIENTE;ATIVO;52998224725;2024',
+        'OBI;555;BELTRANA TESTE;TÉCNICO EM MEIO AMBIENTE;ATIVO;11144477735;2024',
+    ]);
+
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--corrigir-conflitos' => true, '--aplicar' => true])->assertSuccessful();
+
+    expect($abreviado->fresh()->tipo_vinculo)->toBe('aluno')->and($abreviado->fresh()->matricula)->toBe('20241')->and($abreviado->fresh()->nome_completo)->toBe('Ana Clara Barros');
+    expect(Participante::where('nome_completo', 'Beltrana Teste')->first()->tipo_vinculo)->toBe('externo')->and($donoDaMatricula->fresh()->matricula)->toBe('555');
+    expect($homonimo->fresh()->tipo_vinculo)->toBe('externo');
+});
