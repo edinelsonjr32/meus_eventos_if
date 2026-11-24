@@ -167,3 +167,15 @@ it('--corrigir-conflitos: acha pelo CPF quem digitou o nome diferente da planilh
     expect(Participante::where('nome_completo', 'Beltrana Teste')->first()->tipo_vinculo)->toBe('externo')->and($donoDaMatricula->fresh()->matricula)->toBe('555');
     expect($homonimo->fresh()->tipo_vinculo)->toBe('externo');
 });
+
+it('--ignorar deixa cadastros específicos de fora', function () {
+    Curso::create(['nome' => 'Técnico em Meio Ambiente']);
+    $mae = mkPart('Cristiane', '529.982.247-25');
+    $ok = mkPart('Joao Souza', '390.533.447-05');
+    $csv = csvDiscentes([
+        'OBI;1;RAILAN SOARES;TÉCNICO EM MEIO AMBIENTE;ATIVO;52998224725;2026',
+        'OBI;2;JOAO SOUZA;TÉCNICO EM MEIO AMBIENTE;ATIVO;39053344705;2026',
+    ]);
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--corrigir-conflitos' => true, '--ignorar' => [(string) $mae->id], '--aplicar' => true])->assertSuccessful();
+    expect($mae->fresh()->tipo_vinculo)->toBe('externo')->and($ok->fresh()->tipo_vinculo)->toBe('aluno');
+});

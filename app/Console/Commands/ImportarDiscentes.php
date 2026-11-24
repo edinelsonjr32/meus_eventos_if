@@ -25,6 +25,7 @@ class ImportarDiscentes extends Command
         {--aplicar : Grava as alterações (sem isso apenas simula)}
         {--criar-cursos : Cria os cursos que ainda não existem (nome igual ao da planilha)}
         {--corrigir-conflitos : A planilha manda: servidor vira aluno, CPF divergente é corrigido e cadastros duplicados da mesma pessoa são unificados}
+        {--ignorar=* : IDs de cadastros (participantes) que não devem ser alterados; pode repetir a opção}
         {--relatorio= : Salva o relatório detalhado (CSV) neste caminho}';
 
     protected $description = 'Atualiza tipo (aluno), matrícula, curso e turma dos participantes que constam na planilha de discentes do SIGAA';
@@ -46,6 +47,7 @@ class ImportarDiscentes extends Command
         $aplicar = (bool) $this->option('aplicar');
         $criarCursos = (bool) $this->option('criar-cursos');
         $corrigir = (bool) $this->option('corrigir-conflitos');
+        $ignorar = array_map('intval', (array) $this->option('ignorar'));
         $this->line($aplicar ? '<fg=yellow>MODO GRAVAÇÃO</>' : '<fg=cyan>SIMULAÇÃO (nada será gravado; use --aplicar)</>');
         $this->line(count($linhas) . ' discente(s) na planilha.');
 
@@ -69,12 +71,12 @@ class ImportarDiscentes extends Command
             if ($p->matricula) $porMatricula[$p->matricula] = $p;
         }
 
-        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0, 'conflitos_corrigidos' => 0, 'cadastros_unificados' => 0, 'bloqueados' => 0, 'achados_pelo_cpf' => 0];
+        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0, 'conflitos_corrigidos' => 0, 'cadastros_unificados' => 0, 'bloqueados' => 0, 'achados_pelo_cpf' => 0, 'ignorados' => 0];
         $cursosFaltando = [];
         $relatorio = [];
         $matriculasUsadas = Participante::whereNotNull('matricula')->pluck('id', 'matricula')->all();
 
-        $trabalho = function () use (&$linhas, &$porNome, &$porCpf, &$porMatricula, &$cursos, &$resumo, &$cursosFaltando, &$relatorio, &$matriculasUsadas, $aplicar, $criarCursos, $corrigir) {
+        $trabalho = function () use (&$linhas, &$porNome, &$porCpf, &$porMatricula, &$cursos, &$resumo, &$cursosFaltando, &$relatorio, &$matriculasUsadas, $aplicar, $criarCursos, $corrigir, $ignorar) {
             foreach ($linhas as $l) {
                 $chave = self::normalizar($l['nome']);
                 $candidatos = $porNome[$chave] ?? [];
@@ -140,6 +142,8 @@ class ImportarDiscentes extends Command
                     // Matrícula já pertence a outro participante
                     if (isset($matriculasUsadas[$l['matricula']]) && $matriculasUsadas[$l['matricula']] !== $p->id) { $resumo['matricula_em_uso']++; $relatorio[] = [$l['nome'], $l['matricula'], 'matricula_em_uso', 'matrícula já usada por outro cadastro']; continue; }
                 }
+
+                if (in_array($p->id, $ignorar, true)) { $resumo['ignorados']++; $relatorio[] = [$l['nome'], $l['matricula'], 'ignorado', "cadastro #{$p->id} ({$p->nome_completo}) na lista --ignorar: não alterado"]; continue; }
 
                 // Curso
                 $curso = $cursos[self::normalizar($l['curso'])] ?? null;
