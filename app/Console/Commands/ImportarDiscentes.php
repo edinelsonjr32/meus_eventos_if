@@ -6,7 +6,11 @@ use App\Models\Curso;
 use App\Models\Participante;
 use App\Models\Turma;
 use Illuminate\Console\Command;
+use App\Models\Frequencia;
+use App\Models\Inscricao;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -20,6 +24,7 @@ class ImportarDiscentes extends Command
         {arquivo : Caminho do CSV (consulta_geral_discente.csv)}
         {--aplicar : Grava as alterações (sem isso apenas simula)}
         {--criar-cursos : Cria os cursos que ainda não existem (nome igual ao da planilha)}
+        {--corrigir-conflitos : A planilha manda: servidor vira aluno, CPF divergente é corrigido e cadastros duplicados da mesma pessoa são unificados}
         {--relatorio= : Salva o relatório detalhado (CSV) neste caminho}';
 
     protected $description = 'Atualiza tipo (aluno), matrícula, curso e turma dos participantes que constam na planilha de discentes do SIGAA';
@@ -40,6 +45,7 @@ class ImportarDiscentes extends Command
 
         $aplicar = (bool) $this->option('aplicar');
         $criarCursos = (bool) $this->option('criar-cursos');
+        $corrigir = (bool) $this->option('corrigir-conflitos');
         $this->line($aplicar ? '<fg=yellow>MODO GRAVAÇÃO</>' : '<fg=cyan>SIMULAÇÃO (nada será gravado; use --aplicar)</>');
         $this->line(count($linhas) . ' discente(s) na planilha.');
 
@@ -55,34 +61,75 @@ class ImportarDiscentes extends Command
             $cursos[self::normalizar($c->nome)] = $c;
         }
 
-        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0];
+        // Para --corrigir-conflitos: localizar também pelo CPF e pela matrícula da planilha
+        $porCpf = [];
+        $porMatricula = [];
+        foreach (Participante::all() as $p) {
+            if (strlen(self::soDigitos($p->cpf)) === 11) $porCpf[self::soDigitos($p->cpf)] = $p;
+            if ($p->matricula) $porMatricula[$p->matricula] = $p;
+        }
+
+        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0, 'conflitos_corrigidos' => 0, 'cadastros_unificados' => 0, 'bloqueados' => 0];
         $cursosFaltando = [];
         $relatorio = [];
         $matriculasUsadas = Participante::whereNotNull('matricula')->pluck('id', 'matricula')->all();
 
-        $trabalho = function () use (&$linhas, &$porNome, &$cursos, &$resumo, &$cursosFaltando, &$relatorio, &$matriculasUsadas, $aplicar, $criarCursos) {
+        $trabalho = function () use (&$linhas, &$porNome, &$porCpf, &$porMatricula, &$cursos, &$resumo, &$cursosFaltando, &$relatorio, &$matriculasUsadas, $aplicar, $criarCursos, $corrigir) {
             foreach ($linhas as $l) {
                 $chave = self::normalizar($l['nome']);
                 $candidatos = $porNome[$chave] ?? [];
+                $forcado = false;
 
-                if (!$candidatos) { $resumo['sem_cadastro']++; $relatorio[] = [$l['nome'], $l['matricula'], 'sem_cadastro', '']; continue; }
+                // --corrigir-conflitos: nome + dono do CPF + dono da matrícula são tratados como a MESMA pessoa
+                if ($corrigir) {
+                    $grupo = [];
+                    foreach ($candidatos as $c) $grupo[$c->id] = $c;
+                    // Dono do CPF/matrícula com OUTRO nome é outra pessoa: nunca é unificado
+                    $outraPessoa = null;
+                    foreach ([$l['cpf'] ? ($porCpf[$l['cpf']] ?? null) : null, $porMatricula[$l['matricula']] ?? null] as $dono) {
+                        if (!$dono) continue;
+                        if (self::normalizar($dono->nome_completo) === $chave) $grupo[$dono->id] = $dono; else $outraPessoa = $dono;
+                    }
+                    if ($outraPessoa) { $resumo['bloqueados']++; $relatorio[] = [$l['nome'], $l['matricula'], 'bloqueado', "CPF ou matrícula pertence ao cadastro #{$outraPessoa->id} de outra pessoa: não alterado"]; continue; }
+                    $grupo = array_values($grupo);
 
-                // Mais de um participante com o mesmo nome: desempata pelo CPF da planilha
-                if (count($candidatos) > 1) {
-                    $porCpf = array_values(array_filter($candidatos, fn ($p) => $l['cpf'] && self::soDigitos($p->cpf) === $l['cpf']));
-                    if (count($porCpf) !== 1) { $resumo['ambiguos']++; $relatorio[] = [$l['nome'], $l['matricula'], 'ambiguo', count($candidatos) . ' cadastros com este nome']; continue; }
-                    $candidatos = $porCpf;
+                    $unico = count($grupo) === 1 ? $grupo[0] : null;
+                    $cpfUnico = $unico ? self::soDigitos($unico->cpf) : '';
+                    $conflito = count($grupo) > 1 || ($unico && ($unico->tipo_vinculo === 'servidor' || ($l['cpf'] && strlen($cpfUnico) === 11 && $cpfUnico !== $l['cpf'])));
+
+                    if ($conflito) {
+                        [$p, $detalhe] = $this->resolverConflito($grupo, $l, $aplicar);
+                        $forcado = true;
+                        $resumo['conflitos_corrigidos']++;
+                        if (count($grupo) > 1) $resumo['cadastros_unificados'] += count($grupo) - 1;
+                        $relatorio[] = [$l['nome'], $l['matricula'], $aplicar ? 'conflito_corrigido' : 'seria_corrigido', $detalhe];
+                        if ($aplicar) {
+                            $matriculasUsadas[$l['matricula']] = $p->id;
+                            $porMatricula[$l['matricula']] = $p;
+                        }
+                    }
                 }
-                $p = $candidatos[0];
 
-                // Homônimo: o CPF cadastrado é de outra pessoa
-                $cpfCad = self::soDigitos($p->cpf);
-                if ($l['cpf'] && strlen($cpfCad) === 11 && $cpfCad !== $l['cpf']) { $resumo['cpf_diferente']++; $relatorio[] = [$l['nome'], $l['matricula'], 'cpf_diferente', 'mesmo nome, CPF diferente: não alterado']; continue; }
+                if (!$forcado) {
+                    if (!$candidatos) { $resumo['sem_cadastro']++; $relatorio[] = [$l['nome'], $l['matricula'], 'sem_cadastro', '']; continue; }
 
-                if ($p->tipo_vinculo === 'servidor') { $resumo['servidores']++; $relatorio[] = [$l['nome'], $l['matricula'], 'servidor', 'cadastro de servidor: não alterado']; continue; }
+                    // Mais de um participante com o mesmo nome: desempata pelo CPF da planilha
+                    if (count($candidatos) > 1) {
+                        $doCpf = array_values(array_filter($candidatos, fn ($p) => $l['cpf'] && self::soDigitos($p->cpf) === $l['cpf']));
+                        if (count($doCpf) !== 1) { $resumo['ambiguos']++; $relatorio[] = [$l['nome'], $l['matricula'], 'ambiguo', count($candidatos) . ' cadastros com este nome']; continue; }
+                        $candidatos = $doCpf;
+                    }
+                    $p = $candidatos[0];
 
-                // Matrícula já pertence a outro participante
-                if (isset($matriculasUsadas[$l['matricula']]) && $matriculasUsadas[$l['matricula']] !== $p->id) { $resumo['matricula_em_uso']++; $relatorio[] = [$l['nome'], $l['matricula'], 'matricula_em_uso', 'matrícula já usada por outro cadastro']; continue; }
+                    // Homônimo: o CPF cadastrado é de outra pessoa
+                    $cpfCad = self::soDigitos($p->cpf);
+                    if ($l['cpf'] && strlen($cpfCad) === 11 && $cpfCad !== $l['cpf']) { $resumo['cpf_diferente']++; $relatorio[] = [$l['nome'], $l['matricula'], 'cpf_diferente', 'mesmo nome, CPF diferente: não alterado']; continue; }
+
+                    if ($p->tipo_vinculo === 'servidor') { $resumo['servidores']++; $relatorio[] = [$l['nome'], $l['matricula'], 'servidor', 'cadastro de servidor: não alterado']; continue; }
+
+                    // Matrícula já pertence a outro participante
+                    if (isset($matriculasUsadas[$l['matricula']]) && $matriculasUsadas[$l['matricula']] !== $p->id) { $resumo['matricula_em_uso']++; $relatorio[] = [$l['nome'], $l['matricula'], 'matricula_em_uso', 'matrícula já usada por outro cadastro']; continue; }
+                }
 
                 // Curso
                 $curso = $cursos[self::normalizar($l['curso'])] ?? null;
@@ -144,6 +191,70 @@ class ImportarDiscentes extends Command
         $this->info($aplicar ? 'Concluído.' : 'Simulação concluída. Confira e rode de novo com --aplicar.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Resolve um conflito pela planilha: escolhe o cadastro a manter (o com mais frequências/inscrições; empate: o do CPF
+     * da planilha), leva para ele tudo dos demais, apaga os repetidos e corrige o CPF. Em simulação só escolhe e descreve.
+     *
+     * @return array{0: Participante, 1: string}
+     */
+    private function resolverConflito(array $grupo, array $l, bool $aplicar): array
+    {
+        $peso = fn (Participante $p) => Frequencia::where('participante_id', $p->id)->count() * 10 + Inscricao::where('participante_id', $p->id)->count();
+        usort($grupo, function ($a, $b) use ($peso, $l) {
+            return [$peso($b), self::soDigitos($b->cpf) === $l['cpf'] ? 1 : 0, -$b->id] <=> [$peso($a), self::soDigitos($a->cpf) === $l['cpf'] ? 1 : 0, -$a->id];
+        });
+        $manter = array_shift($grupo);
+        $detalhe = [];
+
+        if ($manter->tipo_vinculo === 'servidor') $detalhe[] = 'servidor → aluno';
+        foreach ($grupo as $repetido) {
+            $detalhe[] = "cadastro #{$repetido->id} unificado em #{$manter->id}" . ($repetido->email ? " (conta: {$repetido->email})" : '');
+            if ($aplicar) $this->unificar($manter, $repetido);
+        }
+
+        $cpfManter = self::soDigitos($manter->cpf);
+        if ($l['cpf'] && $cpfManter !== $l['cpf']) {
+            $detalhe[] = 'CPF corrigido pela planilha';
+            if ($aplicar) {
+                $manter->cpf = substr($l['cpf'], 0, 3) . '.' . substr($l['cpf'], 3, 3) . '.' . substr($l['cpf'], 6, 3) . '-' . substr($l['cpf'], 9, 2);
+                $manter->save();
+            }
+        }
+
+        return [$manter, implode('; ', $detalhe) ?: 'ok'];
+    }
+
+    /** Move tudo que aponta para o cadastro repetido (inscrições, frequências, trabalhos...) para o que fica e apaga o repetido. */
+    private function unificar(Participante $manter, Participante $repetido): void
+    {
+        foreach (Schema::getTables() as $tabela) {
+            foreach (Schema::getForeignKeys($tabela['name']) as $fk) {
+                if ($fk['foreign_table'] !== 'participantes' || count($fk['columns']) !== 1) continue;
+                $coluna = $fk['columns'][0];
+
+                foreach (DB::table($tabela['name'])->where($coluna, $repetido->id)->get() as $linha) {
+                    $consulta = DB::table($tabela['name']);
+                    foreach ((array) $linha as $k => $v) {
+                        $v === null ? $consulta->whereNull($k) : $consulta->where($k, $v);
+                    }
+                    try {
+                        $consulta->update([$coluna => $manter->id]);
+                    } catch (QueryException) {
+                        $consulta->delete();   // o cadastro que fica já tem este mesmo registro (ex.: mesma presença): o repetido é redundante
+                    }
+                }
+            }
+        }
+
+        // A conta de login do repetido fica sem cadastro; se o que fica não tem conta, herda a dele
+        if (!$manter->user_id && $repetido->user_id) {
+            $user = $repetido->user_id;
+            $repetido->forceFill(['user_id' => null])->save();
+            $manter->forceFill(['user_id' => $user])->save();
+        }
+        $repetido->delete();
     }
 
     /** Lê a planilha (.csv com ";" em UTF-8/ISO-8859-1, ou .xlsx) e devolve só o necessário. */

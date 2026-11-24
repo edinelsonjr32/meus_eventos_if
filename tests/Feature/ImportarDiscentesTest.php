@@ -101,3 +101,50 @@ it('repara planilha com acentos corrompidos (ISO-8859-1 lido como MacRoman) ante
     $this->artisan('participantes:importar-discentes', ['arquivo' => $caminho, '--aplicar' => true, '--criar-cursos' => true])->assertSuccessful();
     expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and(Curso::first()->nome)->toBe('Técnico em Agropecuária Integrado ao Ensino Médio');
 });
+
+it('--corrigir-conflitos: servidor vira aluno, CPF divergente é corrigido e duplicados são unificados mantendo frequências', function () {
+    $curso = Curso::create(['nome' => 'Técnico em Meio Ambiente']);
+    $evento = mkEvento(mkUser('admin'));
+    $novaAtividade = fn ($n) => \App\Models\Atividade::create(['evento_id' => $evento->id, 'titulo' => "Atv {$n}", 'tipo' => 'palestra', 'data_inicio' => now(), 'data_fim' => now()->addHours(2), 'carga_horaria' => 2, 'vagas' => 50, 'token_frequencia' => "QR-{$n}"]);
+    $atv = $novaAtividade(1);
+
+    $servidora = mkPart('Iane Soares', '049.444.777-25', 'servidor');
+    $cpfErrado = mkPart('Maiane Sodre', '057.111.222-10');
+    // Natália: dois cadastros; o de CPF certo tem 1 presença, o de CPF errado tem 2 (uma na mesma atividade)
+    $certo = mkPart('Natália Santana', '529.982.247-25', 'aluno'); $certo->update(['matricula' => '777']);
+    $errado = mkPart('natalia santana', '390.533.447-05', 'aluno'); $errado->update(['matricula' => '777']);
+    $atv2 = $novaAtividade(2);
+    foreach ([[$certo, $atv], [$errado, $atv], [$errado, $atv2]] as [$pp, $aa]) {
+        \App\Models\Frequencia::create(['participante_id' => $pp->id, 'atividade_id' => $aa->id, 'data_registro' => now(), 'hash_validacao' => Str::random(20)]);
+    }
+    $outraPessoa = mkPart('Outro Nome', '168.995.350-09');   // dono do CPF da planilha, mas é outra pessoa
+
+    $csv = csvDiscentes([
+        'OBI;20261;IANE SOARES;TÉCNICO EM MEIO AMBIENTE;ATIVO;04944477725;2026',
+        'OBI;20262;MAIANE SODRÉ;TÉCNICO EM MEIO AMBIENTE;ATIVO;05711122214;2024',
+        'OBI;777;NATÁLIA SANTANA;TÉCNICO EM MEIO AMBIENTE;ATIVO;52998224725;2026',
+        'OBI;20264;FULANA BLOQUEADA;TÉCNICO EM MEIO AMBIENTE;ATIVO;16899535009;2026',
+    ]);
+    mkPart('Fulana Bloqueada', '111.444.777-35');
+
+    // Sem a opção, nada disso é mexido
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--aplicar' => true])->assertSuccessful();
+    expect($servidora->fresh()->tipo_vinculo)->toBe('servidor')->and(Participante::count())->toBe(6);
+
+    // Simulação com a opção: não grava
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--corrigir-conflitos' => true])->assertSuccessful();
+    expect(Participante::count())->toBe(6)->and($cpfErrado->fresh()->cpf)->toBe('057.111.222-10');
+
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--corrigir-conflitos' => true, '--aplicar' => true])->assertSuccessful();
+
+    expect($servidora->fresh()->tipo_vinculo)->toBe('aluno')->and($servidora->fresh()->matricula)->toBe('20261');
+    expect($cpfErrado->fresh()->cpf)->toBe('057.111.222-14')->and($cpfErrado->fresh()->tipo_vinculo)->toBe('aluno');
+
+    // Natália: ficou 1 cadastro (o com mais presenças), com o CPF da planilha e as 2 presenças (a repetida não duplica)
+    $natalias = Participante::where('nome_completo', 'like', '%atal%')->get();
+    expect($natalias)->toHaveCount(1)->and($natalias[0]->id)->toBe($errado->id)->and($natalias[0]->cpf)->toBe('529.982.247-25');
+    expect(\App\Models\Frequencia::where('participante_id', $errado->id)->count())->toBe(2)->and(\App\Models\Frequencia::count())->toBe(2);
+
+    // Dono do CPF com outro nome: bloqueado, nada alterado
+    expect(Participante::where('nome_completo', 'Fulana Bloqueada')->first()->tipo_vinculo)->toBe('externo')->and($outraPessoa->fresh())->not->toBeNull();
+});
