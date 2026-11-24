@@ -146,39 +146,34 @@ class ImportarDiscentes extends Command
         return self::SUCCESS;
     }
 
-    /** Lê o CSV (;), aceitando UTF-8 ou ISO-8859-1, e devolve só o necessário. */
+    /** Lê a planilha (.csv com ";" em UTF-8/ISO-8859-1, ou .xlsx) e devolve só o necessário. */
     private function lerCsv(string $arquivo): ?array
     {
-        $conteudo = file_get_contents($arquivo);
-        if (!mb_check_encoding($conteudo, 'UTF-8')) {
-            $conteudo = mb_convert_encoding($conteudo, 'UTF-8', 'ISO-8859-1');
-        }
-        $conteudo = ltrim($conteudo, "\xEF\xBB\xBF");
+        $linhas = strtolower(pathinfo($arquivo, PATHINFO_EXTENSION)) === 'xlsx' ? $this->linhasDoXlsx($arquivo) : $this->linhasDoCsv($arquivo);
 
-        $linhas = preg_split('/\r\n|\n|\r/', $conteudo);
-        $cab = str_getcsv(array_shift($linhas) ?? '', ';');
+        $cab = array_shift($linhas) ?? [];
         $idx = [];
         foreach ($cab as $i => $nome) {
-            $idx[self::normalizar($nome)] = $i;
+            $idx[self::normalizar((string) $nome)] = $i;
         }
         foreach (['nome', 'curso', 'matricula', 'anoingresso'] as $obrig) {
             if (!isset($idx[$obrig])) return null;
         }
 
-        $saida = [];
-        foreach ($linhas as $linha) {
-            if (trim($linha) === '') continue;
-            $c = str_getcsv($linha, ';');
-            $nome = trim($c[$idx['nome']] ?? '');
-            $matricula = preg_replace('/\D/', '', $c[$idx['matricula']] ?? '');
-            $ano = preg_replace('/\D/', '', $c[$idx['anoingresso']] ?? '');
-            if ($nome === '' || $matricula === '' || $ano === '') continue;
-            if (isset($idx['status']) && !str_contains(self::normalizar($c[$idx['status']] ?? 'ativo'), 'ativo')) continue;
+        $texto = fn ($v) => is_float($v) ? number_format($v, 0, '', '') : trim((string) $v);   // número do Excel (2.0241E+11) vira texto inteiro
 
-            $cpf = isset($idx['cpf']) ? preg_replace('/\D/', '', $c[$idx['cpf']] ?? '') : '';
+        $saida = [];
+        foreach ($linhas as $c) {
+            $nome = $texto($c[$idx['nome']] ?? '');
+            $matricula = preg_replace('/\D/', '', $texto($c[$idx['matricula']] ?? ''));
+            $ano = preg_replace('/\D/', '', $texto($c[$idx['anoingresso']] ?? ''));
+            if ($nome === '' || $matricula === '' || $ano === '') continue;
+            if (isset($idx['status']) && !str_contains(self::normalizar($texto($c[$idx['status']] ?? 'ativo')), 'ativo')) continue;
+
+            $cpf = isset($idx['cpf']) ? preg_replace('/\D/', '', $texto($c[$idx['cpf']] ?? '')) : '';
             $saida[] = [
                 'nome' => $nome,
-                'curso' => trim($c[$idx['curso']] ?? ''),
+                'curso' => $texto($c[$idx['curso']] ?? ''),
                 'matricula' => $matricula,
                 'ano' => $ano,
                 'cpf' => $cpf !== '' ? str_pad($cpf, 11, '0', STR_PAD_LEFT) : '',   // o Excel costuma comer o zero à esquerda
@@ -186,6 +181,29 @@ class ImportarDiscentes extends Command
         }
 
         return $saida;
+    }
+
+    private function linhasDoCsv(string $arquivo): array
+    {
+        $conteudo = file_get_contents($arquivo);
+        if (!mb_check_encoding($conteudo, 'UTF-8')) {
+            $conteudo = mb_convert_encoding($conteudo, 'UTF-8', 'ISO-8859-1');
+        }
+        $conteudo = ltrim($conteudo, "\xEF\xBB\xBF");
+
+        $saida = [];
+        foreach (preg_split('/\r\n|\n|\r/', $conteudo) as $linha) {
+            if (trim($linha) !== '') $saida[] = str_getcsv($linha, ';');
+        }
+
+        return $saida;
+    }
+
+    private function linhasDoXlsx(string $arquivo): array
+    {
+        $abas = \Maatwebsite\Excel\Facades\Excel::toArray(new class {}, $arquivo);
+
+        return array_values(array_filter($abas[0] ?? [], fn ($l) => array_filter($l, fn ($v) => $v !== null && $v !== '')));
     }
 
     /** Minúsculas, sem acentos e com espaços simples: "JOÃO  da Silva" == "joao da silva". */

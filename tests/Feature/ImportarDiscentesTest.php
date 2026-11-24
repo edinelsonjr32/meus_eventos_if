@@ -70,3 +70,17 @@ it('não mexe em homônimo com CPF diferente, em servidor, em nome ambíguo nem 
     $this->artisan('participantes:importar-discentes', ['arquivo' => $csv2, '--aplicar' => true])->assertSuccessful();
     expect($d2->fresh()->tipo_vinculo)->toBe('aluno')->and($d1->fresh()->tipo_vinculo)->toBe('externo');
 });
+
+it('lê também planilha .xlsx (matrícula e CPF numéricos, CPF sem o zero à esquerda)', function () {
+    $p = mkPart('Zé Ninguém', '012.345.678-90');
+    Curso::create(['nome' => 'Técnico em Agroecologia']);
+
+    $planilha = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $aba = $planilha->getActiveSheet();
+    $aba->fromArray([['Campus', 'Matrícula', 'Nome', 'Curso', 'Status', 'CPF', 'AnoIngresso'], ['OBI', 20231551173, 'ZÉ NINGUÉM', 'TÉCNICO EM AGROECOLOGIA', 'ATIVO', 1234567890, 2023]]);
+    $caminho = tempnam(sys_get_temp_dir(), 'disc') . '.xlsx';
+    (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($planilha))->save($caminho);
+
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $caminho, '--aplicar' => true])->assertSuccessful();
+    expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and($p->fresh()->matricula)->toBe('20231551173')->and($p->fresh()->turma->ano)->toBe('2023');
+});
