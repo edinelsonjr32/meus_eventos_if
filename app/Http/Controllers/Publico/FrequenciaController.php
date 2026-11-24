@@ -99,6 +99,9 @@ class FrequenciaController extends Controller
      * Processa o registro de presença.
      */
 
+    /** Teto (m) da margem de erro do GPS descontada da distância. */
+    private const MARGEM_MAXIMA = 150;
+
     public function store(Request $request, $token)
     {
         // 1. Identificação: Busca a Atividade pelo token e o Evento pai
@@ -129,11 +132,15 @@ class FrequenciaController extends Controller
                 return $this->falha($request, 'Não foi possível obter sua localização. Permita o acesso ao GPS e tente novamente.', 422, 'sem_localizacao');
             }
 
-            $distancia = $this->calcularDistancia($request->user_lat, $request->user_lng, $evento->latitude, $evento->longitude);
+            $distancia = $this->calcularDistancia($request->user_lat, $request->user_lng, $this->coordenada($evento->latitude), $this->coordenada($evento->longitude));
             $raio = (int) ($evento->raio_permitido ?: 300);
 
-            if ($distancia > $raio) {
-                return $this->falha($request, "Você está a {$distancia} m do local do evento (máximo permitido: {$raio} m).", 403, 'fora_do_raio', ['distancia' => (int) $distancia, 'raio' => $raio, 'local' => $evento->local]);
+            // O GPS informa a margem de erro da posição (em metros). Quem está dentro do raio, mas com sinal
+            // impreciso, não pode ser barrado por causa dessa margem: ela é descontada da distância (até um teto).
+            $precisao = is_numeric($request->user_precisao) ? max(0, min((float) $request->user_precisao, self::MARGEM_MAXIMA)) : 0;
+
+            if ($distancia - $precisao > $raio) {
+                return $this->falha($request, "Você está a {$distancia} m do local do evento (máximo permitido: {$raio} m).", 403, 'fora_do_raio', ['distancia' => (int) $distancia, 'raio' => $raio, 'local' => $evento->local, 'precisao' => (int) round((float) $request->user_precisao)]);
             }
         }
 
@@ -198,22 +205,20 @@ class FrequenciaController extends Controller
      */
     private function calcularDistancia($lat1, $lon1, $lat2, $lon2)
     {
-        if (($lat1 == $lat2) && ($lon1 == $lon2)) {
-            return 0;
-        }
+        $lat1 = deg2rad($this->coordenada($lat1));
+        $lon1 = deg2rad($this->coordenada($lon1));
+        $lat2 = deg2rad($this->coordenada($lat2));
+        $lon2 = deg2rad($this->coordenada($lon2));
 
-        $lat1 = floatval($lat1);
-        $lon1 = floatval($lon1);
-        $lat2 = floatval($lat2);
-        $lon2 = floatval($lon2);
+        // Haversine (estável para distâncias curtas), raio médio da Terra de 6.371 km
+        $a = sin(($lat2 - $lat1) / 2) ** 2 + cos($lat1) * cos($lat2) * sin(($lon2 - $lon1) / 2) ** 2;
 
-        $theta = $lon1 - $lon2;
-        $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
-        $dist = acos(max(-1, min(1, $dist)));
-        $dist = rad2deg($dist);
-        $miles = $dist * 60 * 1.1515;
+        return round(2 * 6371000 * asin(min(1, sqrt($a))));
+    }
 
-        // Converte milhas para Metros
-        return round($miles * 1.609344 * 1000);
+    /** Aceita "-1,9234" (vírgula decimal) e espaços, como costumam ser digitados ou copiados. */
+    private function coordenada($valor): float
+    {
+        return (float) str_replace(',', '.', trim((string) $valor));
     }
 }

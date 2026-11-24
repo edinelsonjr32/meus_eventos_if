@@ -144,7 +144,7 @@
                     {{-- Longe do local --}}
                     <template x-if="modal.tipo === 'distancia'">
                         <div>
-                            <div class="fb-dist"><b x-text="distanciaTexto(modal.extra.distancia)"></b><span>de distância do local · limite permitido: <strong x-text="distanciaTexto(modal.extra.raio)"></strong></span></div>
+                            <div class="fb-dist"><b x-text="distanciaTexto(modal.extra.distancia)"></b><span>de distância do local · limite permitido: <strong x-text="distanciaTexto(modal.extra.raio)"></strong><template x-if="modal.extra.precisao > 0"><em style="display:block;font-style:normal;margin-top:2px">Margem de erro do seu GPS: ±<span x-text="distanciaTexto(modal.extra.precisao)"></span></em></template></span></div>
                             <ol class="fb-dicas">
                                 <li>Vá até o local da atividade<template x-if="modal.extra.local"><span>: <strong x-text="modal.extra.local"></strong></span></template>.</li>
                                 <li>Já está no local? Ligue o <strong>GPS</strong> do aparelho e, se possível, saia para uma área aberta ou perto de uma janela.</li>
@@ -244,24 +244,36 @@
                     this.lat = ''; this.lng = ''; this.precisao = 0;
                     this.gpsEstado = 'pedindo';
 
-                    const ok = (p) => {
+                    // Guarda sempre a melhor leitura (menor margem de erro). O GPS começa impreciso (Wi-Fi/antena,
+                    // às vezes a quilômetros) e refina em alguns segundos: por isso acompanhamos por um tempo.
+                    let melhor = null, terminou = false, terminou2 = false, id = null;
+                    const aplicar = (p) => {
+                        if (melhor && p.coords.accuracy >= melhor.coords.accuracy) return;
+                        melhor = p;
                         this.lat = p.coords.latitude; this.lng = p.coords.longitude;
                         this.precisao = Math.round(p.coords.accuracy || 0);
                         this.gpsEstado = 'ok';
                     };
+                    const encerrar = () => { if (terminou) return; terminou = true; if (id !== null) navigator.geolocation.clearWatch(id); clearTimeout(limite); };
                     const falha = (e) => {
+                        if (melhor) return;   // já temos uma posição: o erro não a invalida
+                        encerrar();
+                        if ((e.code === 2 || e.code === 3) && !terminou2) {   // ambiente fechado: tenta com precisão normal
+                            terminou2 = true;
+                            navigator.geolocation.getCurrentPosition(aplicar, falha, { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 });
+                            return;
+                        }
                         if (e.code === 1) this.gpsEstado = 'negado';
                         else if (e.code === 3) this.gpsEstado = 'tempo';
                         else this.gpsEstado = 'indisponivel';
                         if (avisar) this.avisoGps(this.gpsEstado);
                     };
-
-                    // 1ª tentativa: alta precisão. Se demorar, 2ª com precisão normal (funciona melhor em ambiente fechado).
-                    navigator.geolocation.getCurrentPosition(ok, (e) => {
-                        if (e.code === 3 || e.code === 2) {
-                            navigator.geolocation.getCurrentPosition(ok, falha, { enableHighAccuracy: false, timeout: 12000, maximumAge: 0 });
-                        } else { falha(e); }
-                    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+                    // Para quando a leitura é boa (±30 m) ou após 20 s, ficando com a melhor obtida
+                    const limite = setTimeout(() => { if (melhor) encerrar(); }, 20000);
+                    id = navigator.geolocation.watchPosition((p) => {
+                        aplicar(p);
+                        if (p.coords.accuracy <= 30) encerrar();
+                    }, falha, { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 });
                 },
 
                 // Botão principal: sem localização, pede; com localização, confirma e envia
@@ -310,6 +322,7 @@
                         const body = new FormData(form);
                         body.set('user_lat', this.lat);
                         body.set('user_lng', this.lng);
+                        body.set('user_precisao', this.precisao || 0);
 
                         const res = await fetch(form.action, {
                             method: 'POST', body: body, credentials: 'same-origin',
@@ -334,7 +347,7 @@
 
                         if (res.status === 419) { this.abrirModal('sessao', { mensagem: 'Sua sessão expirou ou o navegador bloqueou os cookies. Recarregue a página (ou abra o link no Chrome/Safari) e tente de novo.' }); return; }
                         if (data.codigo === 'fora_do_raio') {
-                            this.abrirModal('distancia', { mensagem: 'Para registrar presença você precisa estar no local do evento.', extra: { distancia: data.distancia, raio: data.raio, local: data.local } });
+                            this.abrirModal('distancia', { mensagem: 'Para registrar presença você precisa estar no local do evento.', extra: { distancia: data.distancia, raio: data.raio, local: data.local, precisao: data.precisao } });
                             this.solicitar(true);   // renova a posição em segundo plano (pode estar velha/imprecisa)
                             return;
                         }

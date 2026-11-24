@@ -63,8 +63,20 @@ class EventoController extends Controller
     /**
      * Armazena um novo evento.
      */
+    /** "-1,9234" (vírgula) e espaços viram "-1.9234", para a distância ser calculada corretamente. */
+    private function normalizarCoordenadas(Request $request): void
+    {
+        foreach (['latitude', 'longitude'] as $campo) {
+            if ($request->has($campo) && is_string($request->input($campo))) {
+                $request->merge([$campo => str_replace(',', '.', trim($request->input($campo)))]);
+            }
+        }
+    }
+
     public function store(Request $request)
     {
+        $this->normalizarCoordenadas($request);
+
         // 1. Validação Completa
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
@@ -77,8 +89,8 @@ class EventoController extends Controller
             'banner' => self::REGRA_BANNER,
 
             // Geo-fencing
-            'latitude' => 'nullable|string',
-            'longitude' => 'nullable|string',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'raio_permitido' => 'nullable|integer|min:10',
         ]);
 
@@ -145,6 +157,7 @@ class EventoController extends Controller
     public function update(Request $request, Evento $evento)
     {
         $this->authorize('gerenciar', $evento);
+        $this->normalizarCoordenadas($request);
 
         // 1. Validação Apenas dos Dados Primários
         $validator = Validator::make($request->all(), [
@@ -158,8 +171,8 @@ class EventoController extends Controller
             'banner' => self::REGRA_BANNER,
 
             // Geolocalização
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'raio_permitido' => 'nullable|integer|min:50',
 
             // TODOS os campos de Certificado (cert_corpo, imagem_fundo, assinaturas) REMOVIDOS daqui.

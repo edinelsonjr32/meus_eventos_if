@@ -196,3 +196,37 @@ it('erros da frequência trazem um código e dados para o modal: fora do raio, s
     $html = $this->actingAs(mkUser('user', 'outro@x.com'))->get(route('frequencia.form', 'QR-TESTE'))->getContent();
     expect($html)->toContain('Você está longe do local')->toContain('Atualizar localização')->toContain('Sem conexão');
 });
+
+it('a distância é exata e a margem de erro do GPS é descontada: dentro do raio com sinal impreciso não é barrado', function () {
+    // 0,001° de latitude ≈ 111 m
+    $this->evento->update(['latitude' => '-1,9000', 'longitude' => '-55,5000', 'raio_permitido' => 300]);   // vírgula decimal digitada
+    $user = mkUser('user', 'gps@x.com');
+    Participante::create(['user_id' => $user->id, 'nome_completo' => 'Gps Impreciso', 'cpf' => '111.444.777-35', 'email' => 'gps@x.com', 'tipo_vinculo' => 'externo', 'vinculo_confirmado_em' => now()]);
+    $this->actingAs($user);
+    $json = ['Accept' => 'application/json'];
+
+    // ~389 m (0,0035°) com GPS ±5 m: fora de verdade
+    $r = $this->post($this->url, ['user_lat' => -1.8965, 'user_lng' => -55.5, 'user_precisao' => 5], $json)->assertForbidden()->assertJsonPath('codigo', 'fora_do_raio');
+    expect($r->json('distancia'))->toBeBetween(380, 400)->and($r->json('precisao'))->toBe(5);
+
+    // mesma posição, mas o GPS avisa ±120 m (margem descontada): 389 - 120 < 300 → registra
+    $this->post($this->url, ['user_lat' => -1.8965, 'user_lng' => -55.5, 'user_precisao' => 120], $json)->assertOk();
+});
+
+it('margem de erro enorme (sinal por Wi-Fi/antena) tem teto e não libera quem está a quilômetros', function () {
+    $this->evento->update(['latitude' => -1.9, 'longitude' => -55.5, 'raio_permitido' => 300]);
+    $user = mkUser('user', 'wifi@x.com');
+    Participante::create(['user_id' => $user->id, 'nome_completo' => 'Wifi Longe', 'cpf' => '111.444.777-35', 'email' => 'wifi@x.com', 'tipo_vinculo' => 'externo', 'vinculo_confirmado_em' => now()]);
+    $this->actingAs($user)->post($this->url, ['user_lat' => -1.88, 'user_lng' => -55.5, 'user_precisao' => 5000], ['Accept' => 'application/json'])->assertForbidden();   // ~2,2 km
+});
+
+it('o cadastro do evento aceita latitude/longitude com vírgula e recusa valores impossíveis', function () {
+    $admin = mkUser('admin');
+    $evento = mkEvento($admin);
+    $dados = fn ($lat, $lng) => ['titulo' => $evento->titulo, 'descricao' => 'x', 'data_inicio' => $evento->data_inicio, 'data_fim' => $evento->data_fim, 'local' => 'Campus', 'latitude' => $lat, 'longitude' => $lng, 'raio_permitido' => 300];
+
+    $this->actingAs($admin)->put(route('admin.eventos.update', $evento), $dados(' -1,9234', '-55,4321 '))->assertSessionHasNoErrors();
+    expect((float) $evento->fresh()->latitude)->toBe(-1.9234)->and((float) $evento->fresh()->longitude)->toBe(-55.4321);
+
+    $this->put(route('admin.eventos.update', $evento), $dados('-95', '-55'))->assertSessionHasErrors('latitude');
+});
