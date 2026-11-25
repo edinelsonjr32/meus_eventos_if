@@ -25,6 +25,7 @@ class ImportarDiscentes extends Command
         {--aplicar : Grava as alterações (sem isso apenas simula)}
         {--criar-cursos : Cria os cursos que ainda não existem (nome igual ao da planilha)}
         {--corrigir-conflitos : A planilha manda: servidor vira aluno, CPF divergente é corrigido e cadastros duplicados da mesma pessoa são unificados}
+        {--corrigir-nomes : Troca o nome do cadastro pelo nome oficial da planilha (em formato de nome próprio)}
         {--ignorar=* : IDs de cadastros (participantes) que não devem ser alterados; pode repetir a opção}
         {--relatorio= : Salva o relatório detalhado (CSV) neste caminho}';
 
@@ -47,6 +48,7 @@ class ImportarDiscentes extends Command
         $aplicar = (bool) $this->option('aplicar');
         $criarCursos = (bool) $this->option('criar-cursos');
         $corrigir = (bool) $this->option('corrigir-conflitos');
+        $corrigirNomes = (bool) $this->option('corrigir-nomes');
         $ignorar = array_map('intval', (array) $this->option('ignorar'));
         $this->line($aplicar ? '<fg=yellow>MODO GRAVAÇÃO</>' : '<fg=cyan>SIMULAÇÃO (nada será gravado; use --aplicar)</>');
         $this->line(count($linhas) . ' discente(s) na planilha.');
@@ -71,12 +73,12 @@ class ImportarDiscentes extends Command
             if ($p->matricula) $porMatricula[$p->matricula] = $p;
         }
 
-        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0, 'conflitos_corrigidos' => 0, 'cadastros_unificados' => 0, 'bloqueados' => 0, 'achados_pelo_cpf' => 0, 'ignorados' => 0];
+        $resumo = ['atualizados' => 0, 'ja_corretos' => 0, 'sem_cadastro' => 0, 'ambiguos' => 0, 'cpf_diferente' => 0, 'servidores' => 0, 'sem_curso' => 0, 'matricula_em_uso' => 0, 'conflitos_corrigidos' => 0, 'cadastros_unificados' => 0, 'bloqueados' => 0, 'achados_pelo_cpf' => 0, 'ignorados' => 0, 'nomes_corrigidos' => 0];
         $cursosFaltando = [];
         $relatorio = [];
         $matriculasUsadas = Participante::whereNotNull('matricula')->pluck('id', 'matricula')->all();
 
-        $trabalho = function () use (&$linhas, &$porNome, &$porCpf, &$porMatricula, &$cursos, &$resumo, &$cursosFaltando, &$relatorio, &$matriculasUsadas, $aplicar, $criarCursos, $corrigir, $ignorar) {
+        $trabalho = function () use (&$linhas, &$porNome, &$porCpf, &$porMatricula, &$cursos, &$resumo, &$cursosFaltando, &$relatorio, &$matriculasUsadas, $aplicar, $criarCursos, $corrigir, $ignorar, $corrigirNomes) {
             foreach ($linhas as $l) {
                 $chave = self::normalizar($l['nome']);
                 $candidatos = $porNome[$chave] ?? [];
@@ -144,6 +146,16 @@ class ImportarDiscentes extends Command
                 }
 
                 if (in_array($p->id, $ignorar, true)) { $resumo['ignorados']++; $relatorio[] = [$l['nome'], $l['matricula'], 'ignorado', "cadastro #{$p->id} ({$p->nome_completo}) na lista --ignorar: não alterado"]; continue; }
+
+                // Nome oficial da planilha (o do cadastro vai no certificado)
+                if ($corrigirNomes) {
+                    $oficial = self::tituloNome($l['nome']);
+                    if ($p->nome_completo !== $oficial) {
+                        $resumo['nomes_corrigidos']++;
+                        $relatorio[] = [$l['nome'], $l['matricula'], $aplicar ? 'nome_corrigido' : 'seria_nome_corrigido', "\"{$p->nome_completo}\" → \"{$oficial}\""];
+                        if ($aplicar) { $p->nome_completo = $oficial; $p->save(); }
+                    }
+                }
 
                 // Curso
                 $curso = $cursos[self::normalizar($l['curso'])] ?? null;
@@ -370,6 +382,19 @@ class ImportarDiscentes extends Command
     private static function soDigitos(?string $v): string
     {
         return preg_replace('/\D/', '', (string) $v);
+    }
+
+    /** "JOÃO DA SILVA" → "João da Silva" (partículas em minúscula, algarismos romanos em maiúscula) */
+    public static function tituloNome(string $nome): string
+    {
+        $palavras = preg_split('/\s+/u', mb_strtolower(trim($nome)));
+
+        return implode(' ', array_map(function ($w, $i) {
+            if ($i > 0 && in_array($w, ['da', 'de', 'do', 'das', 'dos', 'e'], true)) return $w;
+            if (preg_match('/^(ii|iii|iv|vi|vii|viii|ix)$/u', $w)) return mb_strtoupper($w);
+
+            return preg_replace_callback('/(^|[\-\'])(\p{L})/u', fn ($m) => $m[1] . mb_strtoupper($m[2]), $w);
+        }, $palavras, array_keys($palavras)));
     }
 
     /** "TÉCNICO EM INFORMÁTICA INTEGRADO AO ENSINO MÉDIO" → "Técnico em Informática Integrado ao Ensino Médio" */

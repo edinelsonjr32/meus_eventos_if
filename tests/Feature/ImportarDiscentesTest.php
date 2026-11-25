@@ -179,3 +179,21 @@ it('--ignorar deixa cadastros específicos de fora', function () {
     $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--corrigir-conflitos' => true, '--ignorar' => [(string) $mae->id], '--aplicar' => true])->assertSuccessful();
     expect($mae->fresh()->tipo_vinculo)->toBe('externo')->and($ok->fresh()->tipo_vinculo)->toBe('aluno');
 });
+
+it('--corrigir-nomes troca o nome do cadastro pelo oficial da planilha, em formato de nome próprio', function () {
+    Curso::create(['nome' => 'Técnico em Meio Ambiente']);
+    $a = mkPart('alanwilliam612@gmail.com', '529.982.247-25');
+    $b = mkPart('Ana Paula', '390.533.447-05');
+    $csv = csvDiscentes([
+        'OBI;1;ALAN WILLIAM ARAÚJO DE VASCONCELOS;TÉCNICO EM MEIO AMBIENTE;ATIVO;52998224725;2025',
+        'OBI;2;ANA PAULA GOMES FIGUEIRA DOS SANTOS;TÉCNICO EM MEIO AMBIENTE;ATIVO;39053344705;2025',
+    ]);
+
+    // simulação e execução sem a opção não mexem no nome
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--corrigir-conflitos' => true, '--aplicar' => true])->assertSuccessful();
+    expect($a->fresh()->nome_completo)->toBe('alanwilliam612@gmail.com');
+
+    $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--corrigir-conflitos' => true, '--corrigir-nomes' => true, '--aplicar' => true])->assertSuccessful();
+    expect($a->fresh()->nome_completo)->toBe('Alan William Araújo de Vasconcelos')->and($b->fresh()->nome_completo)->toBe('Ana Paula Gomes Figueira dos Santos');
+    expect(\App\Console\Commands\ImportarDiscentes::tituloNome("JOÃO D'ÁVILA  e  MARIA-CLARA II"))->toBe("João D'Ávila e Maria-Clara II");
+});
