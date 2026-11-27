@@ -62,3 +62,53 @@ it('a página pública mostra a seção de voluntariado com o botão só quando 
     $chamada->update(['ativa' => false]);
     $this->get($url)->assertDontSee('id="voluntariado"', false);
 });
+
+function inscreverNoEvento($evento, string $email, string $cpf): void
+{
+    $u = mkUser('user', $email);
+    $p = App\Models\Participante::create(['user_id' => $u->id, 'nome_completo' => $email, 'cpf' => $cpf, 'email' => $email, 'tipo_vinculo' => 'externo']);
+    App\Models\Inscricao::create(['evento_id' => $evento->id, 'participante_id' => $p->id, 'data_inscricao' => now()]);
+}
+
+it('avisa os inscritos por e-mail uma única vez, só quando marcado e com a notícia no ar', function () {
+    Illuminate\Support\Facades\Mail::fake();
+    inscreverNoEvento($this->evento, 'um@x.com', '111.444.777-35');
+    inscreverNoEvento($this->evento, 'dois@x.com', '529.982.247-25');
+    inscreverNoEvento(mkEvento($this->admin), 'outroevento@x.com', '390.533.447-05');
+    $this->actingAs($this->admin);
+    $this->get(route('admin.noticias.index', $this->evento))->assertSee('Avisar os inscritos por e-mail (2)');
+    $dados = ['titulo' => 'Sem aviso', 'conteudo' => '<p>x</p>', 'publicada' => '1'];
+
+    $this->post(route('admin.noticias.store', $this->evento), $dados);
+    $this->post(route('admin.noticias.store', $this->evento), ['titulo' => 'Rascunho', 'publicada' => '0', 'notificar_inscritos' => '1'] + $dados);
+    Illuminate\Support\Facades\Mail::assertNothingQueued();
+
+    $this->post(route('admin.noticias.store', $this->evento), ['titulo' => 'Com aviso', 'notificar_inscritos' => '1'] + $dados)->assertSessionHas('success', 'Notícia salva. 2 e-mail(s) aos inscritos colocado(s) na fila de envio.');
+    Illuminate\Support\Facades\Mail::assertQueued(App\Mail\NoticiaEventoMail::class, 2);
+    Illuminate\Support\Facades\Mail::assertQueued(App\Mail\NoticiaEventoMail::class, fn ($m) => $m->hasTo('um@x.com'));
+    Illuminate\Support\Facades\Mail::assertNotQueued(App\Mail\NoticiaEventoMail::class, fn ($m) => $m->hasTo('outroevento@x.com'));
+
+    // editar não reenvia
+    $n = NoticiaEvento::firstWhere('titulo', 'Com aviso');
+    expect($n->notificados_total)->toBe(2);
+    $this->put(route('admin.noticias.update', [$this->evento, $n]), ['titulo' => 'Com aviso (corrigido)', 'notificar_inscritos' => '1'] + $dados);
+    $this->artisan('noticias:notificar')->assertSuccessful();
+    Illuminate\Support\Facades\Mail::assertQueued(App\Mail\NoticiaEventoMail::class, 2);
+
+    $html = (new App\Mail\NoticiaEventoMail($n->fresh()))->render();
+    expect($html)->toContain('Ler no site')->toContain('#noticias');
+});
+
+it('notícia agendada avisa pelo agendador quando entra no ar', function () {
+    Illuminate\Support\Facades\Mail::fake();
+    inscreverNoEvento($this->evento, 'um@x.com', '111.444.777-35');
+    $this->actingAs($this->admin)->post(route('admin.noticias.store', $this->evento), ['titulo' => 'Depois', 'conteudo' => '<p>x</p>', 'publicada' => '1', 'notificar_inscritos' => '1', 'publicado_em' => now()->addDay()->format('Y-m-d\TH:i')]);
+
+    $this->artisan('noticias:notificar');
+    Illuminate\Support\Facades\Mail::assertNothingQueued();
+
+    $this->travel(2)->days();
+    $this->artisan('noticias:notificar');
+    $this->artisan('noticias:notificar');
+    Illuminate\Support\Facades\Mail::assertQueued(App\Mail\NoticiaEventoMail::class, 1);
+});

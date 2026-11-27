@@ -11,9 +11,9 @@ class NoticiaEvento extends Model
 {
     protected $table = 'noticias_evento';
 
-    protected $fillable = ['evento_id', 'titulo', 'conteudo', 'publicado_em', 'publicada', 'fixada', 'criado_por'];
+    protected $fillable = ['evento_id', 'titulo', 'conteudo', 'publicado_em', 'publicada', 'fixada', 'notificar_inscritos', 'criado_por'];
 
-    protected $casts = ['publicado_em' => 'datetime', 'publicada' => 'boolean', 'fixada' => 'boolean'];
+    protected $casts = ['publicado_em' => 'datetime', 'publicada' => 'boolean', 'fixada' => 'boolean', 'notificar_inscritos' => 'boolean', 'notificado_em' => 'datetime'];
 
     public function evento(): BelongsTo
     {

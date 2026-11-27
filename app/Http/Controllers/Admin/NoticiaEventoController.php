@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Evento;
 use App\Models\NoticiaEvento;
+use App\Services\NotificadorDeNoticias;
 use App\Support\HtmlSeguro;
 use Illuminate\Http\Request;
 
@@ -17,23 +18,27 @@ class NoticiaEventoController extends Controller
 
         $noticias = $evento->noticias()->orderByDesc('fixada')->orderByDesc('publicado_em')->orderByDesc('id')->paginate(15);
 
-        return view('admin.noticias.index', compact('evento', 'noticias'));
+        $totalDestinatarios = app(NotificadorDeNoticias::class)->destinatarios($evento)->count();
+
+        return view('admin.noticias.index', compact('evento', 'noticias', 'totalDestinatarios'));
     }
 
     public function store(Request $request, Evento $evento)
     {
         $this->authorize('gerenciar', $evento);
 
-        $evento->noticias()->create($this->dados($request) + ['criado_por' => $request->user()->id]);
+        $noticia = $evento->noticias()->create($this->dados($request) + ['criado_por' => $request->user()->id]);
 
-        return redirect()->route('admin.noticias.index', $evento)->with('success', 'Notícia salva.');
+        return redirect()->route('admin.noticias.index', $evento)->with('success', 'Notícia salva.' . $this->avisar($noticia));
     }
 
     public function edit(Evento $evento, NoticiaEvento $noticia)
     {
         $this->conferir($evento, $noticia);
 
-        return view('admin.noticias.edit', compact('evento', 'noticia'));
+        $totalDestinatarios = app(NotificadorDeNoticias::class)->destinatarios($evento)->count();
+
+        return view('admin.noticias.edit', compact('evento', 'noticia', 'totalDestinatarios'));
     }
 
     public function update(Request $request, Evento $evento, NoticiaEvento $noticia)
@@ -42,7 +47,7 @@ class NoticiaEventoController extends Controller
 
         $noticia->update($this->dados($request, $noticia));
 
-        return redirect()->route('admin.noticias.index', $evento)->with('success', 'Notícia atualizada.');
+        return redirect()->route('admin.noticias.index', $evento)->with('success', 'Notícia atualizada.' . $this->avisar($noticia));
     }
 
     public function destroy(Evento $evento, NoticiaEvento $noticia)
@@ -51,6 +56,23 @@ class NoticiaEventoController extends Controller
         $noticia->delete();
 
         return redirect()->route('admin.noticias.index', $evento)->with('success', 'Notícia excluída.');
+    }
+
+    /** Envia o aviso (se marcado e a notícia já estiver no ar) e devolve a frase para a mensagem de sucesso. */
+    private function avisar(NoticiaEvento $noticia): string
+    {
+        if (!$noticia->notificar_inscritos || $noticia->notificado_em) {
+            return '';
+        }
+        if ($noticia->situacao() === 'agendada') {
+            return ' Os inscritos serão avisados por e-mail quando ela entrar no ar.';
+        }
+        if ($noticia->situacao() === 'rascunho') {
+            return ' O e-mail aos inscritos só sai quando a notícia ficar visível no site.';
+        }
+        $n = app(NotificadorDeNoticias::class)->notificar($noticia);
+
+        return $n ? " {$n} e-mail(s) aos inscritos colocado(s) na fila de envio." : ' Não há inscritos com e-mail para avisar.';
     }
 
     private function conferir(Evento $evento, NoticiaEvento $noticia): void
@@ -74,6 +96,9 @@ class NoticiaEventoController extends Controller
         $d['publicado_em'] = $d['publicado_em'] ?? $atual?->publicado_em ?? now();
         $d['publicada'] = $request->boolean('publicada');
         $d['fixada'] = $request->boolean('fixada');
+        if (!$atual?->notificado_em) {   // depois de enviado, o aviso não se repete nem se desfaz
+            $d['notificar_inscritos'] = $request->boolean('notificar_inscritos');
+        }
 
         return $d;
     }

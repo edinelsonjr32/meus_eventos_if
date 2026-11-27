@@ -15,6 +15,9 @@ Schedule::command('trabalhos:lembrar-avaliadores')->dailyAt('08:00');
 // Lembrete (sala e horário) das apresentações orais que começam nos próximos 30 minutos
 Schedule::command('apresentacoes:lembrar')->everyFiveMinutes()->withoutOverlapping(4);
 
+// Aviso por e-mail das notícias de evento agendadas, quando entram no ar
+Schedule::command('noticias:notificar')->everyFiveMinutes()->withoutOverlapping(4);
+
 // Batimento: permite confirmar (php artisan sistema:verificar) que o cron está rodando
 Schedule::call(fn () => Cache::put('agendador:ultimo-batimento', now()->toIso8601String(), now()->addDay()))
     ->name('agendador-batimento')->everyMinute();
