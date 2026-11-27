@@ -126,6 +126,18 @@ class PropostaGestaoController extends Controller
         return back()->with('success', "{$participante->nome_completo} foi adicionado(a) como participante do evento.");
     }
 
+    /** Organização define se a pessoa indicada é ministrante ou ajudante. */
+    public function funcaoApoio(Request $request, Evento $evento, PropostaApoio $apoio)
+    {
+        $this->authorize('gerenciar', $evento);
+        abort_unless($apoio->proposta->evento_id === $evento->id, 404);
+
+        $dados = $request->validate(['funcao' => ['required', \Illuminate\Validation\Rule::in(array_keys(PropostaApoio::FUNCOES))]]);
+        $this->service->definirFuncao($apoio, $dados['funcao']);
+
+        return back()->with('success', "{$apoio->nome} agora é {$apoio->funcaoRotulo()}.");
+    }
+
     /** Emite (ou atualiza) o certificado de ministrante do proponente, depois que a atividade terminou. */
     public function certificado(Evento $evento, Proposta $proposta)
     {
@@ -138,7 +150,10 @@ class PropostaGestaoController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Certificado de ministrante emitido.');
+        [$demais, $avisos] = $this->service->certificarCoministrantes($proposta, auth()->user());
+        $resposta = back()->with('success', 'Certificado de ministrante emitido' . ($demais ? " para o proponente e mais {$demais} ministrante(s)." : '.'));
+
+        return $avisos ? $resposta->with('error', 'Não emitido para: ' . implode(' | ', $avisos)) : $resposta;
     }
 
     private function validarChamada(Request $request): array

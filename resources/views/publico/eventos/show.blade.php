@@ -134,8 +134,11 @@
                         @if($chamadaCurso)
                             <a href="{{ route('propostas.create', $chamadaCurso) }}" class="btn btn-ev-out"><i class="fa-solid fa-chalkboard-user me-1"></i> Propor Minicurso/Oficina</a>
                         @endif
+                        {{-- Voluntariado: com chamada aberta vai direto ao formulário; sem ela, leva à seção que explica a situação --}}
                         @if($chamadaVol)
                             <a href="{{ route('voluntariado.create', $chamadaVol) }}" class="btn btn-ev-out"><i class="fa-solid fa-hand-holding-heart me-1"></i> Seja Voluntário(a)</a>
+                        @elseif($mostraVoluntariado)
+                            <a href="#voluntariado" class="btn btn-ev-out"><i class="fa-solid fa-hand-holding-heart me-1"></i> Seja Voluntário(a)</a>
                         @endif
                         @if($anaisPublicados)
                             <a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-ev-out"><i class="fa-solid fa-book me-1"></i> Trabalhos Publicados</a>
@@ -152,7 +155,7 @@
             <a href="#sobre">Sobre</a>
             @if($atividades->isNotEmpty())<a href="#programacao">Programação</a>@endif
             @if($chamadaAtiva)<a href="#trabalhos">Trabalhos</a>@endif
-            @if($chamadasVoluntarios->isNotEmpty())<a href="#voluntariado">Voluntariado</a>@endif
+            @if($mostraVoluntariado)<a href="#voluntariado">Voluntariado</a>@endif
             <a href="#local">Local</a>
             @if($evento->aceitaInscricoes())<a href="#inscricao">Inscrição</a>@endif
         </div>
@@ -291,10 +294,18 @@
                 @endif
 
                 {{-- Voluntariado --}}
-                @if($chamadasVoluntarios->isNotEmpty())
+                @if($mostraVoluntariado)
                     <section class="cartao ev-bloco" id="voluntariado">
                         <h2><i class="fa-solid fa-hand-holding-heart"></i> Seja voluntário(a)</h2>
                         <p class="text-muted">Ajude a fazer o evento acontecer e receba certificado de participação como voluntário(a).</p>
+                        @if($chamadasVoluntarios->isEmpty())
+                            <p class="selo selo-azul mb-0"><i class="fa-regular fa-clock"></i> As inscrições para voluntários ainda não foram abertas.</p>
+                            @auth
+                                @can('gerenciar', $evento)
+                                    <div class="alert alert-warning small mt-3 mb-0"><i class="fa-solid fa-user-shield me-1"></i> Só você, da organização, vê este aviso: <a href="{{ route('admin.voluntarios.index', $evento->id) }}" class="fw-bold">crie a chamada de voluntários</a> para liberar a inscrição.</div>
+                                @endcan
+                            @endauth
+                        @endif
                         @foreach($chamadasVoluntarios as $chamada)
                             <div class="ev-vol">
                                 <div class="min-w-0">

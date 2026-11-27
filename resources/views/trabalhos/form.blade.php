@@ -354,9 +354,13 @@
                                     </div>
                                     <input type="hidden" :name="`autores[${i + 1}][id]`" :value="a.id || ''">
                                     <input type="hidden" :name="`autores[${i + 1}][apresentador]`" :value="a.apresentador ? 1 : 0">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" :id="'vai_apresentar_' + a.uid" x-model="a.apresentador">
+                                        <label class="form-check-label small fw-bold" :for="'vai_apresentar_' + a.uid"><i class="fa-solid fa-microphone me-1 text-success"></i> Também vai apresentar o trabalho</label>
+                                    </div>
                                     <input type="hidden" :name="`autores[${i + 1}][correspondente]`" :value="a.correspondente ? 1 : 0">
                                     <div class="alert alert-danger py-1 px-2 small mb-2" x-show="a.erroServidor" x-text="a.erroServidor"></div>
-                                    <div class="alert alert-warning py-1 px-2 small mb-2" x-show="a.apresentador"><i class="fa-solid fa-microphone me-1"></i> Este autor foi definido como <strong>apresentador</strong>: o e-mail e a categoria são obrigatórios.</div>
+                                    <div class="alert alert-warning py-1 px-2 small mb-2" x-show="a.apresentador"><i class="fa-solid fa-microphone me-1"></i> Como <strong>apresentador(a)</strong>, informe o e-mail e a categoria{{ $exigeCpf ? ' e o CPF (usado no certificado)' : '' }}.</div>
                                     <div class="row g-2">
                                         <div class="col-md-6">
                                             <label class="small fw-bold text-secondary" x-text="'Nome completo do autor ' + (i + 2) + ' *'"></label>
@@ -387,6 +391,12 @@
                                             <label class="small fw-bold text-secondary">E-mail <span class="fw-normal" x-text="a.apresentador ? '*' : '(opcional)'"></span></label>
                                             <input type="email" class="form-control form-control-sm" :name="`autores[${i + 1}][email]`" x-model="a.email">
                                         </div>
+                                        <template x-if="a.apresentador">
+                                            <div class="col-md-4">
+                                                <label class="small fw-bold text-secondary">CPF {{ $exigeCpf ? '*' : '(opcional)' }}</label>
+                                                <input type="text" class="form-control form-control-sm" :name="`autores[${i + 1}][cpf]`" x-model="a.cpf" @input="a.cpf = mascara(a.cpf)" maxlength="14" placeholder="000.000.000-00" inputmode="numeric">
+                                            </div>
+                                        </template>
                                     </div>
                                 </div>
                             </template>
@@ -394,7 +404,7 @@
                             <button type="button" class="btn btn-sm btn-outline-success fw-bold" @click="adicionarExtra()" x-show="extras.length + 1 < maxAutores + 2">
                                 <i class="fa-solid fa-plus me-1"></i> Adicionar autor
                             </button>
-                            <div class="form-text">Até {{ $config->max_autores }} autores (orientadores e coorientadores não contam no limite).</div>
+                            <div class="form-text">Até {{ $config->max_autores }} autores (orientadores e coorientadores não contam no limite). Mais de uma pessoa pode apresentar: ligue "Também vai apresentar" em cada uma.</div>
                         </div>
                     </template>
                 </section>
@@ -555,7 +565,7 @@
                         const a = this.apresentador;
                         const dados = { titulo: this.titulo, tipo: this.tipo, modalidade: this.modalidade, resumo: this.resumo, palavras: this.palavras, maisAutores: this.maisAutores, decl1: this.decl1, decl2: this.decl2,
                             apresentador: { nome_completo: a.nome_completo, cpf: a.cpf, email: a.email, instituicao: a.instituicao, categoria_autor: a.categoria_autor },
-                            extras: this.extras.map(x => ({ nome_completo: x.nome_completo, instituicao: x.instituicao, tipo_autor: x.tipo_autor, categoria_autor: x.categoria_autor, email: x.email })) };
+                            extras: this.extras.map(x => ({ nome_completo: x.nome_completo, instituicao: x.instituicao, tipo_autor: x.tipo_autor, categoria_autor: x.categoria_autor, email: x.email, cpf: x.cpf, apresentador: x.apresentador })) };
                         try { if (dados.titulo || dados.resumo) localStorage.setItem(cfg.chaveRascunho, JSON.stringify(dados)); } catch (e) {}
                     }, 800);
                 },
@@ -648,6 +658,8 @@
                             if (marcarExtras) { x.erroNome = faltaNome ? 'Informe o nome completo.' : ''; x.erroIes = faltaIes ? 'Informe a instituição.' : ''; }
                             if ((faltaNome || faltaIes) && !e.extras) e.extras = `Complete os dados do autor ${i + 2} (nome e instituição).`;
                             if (x.apresentador && !emailOk(x.email)) { e['extra_email_' + i] = `Informe um e-mail válido para o autor ${i + 2}, definido como apresentador.`; }
+                            if (x.apresentador && !x.categoria_autor) { e['extra_cat_' + i] = `Informe se o autor ${i + 2}, que vai apresentar, é docente ou discente.`; }
+                            if (x.apresentador && cfg.exigeCpf && (x.cpf || '').length !== 14) { e['extra_cpf_' + i] = `Informe o CPF completo do autor ${i + 2}, que vai apresentar.`; }
                         });
                     }
 

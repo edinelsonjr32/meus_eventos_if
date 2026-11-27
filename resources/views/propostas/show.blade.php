@@ -47,7 +47,7 @@
                 <dt class="col-sm-4 text-secondary">Equipamentos</dt><dd class="col-sm-8 conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->equipamentos_solicitados) ?: '—' !!}</dd>
                 <dt class="col-sm-4 text-secondary">WhatsApp de contato</dt><dd class="col-sm-8">{{ $proposta->contato_whatsapp ?: '—' }}</dd>
                 <dt class="col-sm-4 text-secondary">Disponibilidade</dt><dd class="col-sm-8">{{ $proposta->disponibilidadeResumo() ?: '—' }}</dd>
-                <dt class="col-sm-4 text-secondary">Pessoas de apoio</dt><dd class="col-sm-8">{{ $proposta->apoios->isEmpty() ? '—' : $proposta->apoios->pluck('nome')->implode(', ') }}</dd>
+                <dt class="col-sm-4 text-secondary">Ministrantes e ajudantes</dt><dd class="col-sm-8">{{ $proposta->apoios->isEmpty() ? '—' : $proposta->apoios->map(fn ($a) => $a->nome . ' (' . $a->funcaoRotulo() . ')')->implode(', ') }}</dd>
             </dl>
             @foreach(['objetivos' => 'Objetivos', 'conteudo_programatico' => 'Conteúdo programático', 'metodologia' => 'Metodologia', 'pre_requisitos' => 'Pré-requisitos', 'materiais_participante' => 'O que o participante deve levar', 'minicurriculo' => 'Minicurrículo', 'observacoes' => 'Observações'] as $campo => $rotulo)
                 @if($proposta->$campo)<div class="mt-3"><div class="small fw-bold text-secondary">{{ $rotulo }}</div><div class="small conteudo-rico">{!! \App\Support\HtmlSeguro::paraExibir($proposta->$campo) !!}</div></div>@endif

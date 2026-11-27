@@ -40,6 +40,7 @@ class SalvarPropostaRequest extends FormRequest
                     'nome' => trim((string) ($a['nome'] ?? '')),
                     'email' => filled($a['email'] ?? null) ? mb_strtolower(trim($a['email'])) : null,
                     'cpf' => filled($cpf) ? $cpf : null,
+                    'funcao' => ($a['funcao'] ?? null) ?: 'ajudante',
                 ];
             })->values()->all();
 
@@ -97,6 +98,7 @@ class SalvarPropostaRequest extends FormRequest
             'equipamentos_solicitados' => ['nullable', 'string', 'max:20000', $this->texto(0, 2000, 'Os equipamentos')],
             'observacoes' => ['nullable', 'string', 'max:20000', $this->texto(0, 2000, 'As observações')],
             'apoios' => ['nullable', 'array', 'max:30'],
+            'apoios.*.funcao' => ['required', \Illuminate\Validation\Rule::in(array_keys(\App\Models\PropostaApoio::FUNCOES))],
             'apoios.*.nome' => ['required', 'string', 'min:3', 'max:255'],
             'apoios.*.email' => ['required', 'email:rfc', 'max:255'],
             'apoios.*.cpf' => ['required', 'string', 'size:14', new Cpf],

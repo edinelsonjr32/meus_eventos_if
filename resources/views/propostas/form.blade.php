@@ -170,11 +170,17 @@
 
             {{-- 5. Pessoas de apoio --}}
             <div class="glass-card mb-4 pf-sec">
-                <h6 class="fw-bold text-success mb-1"><span class="badge bg-success me-2">5</span> Pessoas de apoio (ajudantes)</h6>
-                <p class="small text-muted">Opcional. Informe quem vai ajudar na atividade (quantas precisar). Nome, e-mail e CPF são obrigatórios para cada pessoa: a organização poderá adicioná-la como participante do evento.</p>
+                <h6 class="fw-bold text-success mb-1"><span class="badge bg-success me-2">5</span> Outros ministrantes e ajudantes</h6>
+                <p class="small text-muted">Opcional. Informe quem vai atuar com você (quantas pessoas precisar) e a <strong>atribuição</strong> de cada uma: <strong>Ministrante</strong> (conduz a atividade junto, aparece na programação e recebe certificado de ministrante) ou <strong>Ajudante</strong> (apoia). Nome, e-mail e CPF são obrigatórios.</p>
                 <template x-for="(a, i) in apoios" :key="a.uid">
                     <div class="border rounded-3 p-2 mb-2 bg-light">
                         <div class="row g-2 align-items-start">
+                            <div class="col-12 col-md-4"><label class="small fw-bold">Atribuição *</label>
+                                <select class="form-select form-select-sm" :name="`apoios[${i}][funcao]`" x-model="a.funcao">
+                                    <option value="ajudante">Ajudante</option>
+                                    <option value="ministrante">Ministrante</option>
+                                </select></div>
+                            <div class="col-md-8 d-none d-md-block"></div>
                             <div class="col-md-4"><label class="small">Nome *</label><input type="text" class="form-control form-control-sm" :class="{ 'is-invalid': erros['apoio_' + i + '_nome'] }" :name="`apoios[${i}][nome]`" x-model="a.nome" maxlength="255">
                                 <div class="text-danger small" x-show="erros['apoio_' + i + '_nome']" x-text="erros['apoio_' + i + '_nome']"></div></div>
                             <div class="col-md-4"><label class="small">E-mail *</label><input type="email" class="form-control form-control-sm" :class="{ 'is-invalid': erros['apoio_' + i + '_email'] }" :name="`apoios[${i}][email]`" x-model="a.email">
@@ -186,7 +192,7 @@
                     </div>
                 </template>
                 <div class="text-danger small mb-2" x-show="erros.apoios" x-text="erros.apoios"></div>
-                <button type="button" class="btn btn-sm btn-outline-success" x-show="apoios.length < 30" @click="adicionarApoio()"><i class="fa-solid fa-plus"></i> Adicionar pessoa de apoio</button>
+                <button type="button" class="btn btn-sm btn-outline-success" x-show="apoios.length < 30" @click="adicionarApoio()"><i class="fa-solid fa-plus"></i> Adicionar ministrante ou ajudante</button>
             </div>
 
             </fieldset>
@@ -204,7 +210,7 @@
     <script>
         function formProposta(cfg) {
             let seq = 0;
-            const novoApoio = (d = {}) => ({ uid: ++seq, nome: d.nome || '', email: d.email || '', cpf: d.cpf || '' });
+            const novoApoio = (d = {}) => ({ uid: ++seq, funcao: d.funcao || 'ajudante', nome: d.nome || '', email: d.email || '', cpf: d.cpf || '' });
             const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || '');
             const digitos = v => (v || '').replace(/\D/g, '');
             const cpfOk = v => {

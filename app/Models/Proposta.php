@@ -60,6 +60,14 @@ class Proposta extends Model
         return $this->hasMany(PropostaApoio::class);
     }
 
+    /** Quem ministra: o proponente e as pessoas indicadas como ministrantes (vai na programação). */
+    public function nomesDosMinistrantes(): string
+    {
+        $principal = $this->participante?->nome_completo ?: $this->proponente?->name;
+
+        return collect([$principal])->merge($this->apoios()->where('funcao', 'ministrante')->orderBy('id')->pluck('nome'))->filter()->unique()->implode(', ');
+    }
+
     public function statusRotulo(): string
     {
         return self::STATUS[$this->status] ?? $this->status;

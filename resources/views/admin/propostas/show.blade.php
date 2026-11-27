@@ -39,11 +39,18 @@
             </div>
 
             <div class="glass-card">
-                <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-people-carry-box me-1"></i> Pessoas de apoio (ajudantes)</h6>
+                <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-people-carry-box me-1"></i> Outros ministrantes e ajudantes</h6>
                 @forelse($proposta->apoios as $ap)
                     <div class="border rounded-3 p-3 mb-2">
                         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-                            <div><div class="fw-bold">{{ $ap->nome }}</div><div class="small text-muted">{{ $ap->email ?: 'sem e-mail' }} · {{ $ap->cpf ?: 'sem CPF' }}</div></div>
+                            <div><div class="fw-bold">{{ $ap->nome }}</div><div class="small text-muted">{{ $ap->email ?: 'sem e-mail' }} · {{ $ap->cpf ?: 'sem CPF' }}</div>
+                                <form action="{{ route('admin.propostas.apoio-funcao', [$evento->id, $ap->id]) }}" method="POST" class="d-flex align-items-center gap-2 mt-2">
+                                    @csrf
+                                    <label class="small fw-bold text-secondary" for="funcao{{ $ap->id }}">Atribuição</label>
+                                    <select name="funcao" id="funcao{{ $ap->id }}" class="form-select form-select-sm" style="width:150px" onchange="this.form.submit()">
+                                        @foreach(\App\Models\PropostaApoio::FUNCOES as $valor => $rotulo)<option value="{{ $valor }}" @selected($ap->funcao === $valor)>{{ $rotulo }}</option>@endforeach
+                                    </select>
+                                </form></div>
                             @if($ap->noEvento())
                                 <span class="sb sb-ok"><i class="fa-solid fa-circle-check"></i> No evento desde {{ $ap->adicionado_ao_evento_em->format('d/m/Y') }}</span>
                             @else
@@ -57,9 +64,9 @@
                         </div>
                     </div>
                 @empty
-                    <p class="small text-muted mb-0">O proponente não indicou pessoas de apoio.</p>
+                    <p class="small text-muted mb-0">O proponente não indicou outras pessoas.</p>
                 @endforelse
-                <div class="form-text">"Adicionar ao evento" cadastra a pessoa como participante e a inscreve no evento (para receber presença e certificado).</div>
+                <div class="form-text">"Adicionar ao evento" cadastra a pessoa como participante e a inscreve no evento (para receber presença e certificado). Ao emitir o certificado de ministrante, os demais ministrantes também recebem o deles.</div>
             </div>
         </div>
 

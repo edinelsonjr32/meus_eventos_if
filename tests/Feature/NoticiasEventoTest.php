@@ -51,7 +51,11 @@ it('quem não gerencia o evento não mexe nas notícias, e não se edita notíci
 
 it('a página pública mostra a seção de voluntariado com o botão só quando a chamada está aberta', function () {
     $url = route('evento.publico.show', $this->evento->slug);
-    $this->get($url)->assertOk()->assertDontSee('id="voluntariado"', false)->assertDontSee('id="noticias"', false);
+    // sem chamada: o botão e a seção aparecem avisando que ainda não abriu; só a organização vê o atalho para criar
+    $this->get($url)->assertOk()->assertSee('Seja Voluntário(a)')->assertSee('href="#voluntariado"', false)->assertSee('ainda não foram abertas')
+        ->assertDontSee('Quero ser voluntário(a)')->assertDontSee('crie a chamada de voluntários')->assertDontSee('id="noticias"', false);
+    $this->actingAs($this->admin)->get($url)->assertSee('crie a chamada de voluntários')->assertSee(route('admin.voluntarios.index', $this->evento->id), false);
+    auth()->logout();
 
     $chamada = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Apoio na recepção', 'ativa' => true, 'inicio' => now()->addDay(), 'fim' => now()->addDays(5)]);
     $this->get($url)->assertSee('id="voluntariado"', false)->assertSee('Apoio na recep')->assertSee('Abre em')->assertDontSee('Quero ser voluntário(a)');
@@ -59,8 +63,10 @@ it('a página pública mostra a seção de voluntariado com o botão só quando 
     $chamada->update(['inicio' => now()->subDay()]);
     $this->get($url)->assertSee('Quero ser voluntário(a)')->assertSee(route('voluntariado.create', $chamada), false)->assertSee('href="#voluntariado"', false);
 
+    // evento encerrado e sem chamada ativa: não aparece
     $chamada->update(['ativa' => false]);
-    $this->get($url)->assertDontSee('id="voluntariado"', false);
+    $this->evento->update(['data_inicio' => now()->subDays(5), 'data_fim' => now()->subDay()]);
+    $this->get($url)->assertDontSee('id="voluntariado"', false)->assertDontSee('Seja Voluntário(a)');
 });
 
 function inscreverNoEvento($evento, string $email, string $cpf): void

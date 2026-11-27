@@ -53,7 +53,10 @@ class EventoPublicoController extends Controller
         // Chamadas de voluntários abertas e as que ainda vão abrir
         $chamadasVoluntarios = $evento->chamadasVoluntarios()->where('ativa', true)->where(fn ($q) => $q->whereNull('fim')->orWhere('fim', '>=', now()))->orderBy('inicio')->get();
 
-        return view('publico.eventos.show', compact('noticias', 'chamadasVoluntarios', 'evento', 'atividades', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado', 'totalInscritos', 'cargaTotal', 'anaisPublicados'));
+        // Enquanto o evento não acabou, o voluntariado aparece mesmo sem chamada (avisando que ainda não abriu)
+        $mostraVoluntariado = $chamadasVoluntarios->isNotEmpty() || !$evento->data_fim->isPast();
+
+        return view('publico.eventos.show', compact('mostraVoluntariado', 'noticias', 'chamadasVoluntarios', 'evento', 'atividades', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado', 'totalInscritos', 'cargaTotal', 'anaisPublicados'));
     }
 
 

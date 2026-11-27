@@ -10,7 +10,9 @@ class PropostaApoio extends Model
 {
     protected $table = 'proposta_apoios';
 
-    protected $fillable = ['proposta_id', 'nome', 'email', 'cpf', 'participante_id', 'adicionado_ao_evento_em'];
+    public const FUNCOES = ['ministrante' => 'Ministrante', 'ajudante' => 'Ajudante'];
+
+    protected $fillable = ['proposta_id', 'nome', 'email', 'cpf', 'funcao', 'participante_id', 'adicionado_ao_evento_em'];
 
     protected $casts = ['adicionado_ao_evento_em' => 'datetime'];
 
@@ -22,6 +24,16 @@ class PropostaApoio extends Model
     public function participante(): BelongsTo
     {
         return $this->belongsTo(Participante::class);
+    }
+
+    public function ehMinistrante(): bool
+    {
+        return $this->funcao === 'ministrante';
+    }
+
+    public function funcaoRotulo(): string
+    {
+        return self::FUNCOES[$this->funcao] ?? 'Ajudante';
     }
 
     public function noEvento(): bool

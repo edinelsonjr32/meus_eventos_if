@@ -371,6 +371,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::put('propostas/chamadas/{chamada}', [$p, 'updateChamada'])->name('propostas.chamadas.update');
         Route::delete('propostas/chamadas/{chamada}', [$p, 'destroyChamada'])->name('propostas.chamadas.destroy');
         Route::post('propostas/apoios/{apoio}/evento', [$p, 'apoioAoEvento'])->name('propostas.apoio-evento');
+        Route::post('propostas/apoios/{apoio}/funcao', [$p, 'funcaoApoio'])->name('propostas.apoio-funcao');
         Route::get('propostas/{proposta}', [$p, 'show'])->name('propostas.show');
         Route::post('propostas/{proposta}/decisao', [$p, 'decisao'])->name('propostas.decisao');
         Route::post('propostas/{proposta}/certificado', [$p, 'certificado'])->name('propostas.certificado');

@@ -54,6 +54,20 @@
             </div>
         @endif
 
+        {{-- Quem ministrou junto (indicado por outra pessoa) não tem proposta própria: o certificado aparece aqui --}}
+        @php $semProposta = $certificados->reject(fn ($c) => $propostas->contains('evento_id', $c->evento_id)); @endphp
+        @if($semProposta->isNotEmpty())
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-award text-success me-2"></i> Meus certificados de ministrante</h5>
+            <div class="glass-card mb-4">
+                @foreach($semProposta as $c)
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2">
+                        <div class="min-w-0"><div class="fw-bold texto-quebra">{{ $c->evento->titulo }}</div><div class="small text-muted texto-quebra">{{ $c->detalhe }}</div></div>
+                        <a href="{{ route('certificado.equipe.download', $c->hash_validacao) }}" class="btn btn-sm btn-primary-custom"><i class="fa-solid fa-download"></i> Baixar</a>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
         <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-lines text-success me-2"></i> Todas as minhas propostas</h5>
         @if($propostas->isEmpty())
             <div class="glass-card text-center py-5 text-muted">Você ainda não enviou propostas.</div>

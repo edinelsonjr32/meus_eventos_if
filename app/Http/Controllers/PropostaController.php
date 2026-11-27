@@ -91,7 +91,7 @@ class PropostaController extends Controller
 
         return view('propostas.form', [
             'chamada' => $proposta->chamada->load('evento'), 'proposta' => $proposta,
-            'apoios' => old('apoios', $proposta->apoios->map(fn ($a) => ['nome' => $a->nome, 'email' => $a->email, 'cpf' => $a->cpf])->all()),
+            'apoios' => old('apoios', $proposta->apoios->map(fn ($a) => ['nome' => $a->nome, 'email' => $a->email, 'cpf' => $a->cpf, 'funcao' => $a->funcao])->all()),
             'dias' => $proposta->chamada->evento->diasDoEvento(),
         ]);
     }
