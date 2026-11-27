@@ -403,6 +403,7 @@
                 $ehAvaliador = \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'avaliador')->exists();
                 $ehAdmin = Auth::user()->role === 'admin';
                 $ehRecepcao = !$ehAdmin && \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'recepcao')->exists();
+                $ehGestorFreq = \Illuminate\Support\Facades\DB::table('evento_user')->where('user_id', Auth::id())->where('role', 'gestor_frequencia')->exists();
                 $ehGestorTrab = !$ehAdmin && \App\Models\Evento::gestaoTrabalhosPor(Auth::user())->exists();
             @endphp
 
@@ -439,7 +440,7 @@
             @endif
 
             {{-- ===== Área de gestão ===== --}}
-            @if($ehAdmin || $ehRecepcao || $ehGestorTrab)
+            @if($ehAdmin || $ehRecepcao || $ehGestorTrab || $ehGestorFreq)
                 <div class="nav-grupo">
                     <div class="nav-secao"><i class="fa-solid fa-lock"></i> Área de gestão</div>
 
@@ -455,6 +456,12 @@
                     @if($ehRecepcao)
                         <a href="{{ route('recepcao.index') }}" class="nav-link {{ request()->routeIs('recepcao.*') || request()->routeIs('admin.eventos.credenciamento.*') ? 'active' : '' }}">
                             <i class="fa-solid fa-id-badge nav-ico"></i> Recepção
+                        </a>
+                    @endif
+
+                    @if($ehAdmin || $ehGestorFreq)
+                        <a href="{{ route('gestao.frequencia.index') }}" class="nav-link {{ request()->routeIs('gestao.frequencia.*') ? 'active' : '' }}">
+                            <i class="fa-solid fa-qrcode nav-ico"></i> Frequência (QR Code)
                         </a>
                     @endif
 

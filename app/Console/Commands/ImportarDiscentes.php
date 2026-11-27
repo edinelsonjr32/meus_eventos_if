@@ -62,7 +62,7 @@ class ImportarDiscentes extends Command
         // Cursos existentes por nome normalizado
         $cursos = [];
         foreach (Curso::all() as $c) {
-            $cursos[self::normalizar($c->nome)] = $c;
+            $cursos[self::normalizar(self::semSufixoIntegrado($c->nome))] ??= $c;
         }
 
         // Para --corrigir-conflitos: localizar também pelo CPF e pela matrícula da planilha
@@ -307,6 +307,7 @@ class ImportarDiscentes extends Command
 
         $saida = [];
         foreach ($linhas as $c) {
+            // "Técnico em X Integrado ao Ensino Médio" do SIGAA é o curso "Técnico em X" do sistema
             $nome = $texto($c[$idx['nome']] ?? '');
             $matricula = preg_replace('/\D/', '', $texto($c[$idx['matricula']] ?? ''));
             $ano = preg_replace('/\D/', '', $texto($c[$idx['anoingresso']] ?? ''));
@@ -316,7 +317,7 @@ class ImportarDiscentes extends Command
             $cpf = isset($idx['cpf']) ? preg_replace('/\D/', '', $texto($c[$idx['cpf']] ?? '')) : '';
             $saida[] = [
                 'nome' => $nome,
-                'curso' => $texto($c[$idx['curso']] ?? ''),
+                'curso' => self::semSufixoIntegrado($texto($c[$idx['curso']] ?? '')),
                 'matricula' => $matricula,
                 'ano' => $ano,
                 'cpf' => $cpf !== '' ? str_pad($cpf, 11, '0', STR_PAD_LEFT) : '',   // o Excel costuma comer o zero à esquerda
@@ -369,6 +370,12 @@ class ImportarDiscentes extends Command
         $abas = \Maatwebsite\Excel\Facades\Excel::toArray(new class {}, $arquivo);
 
         return array_values(array_filter($abas[0] ?? [], fn ($l) => array_filter($l, fn ($v) => $v !== null && $v !== '')));
+    }
+
+    /** Tira o "Integrado ao Ensino Médio" do fim do nome do curso ("… - PROEJA" é outro curso e fica como está). */
+    public static function semSufixoIntegrado(string $nome): string
+    {
+        return trim(preg_replace('/\s+integrado\s+ao\s+ensino\s+m[eé]dio\s*$/iu', '', $nome));
     }
 
     /** Minúsculas, sem acentos e com espaços simples: "JOÃO  da Silva" == "joao da silva". */

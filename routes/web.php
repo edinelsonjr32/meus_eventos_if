@@ -278,6 +278,16 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     });
 });
 
+// Gestor de Frequência (QR Code e presença manual); a autorização é a Policy "gerirFrequencia"
+Route::middleware(['auth', 'verified'])->prefix('gestao/frequencia')->name('gestao.frequencia.')->group(function () {
+    $f = \App\Http\Controllers\Gestao\FrequenciaGestaoController::class;
+    Route::get('/', [$f, 'index'])->name('index');
+    Route::get('/{atividade}/qr', [$f, 'qr'])->name('qr');
+    Route::get('/{atividade}/manual', [$f, 'manual'])->name('manual');
+    Route::post('/{atividade}/manual', [$f, 'novo'])->name('novo');
+    Route::post('/{atividade}/manual/{participante}', [$f, 'registrar'])->name('registrar');
+});
+
 Route::middleware(['auth', 'verified'])->get('/recepcao', [\App\Http\Controllers\RecepcaoController::class, 'index'])->name('recepcao.index');
 
 /*

@@ -38,6 +38,13 @@ class EventoPolicy
             || $user->papelNoEvento($evento, [Evento::PAPEL_RECEPCAO]);
     }
 
+    /** O gestor de frequência só exibe o QR Code das atividades e lança presença manual. */
+    public function gerirFrequencia(User $user, Evento $evento): bool
+    {
+        return $this->gerenciar($user, $evento)
+            || $user->papelNoEvento($evento, [Evento::PAPEL_FREQUENCIA]);
+    }
+
     public function avaliar(User $user, Evento $evento): bool
     {
         return $user->papelNoEvento($evento, [Evento::PAPEL_AVALIADOR]);

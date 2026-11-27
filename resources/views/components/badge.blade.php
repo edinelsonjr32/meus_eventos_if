@@ -34,7 +34,7 @@
         ],
         'papel' => [
             'gestor_trabalhos' => ['roxo', 'fa-inbox', 'Gestor de Trabalhos'], 'avaliador' => ['indigo', 'fa-clipboard-check', 'Avaliador'],
-            'editor' => ['ciano', 'fa-user-gear', 'Co-administrador'], 'recepcao' => ['verde', 'fa-id-badge', 'Recepção'],
+            'editor' => ['ciano', 'fa-user-gear', 'Co-administrador'], 'recepcao' => ['verde', 'fa-id-badge', 'Recepção'], 'gestor_frequencia' => ['verde', 'fa-qrcode', 'Gestor de Frequência'],
         ],
         'autor' => [
             'autor_principal' => ['indigo', 'fa-user-pen', 'Autor principal'], 'coautor' => ['cinza', 'fa-user', 'Coautor'],

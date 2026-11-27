@@ -18,6 +18,7 @@ class EventoPapelController extends Controller
         Evento::PAPEL_GESTOR_TRABALHOS => 'Gestor de Trabalhos',
         Evento::PAPEL_AVALIADOR => 'Avaliador',
         Evento::PAPEL_RECEPCAO => 'Recepção (check-in e credenciamento)',
+        Evento::PAPEL_FREQUENCIA => 'Gestor de Frequência (QR Code e presença manual)',
         Evento::PAPEL_EDITOR => 'Co-administrador',
     ];
 

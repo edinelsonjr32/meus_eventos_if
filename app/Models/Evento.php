@@ -15,6 +15,7 @@ class Evento extends Model
     public const PAPEL_GESTOR_TRABALHOS = 'gestor_trabalhos';
     public const PAPEL_AVALIADOR = 'avaliador';
     public const PAPEL_RECEPCAO = 'recepcao';
+    public const PAPEL_FREQUENCIA = 'gestor_frequencia';
 
     protected $fillable = [
         'titulo',
@@ -137,6 +138,17 @@ class Evento extends Model
             $q->where('criado_por', $user->id)
                 ->orWhereHas('administradoresSecundarios', function ($u) use ($user) {
                     $u->where('users.id', $user->id)->whereIn('evento_user.role', [self::PAPEL_EDITOR, self::PAPEL_RECEPCAO]);
+                });
+        });
+    }
+
+    /** Eventos em que o usuário exibe o QR Code e lança presença manual: dono, co-administrador ou gestor de frequência. */
+    public function scopeFrequenciaGeridaPor($query, User $user)
+    {
+        return $query->where(function ($q) use ($user) {
+            $q->where('criado_por', $user->id)
+                ->orWhereHas('administradoresSecundarios', function ($u) use ($user) {
+                    $u->where('users.id', $user->id)->whereIn('evento_user.role', [self::PAPEL_EDITOR, self::PAPEL_FREQUENCIA]);
                 });
         });
     }

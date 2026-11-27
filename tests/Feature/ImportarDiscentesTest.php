@@ -29,7 +29,7 @@ it('simula sem gravar e, com --aplicar, atualiza tipo, matrícula, curso e turma
     $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--aplicar' => true])->assertSuccessful();
     $p = $p->fresh();
     expect($p->tipo_vinculo)->toBe('aluno')->and($p->matricula)->toBe('20241234567')->and($p->vinculo_confirmado_em)->not->toBeNull();
-    expect($p->turma->ano)->toBe('2024')->and($p->turma->curso->nome)->toBe('Técnico em Informática Integrado ao Ensino Médio');
+    expect($p->turma->ano)->toBe('2024')->and($p->turma->curso->nome)->toBe('Técnico em Informática Integrado ao Ensino Médio')->and(Curso::count())->toBe(1);
 });
 
 it('cria cursos faltantes só com --criar-cursos; sem ele, não atualiza e avisa', function () {
@@ -40,7 +40,7 @@ it('cria cursos faltantes só com --criar-cursos; sem ele, não atualiza e avisa
     expect($p->fresh()->tipo_vinculo)->toBe('externo')->and(Curso::count())->toBe(0);
 
     $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--aplicar' => true, '--criar-cursos' => true])->assertSuccessful();
-    expect(Curso::first()->nome)->toBe('Técnico em Florestas Integrado ao Ensino Médio')->and($p->fresh()->tipo_vinculo)->toBe('aluno');
+    expect(Curso::first()->nome)->toBe('Técnico em Florestas')->and($p->fresh()->tipo_vinculo)->toBe('aluno');
 
     // rodar de novo não duplica curso nem turma
     $this->artisan('participantes:importar-discentes', ['arquivo' => $csv, '--aplicar' => true, '--criar-cursos' => true])->assertSuccessful();
@@ -99,7 +99,7 @@ it('repara planilha com acentos corrompidos (ISO-8859-1 lido como MacRoman) ante
     (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($planilha))->save($caminho);
 
     $this->artisan('participantes:importar-discentes', ['arquivo' => $caminho, '--aplicar' => true, '--criar-cursos' => true])->assertSuccessful();
-    expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and(Curso::first()->nome)->toBe('Técnico em Agropecuária Integrado ao Ensino Médio');
+    expect($p->fresh()->tipo_vinculo)->toBe('aluno')->and(Curso::first()->nome)->toBe('Técnico em Agropecuária');
 });
 
 it('--corrigir-conflitos: servidor vira aluno, CPF divergente é corrigido e duplicados são unificados mantendo frequências', function () {
