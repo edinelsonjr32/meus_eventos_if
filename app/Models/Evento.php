@@ -268,6 +268,11 @@ class Evento extends Model
         return $this->hasMany(Proposta::class);
     }
 
+    public function noticias()
+    {
+        return $this->hasMany(NoticiaEvento::class);
+    }
+
     public function chamadasVoluntarios()
     {
         return $this->hasMany(ChamadaVoluntario::class);

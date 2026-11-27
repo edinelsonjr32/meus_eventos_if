@@ -49,7 +49,11 @@ class EventoPublicoController extends Controller
         $cargaTotal = (float) $atividades->sum('carga_horaria');
         $anaisPublicados = (bool) optional($evento->anais)->publicado();
 
-        return view('publico.eventos.show', compact('evento', 'atividades', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado', 'totalInscritos', 'cargaTotal', 'anaisPublicados'));
+        $noticias = $evento->noticias()->visiveis()->limit(30)->get();
+        // Chamadas de voluntários abertas e as que ainda vão abrir
+        $chamadasVoluntarios = $evento->chamadasVoluntarios()->where('ativa', true)->where(fn ($q) => $q->whereNull('fim')->orWhere('fim', '>=', now()))->orderBy('inicio')->get();
+
+        return view('publico.eventos.show', compact('noticias', 'chamadasVoluntarios', 'evento', 'atividades', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado', 'totalInscritos', 'cargaTotal', 'anaisPublicados'));
     }
 
 

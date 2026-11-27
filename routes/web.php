@@ -375,6 +375,13 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::post('propostas/{proposta}/decisao', [$p, 'decisao'])->name('propostas.decisao');
         Route::post('propostas/{proposta}/certificado', [$p, 'certificado'])->name('propostas.certificado');
 
+        $n = \App\Http\Controllers\Admin\NoticiaEventoController::class;
+        Route::get('noticias', [$n, 'index'])->name('noticias.index');
+        Route::post('noticias', [$n, 'store'])->name('noticias.store');
+        Route::get('noticias/{noticia}/editar', [$n, 'edit'])->name('noticias.edit');
+        Route::put('noticias/{noticia}', [$n, 'update'])->name('noticias.update');
+        Route::delete('noticias/{noticia}', [$n, 'destroy'])->name('noticias.destroy');
+
         $v = \App\Http\Controllers\Admin\VoluntarioGestaoController::class;
         Route::get('voluntarios', [$v, 'index'])->name('voluntarios.index');
         Route::post('voluntarios/chamadas', [$v, 'storeChamada'])->name('voluntarios.chamadas.store');

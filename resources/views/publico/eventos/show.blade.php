@@ -80,6 +80,16 @@
             .atividade .meta { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .82rem; color: var(--muted); } .atividade .meta i { color: var(--brand); margin-right: .3rem; }
             .vagas { font-size: .74rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; background: #ecfdf5; color: #047857; } .vagas.esgotado { background: #fef2f2; color: #b91c1c; }
 
+            .ev-noticia { border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.25rem; margin-bottom: .8rem; }
+            .ev-noticia.fixada { border-color: var(--brand); background: var(--brand-light); }
+            .ev-noticia h3 { font-size: 1.08rem; font-weight: 800; margin: 0 0 .15rem; overflow-wrap: anywhere; }
+            .ev-noticia time { display: block; font-size: .76rem; color: var(--muted); font-weight: 700; margin-bottom: .6rem; }
+            .ev-noticia .ev-desc { font-size: .95rem; line-height: 1.7; }
+            .ev-noticia .ev-desc > :last-child { margin-bottom: 0; }
+            .ev-mais summary { cursor: pointer; font-weight: 700; color: var(--brand-dark); }
+            .ev-vol { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.2rem; margin-bottom: .8rem; }
+            .ev-vol h3 { font-size: 1.02rem; font-weight: 700; margin: 0 0 .3rem; }
+            .ev-vol .meta { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .82rem; color: var(--muted); } .ev-vol .meta i { color: var(--brand); margin-right: .3rem; }
             .booking-card { position: sticky; top: 130px; overflow: hidden; }
             .booking-header { background: var(--brand-light); padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--line); }
             .info-linha { display: flex; gap: .8rem; padding: .7rem 0; border-bottom: 1px solid #eef1f5; font-size: .9rem; } .info-linha:last-child { border-bottom: 0; }
@@ -138,9 +148,11 @@
 
     <nav class="ev-subnav" aria-label="Seções do evento">
         <div class="container">
+            @if($noticias->isNotEmpty())<a href="#noticias">Notícias</a>@endif
             <a href="#sobre">Sobre</a>
             @if($atividades->isNotEmpty())<a href="#programacao">Programação</a>@endif
             @if($chamadaAtiva)<a href="#trabalhos">Trabalhos</a>@endif
+            @if($chamadasVoluntarios->isNotEmpty())<a href="#voluntariado">Voluntariado</a>@endif
             <a href="#local">Local</a>
             @if($evento->aceitaInscricoes())<a href="#inscricao">Inscrição</a>@endif
         </div>
@@ -150,6 +162,26 @@
         <div class="row gy-4 gx-lg-5">
 
             <div class="{{ $evento->aceitaInscricoes() ? 'col-lg-7 col-xl-8' : 'col-12' }}">
+
+                {{-- Notícias e informações --}}
+                @if($noticias->isNotEmpty())
+                    <section class="cartao ev-bloco" id="noticias">
+                        <h2><i class="fa-solid fa-newspaper"></i> Notícias e informações</h2>
+                        @foreach($noticias->take(3) as $noticia)
+                            @include('publico.eventos._noticia')
+                        @endforeach
+                        @if($noticias->count() > 3)
+                            <details class="ev-mais">
+                                <summary>Ver notícias anteriores ({{ $noticias->count() - 3 }})</summary>
+                                <div class="mt-3">
+                                    @foreach($noticias->slice(3) as $noticia)
+                                        @include('publico.eventos._noticia')
+                                    @endforeach
+                                </div>
+                            </details>
+                        @endif
+                    </section>
+                @endif
 
                 {{-- Sobre --}}
                 <section class="cartao ev-bloco" id="sobre">
@@ -255,6 +287,30 @@
                             @if($cfg->template_url)<a href="{{ $cfg->template_url }}" target="_blank" rel="noopener" class="btn btn-outline-brand"><i class="fa-solid fa-download me-1"></i> Modelo (template)</a>@endif
                             @if($anaisPublicados)<a href="{{ route('anais.index', $evento->slug) }}" class="btn btn-outline-brand"><i class="fa-solid fa-book me-1"></i> Ver os Trabalhos Publicados</a>@endif
                         </div>
+                    </section>
+                @endif
+
+                {{-- Voluntariado --}}
+                @if($chamadasVoluntarios->isNotEmpty())
+                    <section class="cartao ev-bloco" id="voluntariado">
+                        <h2><i class="fa-solid fa-hand-holding-heart"></i> Seja voluntário(a)</h2>
+                        <p class="text-muted">Ajude a fazer o evento acontecer e receba certificado de participação como voluntário(a).</p>
+                        @foreach($chamadasVoluntarios as $chamada)
+                            <div class="ev-vol">
+                                <div class="min-w-0">
+                                    <h3>{{ $chamada->titulo }}</h3>
+                                    <div class="meta">
+                                        @if($chamada->vagas)<span><i class="fa-solid fa-users"></i> {{ $chamada->vagas }} vaga(s)</span>@endif
+                                        @if($chamada->fim)<span><i class="fa-regular fa-calendar"></i> Inscrições até {{ $chamada->fim->format('d/m/Y H:i') }}</span>@endif
+                                    </div>
+                                </div>
+                                @if($chamada->estaAberta())
+                                    <a href="{{ route('voluntariado.create', $chamada) }}" class="btn btn-brand px-4"><i class="fa-solid fa-hand-holding-heart me-1"></i> Quero ser voluntário(a)</a>
+                                @else
+                                    <span class="selo selo-azul"><i class="fa-regular fa-clock"></i> Abre em {{ $chamada->inicio?->format('d/m/Y H:i') }}</span>
+                                @endif
+                            </div>
+                        @endforeach
                     </section>
                 @endif
 
