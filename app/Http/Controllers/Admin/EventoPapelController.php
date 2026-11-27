@@ -56,8 +56,9 @@ class EventoPapelController extends Controller
             return back()->withInput()->with('error', 'Nenhum usuário cadastrado com este e-mail. A pessoa precisa criar uma conta antes.');
         }
 
-        if ($usuario->id === $evento->criado_por) {
-            return back()->withInput()->with('error', 'O criador do evento já possui acesso total.');
+        // O criador já tem acesso total à gestão, mas só aparece na lista de avaliadores dos trabalhos se for designado como tal
+        if ($usuario->id === $evento->criado_por && $dados['papel'] !== Evento::PAPEL_AVALIADOR) {
+            return back()->withInput()->with('error', 'O criador do evento já possui acesso total. Só é preciso designá-lo como Avaliador, caso vá avaliar trabalhos.');
         }
 
         if ($dados['papel'] === Evento::PAPEL_EDITOR && $usuario->role !== 'admin') {

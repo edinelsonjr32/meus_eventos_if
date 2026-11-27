@@ -7,8 +7,9 @@
 {{-- Seletor de avaliadores: busca por nome + lista com caixas de seleção. HTML renderizado no servidor (não depende de
      bibliotecas externas e funciona no celular); o Alpine só filtra e conta os marcados. --}}
 <div x-data="{ busca: '', marcados: 0, nada: false,
-        filtrar() { const b = this.busca.trim().toLowerCase(); let n = 0;
-            this.$root.querySelectorAll('[data-nome]').forEach(el => { const ok = !b || el.dataset.nome.includes(b); el.style.display = ok ? '' : 'none'; if (ok) n++; });
+        sem(t) { return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); },
+        filtrar() { const b = this.sem(this.busca.trim()); let n = 0;
+            this.$root.querySelectorAll('[data-nome]').forEach(el => { const ok = !b || this.sem(el.dataset.nome).includes(b); el.style.display = ok ? '' : 'none'; if (ok) n++; });
             this.nada = n === 0; },
         contar() { this.marcados = this.$root.querySelectorAll('input:checked').length; } }"
      class="seletor-avaliadores" id="{{ $id }}">
