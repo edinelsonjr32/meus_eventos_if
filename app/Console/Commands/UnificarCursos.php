@@ -15,7 +15,10 @@ use Illuminate\Support\Facades\Schema;
  */
 class UnificarCursos extends Command
 {
-    protected $signature = 'cursos:unificar-integrados {--aplicar : Grava as alterações (sem isso apenas simula)}';
+    protected $signature = 'cursos:unificar-integrados
+        {--de= : Junta um curso específico (nome ou número) em outro; usar junto com --para}
+        {--para= : Curso que permanece (nome ou número)}
+        {--aplicar : Grava as alterações (sem isso apenas simula)}';
 
     protected $description = 'Remove "Integrado ao Ensino Médio" do nome dos cursos, unificando turmas e alunos no curso correto';
 
@@ -23,6 +26,10 @@ class UnificarCursos extends Command
     {
         $aplicar = (bool) $this->option('aplicar');
         $this->line($aplicar ? '<fg=yellow>MODO GRAVAÇÃO</>' : '<fg=cyan>SIMULAÇÃO (nada será gravado; use --aplicar)</>');
+
+        if ($this->option('de') !== null || $this->option('para') !== null) {
+            return $this->juntarEscolhidos($aplicar);
+        }
 
         $repetidos = Curso::orderBy('id')->get()->filter(fn (Curso $c) => ImportarDiscentes::semSufixoIntegrado($c->nome) !== $c->nome);
 
@@ -62,6 +69,41 @@ class UnificarCursos extends Command
         $this->info($aplicar ? 'Concluído.' : 'Simulação concluída. Confira e rode de novo com --aplicar.');
 
         return self::SUCCESS;
+    }
+
+    private function juntarEscolhidos(bool $aplicar): int
+    {
+        $de = $this->localizar((string) $this->option('de'));
+        $para = $this->localizar((string) $this->option('para'));
+
+        if (!$de || !$para || $de->id === $para->id) {
+            $this->error('Informe em --de e --para dois cursos diferentes e existentes (nome exato ou número).');
+            $this->listar();
+
+            return self::FAILURE;
+        }
+
+        $alunos = DB::table('participantes')->whereIn('turma_id', Turma::where('curso_id', $de->id)->pluck('id'))->count();
+        $this->line("- \"{$de->nome}\" (#{$de->id}) → unificar em \"{$para->nome}\" (#{$para->id}): {$alunos} aluno(s) mudam de curso e \"{$de->nome}\" é excluído");
+
+        if ($aplicar) {
+            DB::transaction(fn () => $this->unificar($de, $para));
+            $this->listar();
+        }
+        $this->info($aplicar ? 'Concluído.' : 'Simulação concluída. Confira e rode de novo com --aplicar.');
+
+        return self::SUCCESS;
+    }
+
+    /** Pelo número ou pelo nome (sem diferenciar maiúsculas e acentos). Nome repetido não é aceito: use o número. */
+    private function localizar(string $valor): ?Curso
+    {
+        if (ctype_digit($valor)) {
+            return Curso::find((int) $valor);
+        }
+        $achados = Curso::all()->filter(fn (Curso $c) => ImportarDiscentes::normalizar($c->nome) === ImportarDiscentes::normalizar($valor));
+
+        return $achados->count() === 1 ? $achados->first() : null;
     }
 
     /** Turma do mesmo ano é fundida; turma de ano que o curso correto não tem muda de curso. */
@@ -105,7 +147,7 @@ class UnificarCursos extends Command
         $this->line('Cursos cadastrados:');
         foreach (Curso::orderBy('nome')->get() as $c) {
             $n = DB::table('participantes')->whereIn('turma_id', Turma::where('curso_id', $c->id)->pluck('id'))->count();
-            $this->line("  - {$c->nome} ({$n} aluno(s))");
+            $this->line("  - #{$c->id} {$c->nome} ({$n} aluno(s))");
         }
     }
 }

@@ -32,3 +32,18 @@ it('unifica o curso "Integrado ao Ensino Médio" no correto, levando turmas e al
 
     $this->artisan('cursos:unificar-integrados', ['--aplicar' => true])->expectsOutputToContain('Nenhum curso')->assertSuccessful();
 });
+
+it('junta dois cursos escolhidos (por nome ou número), só gravando com --aplicar', function () {
+    $singular = Curso::create(['nome' => 'Técnico em Floresta']);
+    $plural = Curso::create(['nome' => 'Técnico em Florestas']);
+    $turma = $singular->turmas()->create(['ano' => '2024']);
+    $aluno = Participante::create(['nome_completo' => 'Aluno F', 'cpf' => '111.444.777-35', 'email' => 'f@x.com', 'tipo_vinculo' => 'aluno', 'matricula' => '1', 'turma_id' => $turma->id]);
+
+    $this->artisan('cursos:unificar-integrados', ['--de' => 'tecnico em floresta', '--para' => (string) $plural->id])->assertSuccessful();
+    expect(Curso::count())->toBe(2);
+
+    $this->artisan('cursos:unificar-integrados', ['--de' => 'Inexistente', '--para' => (string) $plural->id, '--aplicar' => true])->assertFailed();
+
+    $this->artisan('cursos:unificar-integrados', ['--de' => 'tecnico em floresta', '--para' => 'Técnico em Florestas', '--aplicar' => true])->assertSuccessful();
+    expect(Curso::count())->toBe(1)->and($aluno->fresh()->turma->curso_id)->toBe($plural->id);
+});
