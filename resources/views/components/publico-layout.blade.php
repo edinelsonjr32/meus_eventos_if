@@ -50,7 +50,7 @@
 
     <style>
         :root {
-            --brand: {{ $marca }};
+            --brand: {{ \App\Support\CorDaMarca::legivel($marca) }};
             --brand-dark: color-mix(in srgb, var(--brand), black 24%);
             --brand-deep: color-mix(in srgb, var(--brand), black 52%);
             --brand-light: color-mix(in srgb, var(--brand), white 91%);

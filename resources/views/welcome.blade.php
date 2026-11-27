@@ -166,7 +166,7 @@
                 <div class="row g-4">
                     @foreach($proximosEventos as $evento)
                         @php
-                            $cor = $evento->configuracoes['cor_fundo'] ?? '#059669';
+                            $cor = \App\Support\CorDaMarca::legivel($evento->configuracoes['cor_fundo'] ?? null);
                             $mesmoDia = $evento->data_inicio->isSameDay($evento->data_fim);
                             $emAndamento = !$evento->data_inicio->isFuture();
                             $aberta = optional($evento->trabalhoConfig)->estaAberta();

@@ -49,7 +49,7 @@ class CredenciamentoController extends Controller
         $request->validate([
             'nome_completo' => 'required|string|max:255',
             'cpf' => ['required', 'string', 'size:14', new Cpf],
-            'email' => 'required|email',
+            'email' => ['required', 'email', new \App\Rules\EmailSemAcento],
             'tipo_vinculo' => 'required|in:aluno,servidor,externo',
 
             'matricula' => [
@@ -263,7 +263,7 @@ class CredenciamentoController extends Controller
         $validated = $request->validate([
             'nome_completo' => 'required|string|max:255',
             'cpf' => ['required', 'string', 'size:14', new Cpf],
-            'email' => 'required|email',
+            'email' => ['required', 'email', new \App\Rules\EmailSemAcento],
             'tipo_vinculo' => 'required|in:aluno,servidor,externo',
 
             'matricula' => [

@@ -80,6 +80,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold text-secondary small">COR TEMÁTICA</label>
                             <input type="color" name="cor_fundo" class="form-control form-control-color w-100" value="{{ old('cor_fundo', '#10b981') }}">
+                            <div class="form-text small">Cores muito claras são escurecidas automaticamente nas telas, para os textos continuarem legíveis.</div>
                         </div>
                     </div>
 

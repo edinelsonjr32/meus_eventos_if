@@ -276,7 +276,7 @@ class AtividadeController extends Controller
         $request->validate([
             'nome_completo' => 'required|string',
             'cpf' => ['required', 'string', 'size:14', new Cpf],
-            'email' => 'required|email',
+            'email' => ['required', 'email', new \App\Rules\EmailSemAcento],
             'tipo_vinculo' => 'required',
 
             // Regras Condicionais:

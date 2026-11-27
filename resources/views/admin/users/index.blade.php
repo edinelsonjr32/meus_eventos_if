@@ -1,6 +1,5 @@
 <x-app-layout>
     <div class="row justify-content-center" x-data="{
-            selectedUsers: [],
             search: @js($busca),
             textos: @js($textos),
             casa(texto) {
@@ -22,11 +21,6 @@
                     Gestão de Usuários
                 </h3>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-danger fw-bold"
-                            :disabled="selectedUsers.length === 0"
-                            @click="if(confirm(`Excluir ${selectedUsers.length} usuários selecionados?`)) { console.log('Implementar exclusão em massa aqui') }">
-                        <i class="fa-solid fa-trash-alt me-1"></i> Excluir (<span x-text="selectedUsers.length">0</span>)
-                    </button>
                     <a href="{{ route('admin.users.create') }}" class="btn btn-primary-custom fw-bold shadow-sm">
                         <i class="fa-solid fa-user-plus me-1"></i> Adicionar Usuário
                     </a>
@@ -69,12 +63,9 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
                             <tr>
-                                <th class="ps-4 py-3" style="width: 5%;">
-                                    <input type="checkbox" title="Selecionar os usuários listados" @click="selectedUsers = $event.target.checked ? visiveis() : []">
-                                </th>
-                                <th style="width: 5%;">ID</th>
-                                <th style="width: 35%;">Usuário / Contato</th>
-                                <th style="width: 20%;">Acesso Rápido</th>
+                                <th class="ps-4 py-3" style="width: 8%;">ID</th>
+                                <th style="width: 37%;">Usuário / Contato</th>
+                                <th style="width: 20%;">Acesso</th>
                                 <th style="width: 15%;">Criado Em</th>
                                 <th class="text-end pe-4" style="width: 20%;">Ações</th>
                             </tr>
@@ -83,9 +74,6 @@
                             @foreach($users as $user)
                                 <tr data-usuario="{{ $user->id }}" x-show="casa(textos[{{ $user->id }}])" @if(! $encontrados->has($user->id)) style="display: none" @endif>
                                     <td class="ps-4">
-                                        <input type="checkbox" value="{{ $user->id }}" x-model="selectedUsers">
-                                    </td>
-                                    <td>
                                         <small class="text-muted fw-bold">#{{ $user->id }}</small>
                                     </td>
                                     <td>
@@ -97,18 +85,11 @@
                                     </td>
 
                                     <td>
-                                        <div x-data="{ isAdmin: {{ $user->role === 'admin' ? 'true' : 'false' }} }">
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" :id="'adminSwitch{{ $user->id }}'"
-                                                       :checked="isAdmin" @change="console.log('Implementar rota AJAX para toggle de Admin para o usuário: {{ $user->id }}')">
-                                                <label class="form-check-label" :for="'adminSwitch{{ $user->id }}'">
-                                                    <span :class="isAdmin ? 'text-danger fw-bold' : 'text-secondary'">
-                                                        <i class="fa-solid fa-user-shield me-1"></i>
-                                                        <span x-text="isAdmin ? 'ADMIN' : 'PADRÃO'"></span>
-                                                    </span>
-                                                </label>
-                                            </div>
-                                        </div>
+                                        @if($user->role === 'admin')
+                                            <span class="badge bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-user-shield me-1"></i> Administrador</span>
+                                        @else
+                                            <span class="badge bg-light text-secondary border"><i class="fa-solid fa-user me-1"></i> Padrão</span>
+                                        @endif
                                     </td>
 
                                     <td>
@@ -139,7 +120,7 @@
                                 </tr>
                             @endforeach
                             <tr x-show="visiveis().length === 0" @if($encontrados->isNotEmpty()) style="display: none" @endif>
-                                <td colspan="6" class="text-center text-muted py-5">Nenhum usuário encontrado para esta busca.</td>
+                                <td colspan="5" class="text-center text-muted py-5">Nenhum usuário encontrado para esta busca.</td>
                             </tr>
                         </tbody>
                     </table>

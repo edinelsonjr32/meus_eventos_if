@@ -43,7 +43,7 @@ class RegisteredUserController extends Controller
         // 1. Validações
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', new \App\Rules\EmailSemAcento, 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'cpf' => ['required', 'string', 'size:14', new Cpf],
         ] + $this->regrasDoVinculo($request));

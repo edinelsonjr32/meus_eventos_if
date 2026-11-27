@@ -39,7 +39,7 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => ['required', 'string', 'email', new \App\Rules\EmailSemAcento, 'max:255', 'unique:users'],
             'password' => 'required|string|min:8|confirmed',
             // Adiciona validação para a role
             'role' => ['required', 'string', Rule::in(['admin', 'user'])],
@@ -66,7 +66,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             // O email deve ser único, exceto para o usuário atual.
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email' => ['required', 'string', 'email', new \App\Rules\EmailSemAcento, 'max:255', Rule::unique('users')->ignore($user->id)],
             // A role deve ser obrigatória e um dos valores permitidos.
             'role' => ['required', 'string', Rule::in(['admin', 'user'])],
             // A senha é opcional, mas se for preenchida, deve ser confirmada e ter 8 caracteres.

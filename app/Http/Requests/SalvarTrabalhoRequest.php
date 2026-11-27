@@ -121,7 +121,7 @@ class SalvarTrabalhoRequest extends FormRequest
             'autores.*.id' => ['nullable', 'integer'],
             'autores.*.nome_completo' => ['required', 'string', 'max:255'],
             'autores.*.cpf' => ['nullable', 'string', 'size:14', new Cpf],
-            'autores.*.email' => ['nullable', 'email', 'max:255'],
+            'autores.*.email' => ['nullable', 'email', new \App\Rules\EmailSemAcento, 'max:255'],
             'autores.*.telefone' => ['nullable', 'string', 'max:20'],
             'autores.*.instituicao' => [$submeter ? 'required' : 'nullable', 'string', 'max:255'],
             'autores.*.categoria_autor' => ['nullable', Rule::in(array_keys(Trabalho::CATEGORIAS_AUTOR))],

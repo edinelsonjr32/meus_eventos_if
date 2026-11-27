@@ -100,7 +100,7 @@ class SalvarPropostaRequest extends FormRequest
             'apoios' => ['nullable', 'array', 'max:30'],
             'apoios.*.funcao' => ['required', \Illuminate\Validation\Rule::in(array_keys(\App\Models\PropostaApoio::FUNCOES))],
             'apoios.*.nome' => ['required', 'string', 'min:3', 'max:255'],
-            'apoios.*.email' => ['required', 'email:rfc', 'max:255'],
+            'apoios.*.email' => ['required', 'email:rfc', new \App\Rules\EmailSemAcento, 'max:255'],
             'apoios.*.cpf' => ['required', 'string', 'size:14', new Cpf],
         ];
     }

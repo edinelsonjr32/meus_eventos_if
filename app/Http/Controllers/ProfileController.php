@@ -72,7 +72,7 @@ class ProfileController extends Controller
         // 1. Validação Básica do User
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
+            'email' => ['required', 'string', 'lowercase', 'email', new \App\Rules\EmailSemAcento, 'max:255', Rule::unique(User::class)->ignore($user->id)],
             // Validação do CPF: obrigatório e no formato correto
             'cpf' => ['required', 'string', 'size:14', new Cpf],
         ] + $this->regrasDoVinculo($request));
