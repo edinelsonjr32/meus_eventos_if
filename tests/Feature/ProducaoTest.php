@@ -56,10 +56,12 @@ it('o diagnóstico detecta migrations pendentes e job parado na fila', function 
 });
 
 it('o diagnóstico confirma o cron ativo e acusa cron parado', function () {
-    \Illuminate\Support\Facades\Cache::put('agendador:ultimo-batimento', now()->subMinute()->toIso8601String());
+    $arquivo = tempnam(sys_get_temp_dir(), 'batimento');
+    config(['queue.arquivo_batimento' => $arquivo]);
+    file_put_contents($arquivo, now()->subMinute()->toIso8601String());
     $this->artisan('sistema:verificar')->expectsOutputToContain('Cron ativo: último batimento há 1 min')->assertExitCode(0);
 
-    \Illuminate\Support\Facades\Cache::put('agendador:ultimo-batimento', now()->subMinutes(30)->toIso8601String());
+    file_put_contents($arquivo, now()->subMinutes(30)->toIso8601String());
     $this->artisan('sistema:verificar')->expectsOutputToContain('Cron parado? Último batimento há 30 min')->assertExitCode(0);
 });
 
@@ -190,4 +192,12 @@ it('o pacote de publicação nunca inclui segredos, testes nem seeders de teste'
         expect($script)->toContain($trecho);
     }
     expect(file_get_contents(base_path('.gitignore')))->toContain('/deploy/dist')->toContain('.env');
+});
+
+it('o batimento do cron sobrevive à limpeza do cache feita no deploy', function () {
+    config(['queue.arquivo_batimento' => tempnam(sys_get_temp_dir(), 'batimento')]);
+    \App\Support\BatimentoCron::registrar();
+    \Illuminate\Support\Facades\Cache::flush();
+
+    expect(\App\Support\BatimentoCron::ultimo())->not->toBeNull();
 });

@@ -145,10 +145,10 @@ class AnaisGestaoController extends Controller
         $anais = $evento->anais;
         abort_unless($anais, 404);
 
-        $batimento = \Illuminate\Support\Facades\Cache::get('agendador:ultimo-batimento');
+        $batimento = \App\Support\BatimentoCron::ultimo();
         $conexao = config('queue.default');
         $filaParada = $anais->pdfGerando() && $conexao !== 'sync'
-            && (!$batimento || \Illuminate\Support\Carbon::parse($batimento)->lt(now()->subMinutes(3)));
+            && (!$batimento || $batimento->lt(now()->subMinutes(\App\Support\BatimentoCron::TOLERANCIA_MINUTOS)));
 
         return response()->json([
             'status' => $anais->pdf_status,

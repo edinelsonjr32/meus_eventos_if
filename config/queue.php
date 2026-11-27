@@ -21,6 +21,12 @@ return [
     */
     'via_cron' => (bool) env('QUEUE_VIA_CRON', false),
 
+    // Por quanto tempo (s) cada execução do cron pode processar a fila. Com cron de 15 em 15 min, 50 s era pouco.
+    'cron_max_segundos' => (int) env('QUEUE_CRON_MAX_SEGUNDOS', 300),
+
+    // Onde o agendador registra a última execução (padrão: storage/framework/agendador-batimento)
+    'arquivo_batimento' => env('QUEUE_ARQUIVO_BATIMENTO'),
+
     /*
     |--------------------------------------------------------------------------
     | Queue Connections

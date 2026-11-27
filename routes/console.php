@@ -2,7 +2,6 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -19,14 +18,14 @@ Schedule::command('apresentacoes:lembrar')->everyFiveMinutes()->withoutOverlappi
 Schedule::command('noticias:notificar')->everyFiveMinutes()->withoutOverlapping(4);
 
 // Batimento: permite confirmar (php artisan sistema:verificar) que o cron está rodando
-Schedule::call(fn () => Cache::put('agendador:ultimo-batimento', now()->toIso8601String(), now()->addDay()))
+Schedule::call(fn () => \App\Support\BatimentoCron::registrar())
     ->name('agendador-batimento')->everyMinute();
 
 // Hospedagem compartilhada: não há processo permanente para a fila. Com QUEUE_VIA_CRON=true, o próprio
-// agendador (um único cron por minuto) processa os jobs pendentes e encerra (e-mails, PDF dos Anais...).
+// agendador (um único cron) processa os jobs pendentes e encerra (e-mails, PDF dos Anais...).
 if (config('queue.via_cron') && config('queue.default') !== 'sync') {
-    Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3 --timeout=600')
-        ->name('fila-via-cron')->everyMinute()->withoutOverlapping(10);
+    Schedule::command('queue:work --stop-when-empty --max-time=' . (int) config('queue.cron_max_segundos') . ' --tries=3 --timeout=600')
+        ->name('fila-via-cron')->everyMinute()->withoutOverlapping(15);
 }
 
 // Retenção (LGPD): rascunhos de trabalhos abandonados são apagados semanalmente

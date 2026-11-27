@@ -212,7 +212,7 @@ class VerificarSistema extends Command
     private function filaECron(): void
     {
         $conexao = config('queue.default');
-        $this->ok("Fila: {$conexao}" . (config('queue.via_cron') ? ' (processada pelo agendador a cada minuto)' : ''));
+        $this->ok("Fila: {$conexao}" . (config('queue.via_cron') ? ' (processada pelo agendador/cron)' : ''));
 
         if ($conexao === 'sync') {
             $this->aviso('Fila "sync": e-mails e PDFs rodam dentro da requisição (lento). Prefira QUEUE_CONNECTION=database + QUEUE_VIA_CRON=true');
@@ -229,19 +229,15 @@ class VerificarSistema extends Command
             $falhos > 0 ? $this->aviso("{$falhos} job(s) com falha (php artisan queue:failed)") : $this->ok('Nenhum job com falha');
         }
 
-        try {
-            $batida = Cache::get('agendador:ultimo-batimento');
-        } catch (\Throwable) {
-            $batida = null;
-        }
+        $batida = \App\Support\BatimentoCron::ultimo();
 
         if ($batida) {
-            $min = (int) \Carbon\Carbon::parse($batida)->diffInMinutes(now());
-            $min <= 5
+            $min = (int) $batida->diffInMinutes(now());
+            $min <= \App\Support\BatimentoCron::TOLERANCIA_MINUTOS
                 ? $this->ok("Cron ativo: último batimento há {$min} min")
-                : $this->aviso("Cron parado? Último batimento há {$min} min (esperado: a cada minuto)");
+                : $this->aviso("Cron parado? Último batimento há {$min} min (esperado: no máximo 15)");
         } else {
-            $this->aviso('Cron ainda não registrou batimento. Cadastre: * * * * * php artisan schedule:run (e aguarde 1–2 min)');
+            $this->aviso('Cron ainda não registrou batimento. Cadastre o schedule:run no cron (a cada 15 min ou menos) e aguarde a próxima execução');
         }
     }
 
