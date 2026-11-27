@@ -6,14 +6,28 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $users = User::orderBy('name', 'asc')->get();
-        return view('admin.users.index', compact('users'));
+        $busca = trim(is_string($request->query('search')) ? $request->query('search') : '');
+        $termos = array_filter(preg_split('/\s+/', self::semAcento($busca)));
+
+        // A lista vai inteira para a tela (a digitação filtra na hora); o servidor já marca o que casa com a busca enviada
+        $textos = $users->mapWithKeys(fn (User $u) => [$u->id => self::semAcento($u->name . ' ' . $u->email)]);
+        $encontrados = $textos->filter(fn (string $texto) => collect($termos)->every(fn ($t) => str_contains($texto, $t)))->keys()->flip();
+
+        return view('admin.users.index', compact('users', 'busca', 'textos', 'encontrados'));
+    }
+
+    /** Minúsculas e sem acentos, para "joao" encontrar "João". */
+    private static function semAcento(string $texto): string
+    {
+        return Str::lower(Str::ascii($texto));
     }
 
     public function create()

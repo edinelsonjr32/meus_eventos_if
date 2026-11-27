@@ -1,5 +1,19 @@
 <x-app-layout>
-    <div class="row justify-content-center" x-data="{ selectedUsers: [], search: '{{ request('search') }}' }">
+    <div class="row justify-content-center" x-data="{
+            selectedUsers: [],
+            search: @js($busca),
+            textos: @js($textos),
+            casa(texto) {
+                return this.search.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+                    .split(/\s+/).filter(Boolean).every(t => texto.includes(t));
+            },
+            visiveis() { return Object.keys(this.textos).filter(id => this.casa(this.textos[id])); },
+            atualizarEndereco() {
+                const url = new URL(window.location);
+                this.search.trim() ? url.searchParams.set('search', this.search.trim()) : url.searchParams.delete('search');
+                history.replaceState(null, '', url);
+            }
+        }">
         <div class="col-lg-11">
 
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -28,12 +42,17 @@
 
             <div class="row g-4 mb-4">
                 <div class="col-md-9">
-                    <form action="{{ route('admin.users.index') }}" method="GET" class="d-flex">
-                        <input type="text" name="search" x-model="search" class="form-control form-control-lg me-2" placeholder="Buscar por nome ou e-mail...">
-                        <button type="submit" class="btn btn-secondary-custom px-4">
+                    <form action="{{ route('admin.users.index') }}" method="GET" class="d-flex flex-nowrap" @submit.prevent="atualizarEndereco()">
+                        <input type="search" name="search" value="{{ $busca }}" x-model="search" @input.debounce.400ms="atualizarEndereco()"
+                               class="form-control form-control-lg me-2" placeholder="Buscar por nome ou e-mail..." aria-label="Buscar usuário por nome ou e-mail" autocomplete="off">
+                        <button type="submit" class="btn btn-secondary-custom px-4" title="Buscar" aria-label="Buscar">
                             <i class="fa-solid fa-search"></i>
                         </button>
                     </form>
+                    <p class="small text-muted mt-2 mb-0" x-show="search.trim()" x-cloak aria-live="polite">
+                        Mostrando <strong x-text="visiveis().length"></strong> de {{ $users->count() }} usuários ·
+                        <a href="{{ route('admin.users.index') }}" @click.prevent="search = ''; atualizarEndereco()">limpar busca</a>
+                    </p>
                 </div>
 
                 <div class="col-md-3">
@@ -51,7 +70,7 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="ps-4 py-3" style="width: 5%;">
-                                    <input type="checkbox" @click="selectedUsers = selectedUsers.length === {{ $users->count() }} ? [] : {{ $users->pluck('id') }}">
+                                    <input type="checkbox" title="Selecionar os usuários listados" @click="selectedUsers = $event.target.checked ? visiveis() : []">
                                 </th>
                                 <th style="width: 5%;">ID</th>
                                 <th style="width: 35%;">Usuário / Contato</th>
@@ -62,9 +81,9 @@
                         </thead>
                         <tbody>
                             @foreach($users as $user)
-                                <tr>
+                                <tr data-usuario="{{ $user->id }}" x-show="casa(textos[{{ $user->id }}])" @if(! $encontrados->has($user->id)) style="display: none" @endif>
                                     <td class="ps-4">
-                                        <input type="checkbox" :value="{{ $user->id }}" x-model="selectedUsers">
+                                        <input type="checkbox" value="{{ $user->id }}" x-model="selectedUsers">
                                     </td>
                                     <td>
                                         <small class="text-muted fw-bold">#{{ $user->id }}</small>
@@ -119,6 +138,9 @@
                                     </td>
                                 </tr>
                             @endforeach
+                            <tr x-show="visiveis().length === 0" @if($encontrados->isNotEmpty()) style="display: none" @endif>
+                                <td colspan="6" class="text-center text-muted py-5">Nenhum usuário encontrado para esta busca.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
