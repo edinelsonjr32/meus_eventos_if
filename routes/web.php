@@ -386,6 +386,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::post('propostas/{proposta}/decisao', [$p, 'decisao'])->name('propostas.decisao');
         Route::post('propostas/{proposta}/certificado', [$p, 'certificado'])->name('propostas.certificado');
 
+        $m = \App\Http\Controllers\Admin\MinistranteEventoController::class;
+        Route::get('ministrantes', [$m, 'index'])->name('ministrantes.index');
+        Route::post('ministrantes', [$m, 'salvar'])->name('ministrantes.salvar');
+        Route::delete('ministrantes/{ministrante}', [$m, 'destroy'])->name('ministrantes.destroy');
+
         $n = \App\Http\Controllers\Admin\NoticiaEventoController::class;
         Route::get('noticias', [$n, 'index'])->name('noticias.index');
         Route::post('noticias', [$n, 'store'])->name('noticias.store');

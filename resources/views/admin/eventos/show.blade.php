@@ -40,6 +40,10 @@
                 <i class="fa-solid fa-newspaper me-1"></i> Notícias
             </a>
 
+            <a href="{{ route('admin.ministrantes.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
+                <i class="fa-solid fa-chalkboard-user me-1"></i> Ministrantes
+            </a>
+
             <a href="{{ route('admin.eventos.papeis.index', $evento->id) }}" class="btn btn-white bg-white border shadow-sm text-secondary fw-bold">
                 <i class="fa-solid fa-user-shield me-1"></i> Papéis
             </a>

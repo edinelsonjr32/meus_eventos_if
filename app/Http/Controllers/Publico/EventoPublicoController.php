@@ -56,7 +56,9 @@ class EventoPublicoController extends Controller
         // Enquanto o evento não acabou, o voluntariado aparece mesmo sem chamada (avisando que ainda não abriu)
         $mostraVoluntariado = $chamadasVoluntarios->isNotEmpty() || !$evento->data_fim->isPast();
 
-        return view('publico.eventos.show', compact('mostraVoluntariado', 'noticias', 'chamadasVoluntarios', 'evento', 'atividades', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado', 'totalInscritos', 'cargaTotal', 'anaisPublicados'));
+        $ministrantes = app(\App\Services\MinistrantesDoEvento::class)->publicos($evento, $atividades);
+
+        return view('publico.eventos.show', compact('ministrantes', 'mostraVoluntariado', 'noticias', 'chamadasVoluntarios', 'evento', 'atividades', 'cronogramaPorDia', 'inscrito', 'turmas', 'participanteLogado', 'totalInscritos', 'cargaTotal', 'anaisPublicados'));
     }
 
 

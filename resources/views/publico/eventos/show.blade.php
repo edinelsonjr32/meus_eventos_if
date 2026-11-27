@@ -40,6 +40,10 @@
             .ev-fatos { display: flex; flex-wrap: wrap; gap: .6rem; }
             .ev-fato { display: flex; align-items: center; gap: .6rem; background: rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.14); padding: .6rem 1rem; border-radius: 14px; font-size: .92rem; font-weight: 600; }
             .ev-fato i { opacity: .85; }
+            .ev-pessoas { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1.4rem 1rem; text-align: center; }
+            .ev-avatar { width: 104px; height: 104px; border-radius: 50%; margin: 0 auto .65rem; object-fit: cover; display: grid; place-items: center; background: var(--brand-light); color: var(--brand-dark); font-weight: 800; font-size: 1.7rem; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--brand-light), var(--sh-1); }
+            .ev-pessoa b { display: block; color: var(--ink); font-size: .92rem; line-height: 1.25; overflow-wrap: anywhere; }
+            .ev-pessoa span { display: block; font-size: .78rem; color: var(--muted); margin-top: .2rem; overflow-wrap: anywhere; }
             .btn-ev { background: #fff; color: var(--brand-dark); padding: .8rem 1.5rem; box-shadow: 0 14px 28px -12px rgba(0,0,0,.5); }
             .btn-ev:hover { background: var(--brand-light); color: var(--brand-deep); transform: translateY(-1px); }
             .btn-ev-out { border: 2px solid rgba(255,255,255,.6); color: #fff; padding: .8rem 1.5rem; } .btn-ev-out:hover { background: rgba(255,255,255,.14); color: #fff; }
@@ -154,6 +158,7 @@
             @if($noticias->isNotEmpty())<a href="#noticias">Notícias</a>@endif
             <a href="#sobre">Sobre</a>
             @if($atividades->isNotEmpty())<a href="#programacao">Programação</a>@endif
+            @if($ministrantes->isNotEmpty())<a href="#ministrantes">Ministrantes</a>@endif
             @if($chamadaAtiva)<a href="#trabalhos">Trabalhos</a>@endif
             @if($mostraVoluntariado)<a href="#voluntariado">Voluntariado</a>@endif
             <a href="#local">Local</a>
@@ -254,6 +259,8 @@
                         @endforeach
                     @endif
                 </section>
+
+                @include('publico.eventos._ministrantes')
 
                 {{-- Chamada de trabalhos --}}
                 @if($chamadaAtiva)
