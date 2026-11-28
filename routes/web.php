@@ -90,6 +90,8 @@ Route::get('/certificado-equipe/validar/{hash}', [\App\Http\Controllers\Publico\
 
 // Validação e Download de Certificados
 Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/certificado-avaliador/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoAvaliadorController::class, 'validar'])->name('certificado.avaliador.validar');
+    Route::get('/certificado-avaliador/download/{hash}', [\App\Http\Controllers\Publico\CertificadoAvaliadorController::class, 'download'])->name('certificado.avaliador.download');
     Route::get('/certificado-atividade/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoAtividadeController::class, 'validar'])->name('certificado.atividade.validar');
     Route::get('/certificado-atividade/download/{hash}', [\App\Http\Controllers\Publico\CertificadoAtividadeController::class, 'download'])->name('certificado.atividade.download');
 });
@@ -187,6 +189,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/evento/{evento}/config', [$c, 'updateConfig'])->name('config.update');
         $a = \App\Http\Controllers\Gestao\ApresentacaoCertificadoController::class;
         Route::get('/evento/{evento}/certificados', [$a, 'index'])->name('certificados.index');
+        $av = \App\Http\Controllers\Gestao\CertificadoAvaliadorGestaoController::class;
+        Route::get('/evento/{evento}/certificados-avaliadores', [$av, 'index'])->name('avaliadores-certificados.index');
+        Route::post('/evento/{evento}/certificados-avaliadores', [$av, 'emitir'])->name('avaliadores-certificados.emitir');
+        Route::post('/evento/{evento}/certificados-avaliadores/{certificado}/revogar', [$av, 'revogar'])->name('avaliadores-certificados.revogar');
         Route::post('/evento/{evento}/certificados/lote', [$a, 'lote'])->name('certificados.lote');
         Route::post('/certificados/{certificado}/revogar', [$a, 'revogar'])->name('certificados.revogar');
         $n = \App\Http\Controllers\Gestao\AnaisGestaoController::class;

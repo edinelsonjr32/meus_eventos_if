@@ -28,10 +28,9 @@ class AgendaController extends Controller
                 ->get()
             : collect();
 
-        $certificadosDeEquipe = \App\Models\AtividadeEquipe::daConta($user)->with('atividade.evento')->latest('presenca_em')->get()
-            ->filter(fn ($r) => $r->atividade?->evento && $r->atividade->emiteCertificado())->values();
+        $outrosCertificados = app(\App\Services\MeusCertificados::class)->para($user);
 
-        return view('inscrito.dashboard', compact('certificadosDeEquipe', 'eventosInscritos', 'participante', 'user'));
+        return view('inscrito.dashboard', compact('outrosCertificados', 'eventosInscritos', 'participante', 'user'));
     }
 
     public function toggleAtividade(Atividade $atividade)

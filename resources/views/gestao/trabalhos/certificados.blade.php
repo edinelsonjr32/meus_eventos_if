@@ -10,7 +10,10 @@
                         <small class="text-secondary">{{ $evento->titulo }} · {{ $apresentados }} de {{ $aprovados }} aprovado(s) apresentado(s)</small>
                     </div>
                 </div>
-                <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-outline-secondary fw-bold"><i class="fa-solid fa-sliders me-1"></i> Textos do certificado</a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('gestao.trabalhos.avaliadores-certificados.index', $evento) }}" class="btn btn-outline-success fw-bold"><i class="fa-solid fa-user-check me-1"></i> Certificados de avaliadores</a>
+                    <a href="{{ route('gestao.trabalhos.config', $evento) }}" class="btn btn-outline-secondary fw-bold"><i class="fa-solid fa-sliders me-1"></i> Textos do certificado</a>
+                </div>
             </div>
 
             @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif

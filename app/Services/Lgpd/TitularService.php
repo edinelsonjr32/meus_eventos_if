@@ -219,6 +219,7 @@ class TitularService
         ])->save();
 
         DB::table('evento_user')->where('user_id', $u->id)->delete();   // perde papéis (avaliador/gestor)
+        \App\Models\CertificadoAvaliador::where('user_id', $u->id)->delete();
         if (Schema::hasTable('sessions')) {
             DB::table('sessions')->where('user_id', $u->id)->delete();   // encerra sessões abertas
         }

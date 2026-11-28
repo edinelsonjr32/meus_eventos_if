@@ -27,7 +27,7 @@ beforeEach(function () {
 
 it('a presença lançada libera o certificado, que aparece na conta de quem tem o mesmo e-mail', function () {
     $beto = mkUser('user', 'beto@gmail.com');
-    $this->actingAs($beto)->get(route('inscrito.dashboard'))->assertOk()->assertDontSee('Meus certificados de ministrante e ajudante');
+    $this->actingAs($beto)->get(route('inscrito.dashboard'))->assertOk()->assertDontSee('Certificados de ministrante, trabalhos e avaliação');
 
     $this->actingAs($this->dono)->get(route('admin.atividades.edit', $this->atividade))->assertSee('Presença e certificados da equipe')->assertSee('Lançar presença');
     $this->post($this->url, ['chave' => "apoio:{$this->beto->id}"])->assertSessionHas('success');
@@ -37,7 +37,7 @@ it('a presença lançada libera o certificado, que aparece na conta de quem tem 
     // ainda não emitido: o código não vale
     $this->get(route('certificado.atividade.download', $registro->hash_validacao))->assertNotFound();
 
-    $this->actingAs($beto)->get(route('inscrito.dashboard'))->assertSee('Meus certificados de ministrante e ajudante')->assertSee('Oficina de Solos');
+    $this->actingAs($beto)->get(route('inscrito.dashboard'))->assertSee('Certificados de ministrante, trabalhos e avaliação')->assertSee('Oficina de Solos');
     $this->get(route('certificado.atividade.meu', $registro))->assertRedirect(route('certificado.atividade.download', $registro->hash_validacao));
     $this->get(route('certificado.atividade.download', $registro->hash_validacao))->assertOk()->assertHeader('content-type', 'application/pdf');
     $this->get(route('certificado.atividade.validar', $registro->hash_validacao))->assertSee('Certificado autêntico')->assertSee('Ajudante');
@@ -87,5 +87,5 @@ it('atividade sem certificado não emite', function () {
     $registro = AtividadeEquipe::sole();
 
     $this->post(route('admin.atividades.equipe.certificado', [$this->atividade, $registro]))->assertSessionHas('error');
-    $this->actingAs($this->autor)->get(route('inscrito.dashboard'))->assertDontSee('Meus certificados de ministrante e ajudante');
+    $this->actingAs($this->autor)->get(route('inscrito.dashboard'))->assertDontSee('Certificados de ministrante, trabalhos e avaliação');
 });

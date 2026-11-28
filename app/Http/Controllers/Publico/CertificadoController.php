@@ -27,6 +27,15 @@ class CertificadoController extends Controller
             return redirect()->route('certificado.equipe.validar', strtoupper($hash));
         }
 
+        if (!$frequencia) {
+            $codigo = strtoupper($hash);
+            foreach (['avaliador' => \App\Models\CertificadoAvaliador::class, 'trabalho' => \App\Models\CertificadoTrabalho::class, 'premiacao' => \App\Models\CertificadoPremiacao::class] as $tipo => $modelo) {
+                if ($modelo::where('hash_validacao', $codigo)->exists()) {
+                    return redirect()->route("certificado.{$tipo}.validar", $codigo);
+                }
+            }
+        }
+
         // Atividades sem certificado (ex.: jogos) não têm documento a validar
         if (!$frequencia || !$frequencia->emiteCertificado()) {
             return view('publico.validar-certificado', ['frequencia' => null, 'hash' => $hash]);
