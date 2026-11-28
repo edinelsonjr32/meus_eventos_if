@@ -127,6 +127,8 @@ class TitularService
             }
 
             $this->retirarDaProgramacao($alvo);
+            // certificados de ministrante/ajudante deixam de valer junto com os dados
+            \App\Models\AtividadeEquipe::whereIn('participante_id', $alvo['participantes']->pluck('id'))->delete();
 
             foreach ($alvo['participantes'] as $p) {
                 // CPF é único e obrigatório: recebe um marcador exclusivo (14 caracteres)

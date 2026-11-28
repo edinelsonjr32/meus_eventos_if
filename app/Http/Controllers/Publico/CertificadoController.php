@@ -19,6 +19,14 @@ class CertificadoController extends Controller
             ->with(['participante', 'atividade.evento'])
             ->first();
 
+        // O mesmo campo de validação recebe os códigos de ministrante/ajudante e da equipe de organização
+        if (!$frequencia && \App\Models\AtividadeEquipe::where('hash_validacao', strtoupper($hash))->exists()) {
+            return redirect()->route('certificado.atividade.validar', strtoupper($hash));
+        }
+        if (!$frequencia && \App\Models\Equipe::where('hash_validacao', strtoupper($hash))->exists()) {
+            return redirect()->route('certificado.equipe.validar', strtoupper($hash));
+        }
+
         // Atividades sem certificado (ex.: jogos) não têm documento a validar
         if (!$frequencia || !$frequencia->emiteCertificado()) {
             return view('publico.validar-certificado', ['frequencia' => null, 'hash' => $hash]);

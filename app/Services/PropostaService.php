@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
 /** Regras das propostas de minicurso/oficina: envio, análise, programação, apoios e certificado de ministrante. */
 class PropostaService
 {
-    public function __construct(private CertificadoEquipeService $certificados, private ParticipanteDaConta $contas)
+    public function __construct(private ParticipanteDaConta $contas)
     {
     }
 
@@ -216,7 +216,7 @@ class PropostaService
         if (!$atividade) {
             return;
         }
-        if ($atividade->inscritos()->exists() || $atividade->frequencias()->exists()) {
+        if ($atividade->inscritos()->exists() || $atividade->frequencias()->exists() || $atividade->equipeCertificada()->exists()) {
             throw new \DomainException('A atividade já tem inscritos ou presenças: não é possível desfazer a aprovação.');
         }
         $atividade->delete();
@@ -251,6 +251,9 @@ class PropostaService
     {
         $apoio->update(['funcao' => $funcao]);
         $proposta = $apoio->proposta;
+        if ($proposta->atividade && $apoio->participante_id) {
+            $proposta->atividade->equipeCertificada()->where('participante_id', $apoio->participante_id)->update(['funcao' => $funcao]);
+        }
         if ($atividade = $proposta->atividade) {
             $nomes = collect(preg_split('/[,;]+/', (string) $atividade->responsavel))->map(fn ($n) => trim($n))->filter();
             $chave = \App\Models\MinistranteEvento::chaveDe($apoio->nome);
@@ -259,64 +262,6 @@ class PropostaService
                 : $nomes->reject(fn ($n) => \App\Models\MinistranteEvento::chaveDe($n) === $chave);
             $atividade->update(['responsavel' => \Illuminate\Support\Str::limit(ResponsaveisDaAtividade::juntar($nomes), 250) ?: null]);
         }
-    }
-
-    /**
-     * Certificado de ministrante: soma as atividades concluídas em que a pessoa ministrou no evento, como proponente
-     * ou como ministrante indicada na proposta (uma certificação por pessoa).
-     *
-     * @throws \DomainException
-     */
-    public function emitirCertificadoMinistrante(Evento $evento, User $user, ?User $gestor = null): Equipe
-    {
-        $participante = $this->contas->daConta($user);
-        if (!$participante) {
-            throw new \DomainException('Esta pessoa ainda não tem cadastro de participante (CPF).');
-        }
-
-        return $this->certificarMinistrante($evento, $participante, $gestor);
-    }
-
-    /** @throws \DomainException */
-    public function certificarMinistrante(Evento $evento, Participante $participante, ?User $gestor = null): Equipe
-    {
-        $concluidas = Proposta::with('atividade')->where('evento_id', $evento->id)->where('status', 'aprovada')
-            ->where(fn ($q) => $q
-                ->when($participante->user_id, fn ($w) => $w->where('user_id', $participante->user_id), fn ($w) => $w->where('participante_id', $participante->id))
-                ->orWhereHas('apoios', fn ($a) => $a->where('funcao', 'ministrante')->where(fn ($w) => $w->where('participante_id', $participante->id)->orWhere('cpf', $participante->cpf))))
-            ->get()
-            ->filter(fn (Proposta $p) => $p->atividadeConcluida());
-
-        if ($concluidas->isEmpty()) {
-            throw new \DomainException('O certificado fica disponível depois que a atividade terminar.');
-        }
-
-        $horas = (int) round($concluidas->sum(fn ($p) => $p->atividade->carga_horaria));
-        $detalhe = $concluidas->map(fn ($p) => $p->tipoRotulo() . ' "' . $p->titulo . '" (' . $p->atividade->data_inicio->format('d/m/Y') . ')')->implode('; ');
-
-        return $this->certificados->emitirParaFuncao($evento, $participante, 'Ministrante', $horas, $detalhe, $gestor);
-    }
-
-    /**
-     * Certificados dos demais ministrantes de uma proposta concluída (quem ainda não está no evento é incluído).
-     *
-     * @return array{0:int,1:string[]} emitidos e avisos
-     */
-    public function certificarCoministrantes(Proposta $proposta, User $gestor): array
-    {
-        $emitidos = 0;
-        $avisos = [];
-        foreach ($proposta->apoios()->where('funcao', 'ministrante')->get() as $apoio) {
-            try {
-                $participante = $apoio->noEvento() ? $apoio->participante : $this->adicionarApoioAoEvento($apoio, $gestor);
-                $this->certificarMinistrante($proposta->evento, $participante, $gestor);
-                $emitidos++;
-            } catch (\DomainException $e) {
-                $avisos[] = "{$apoio->nome}: {$e->getMessage()}";
-            }
-        }
-
-        return [$emitidos, $avisos];
     }
 
     /** Ministrantes da proposta mais as pessoas que a organização vinculou à atividade. */

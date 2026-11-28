@@ -136,17 +136,6 @@ class PropostaController extends Controller
         return redirect()->route('propostas.minhas')->with('success', 'Proposta excluída.');
     }
 
-    /** O ministrante baixa o certificado depois que a atividade termina (emitido na hora, se ainda não existir). */
-    public function certificado(Request $request, Evento $evento)
-    {
-        try {
-            $membro = $this->service->emitirCertificadoMinistrante($evento, $request->user());
-        } catch (\DomainException $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
-        return redirect()->route('certificado.equipe.download', $membro->hash_validacao);
-    }
 
     private function bloqueio(Request $request, ChamadaProposta $chamada): ?string
     {

@@ -38,6 +38,12 @@ class Atividade extends Model
         });
     }
 
+    /** Presença e certificado de ministrantes e ajudantes. */
+    public function equipeCertificada(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AtividadeEquipe::class);
+    }
+
     /** Pessoas cadastradas vinculadas como responsáveis. */
     public function responsaveis(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

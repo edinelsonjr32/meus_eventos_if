@@ -126,6 +126,7 @@ class AtividadeController extends Controller
             'atividade' => $atividade->load('responsaveis'),
             'evento' => $atividade->evento,
             'proposta' => \App\Models\Proposta::with(['apoios', 'participante', 'proponente'])->where('atividade_id', $atividade->id)->first(),
+            'membros' => app(\App\Services\EquipeDaAtividade::class)->membros($atividade),
             'outrosNomes' => app(ResponsaveisDaAtividade::class)->outrosNomes($atividade),
             'tipos' => self::TIPOS,
             'demanda' => \App\Models\DemandaVoluntario::with('voluntarios.usuario')->where('atividade_id', $atividade->id)->first(),
@@ -422,6 +423,10 @@ class AtividadeController extends Controller
         // Validação de segurança
         if ($atividade->frequencias()->count() > 0) {
             return back()->with('error', 'Não é possível excluir: Existem alunos com presença registrada nesta atividade.');
+        }
+
+        if ($atividade->equipeCertificada()->exists()) {
+            return back()->with('error', 'Não é possível excluir: há presença de ministrante ou ajudante lançada. Desfaça na edição da atividade antes.');
         }
 
         $atividade->delete();

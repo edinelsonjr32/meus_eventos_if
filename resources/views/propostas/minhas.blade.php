@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="row justify-content-center"><div class="col-xl-10">
         <h3 class="fw-bold mb-1">Propostas de Curso/Oficina</h3>
-        <p class="text-secondary mb-4">Proponha minicursos e oficinas para os eventos, acompanhe a análise e baixe o certificado de ministrante depois da atividade.</p>
+        <p class="text-secondary mb-4">Proponha minicursos e oficinas para os eventos, acompanhe a análise e, depois que a organização lançar a presença, retire o certificado em Minha Agenda.</p>
 
         @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
         @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
@@ -44,9 +44,6 @@
                             @endif
                             <div class="d-flex flex-wrap gap-2 mt-3">
                                 <a href="{{ route('propostas.show', $p) }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye"></i> Detalhes</a>
-                                @if($p->atividadeConcluida())
-                                    <a href="{{ route('propostas.certificado', $p->evento_id) }}" class="btn btn-sm btn-primary-custom"><i class="fa-solid fa-award"></i> Certificado de ministrante</a>
-                                @endif
                             </div>
                         </div>
                     </div>
@@ -54,8 +51,8 @@
             </div>
         @endif
 
-        {{-- Quem ministrou junto (indicado por outra pessoa) não tem proposta própria: o certificado aparece aqui --}}
-        @php $semProposta = $certificados->reject(fn ($c) => $propostas->contains('evento_id', $c->evento_id)); @endphp
+        {{-- Certificados de ministrante emitidos antes da presença por atividade (os novos ficam em Minha Agenda) --}}
+        @php $semProposta = $certificados->values(); @endphp
         @if($semProposta->isNotEmpty())
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-award text-success me-2"></i> Meus certificados de ministrante</h5>
             <div class="glass-card mb-4">

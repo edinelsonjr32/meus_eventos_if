@@ -89,7 +89,7 @@
                             <div class="small text-uppercase tracking-wide opacity-75">Eventos</div>
                         </div>
                         <div class="stat-box">
-                            <div class="fs-2 fw-bold">{{ $participante ? $participante->frequencias->filter(fn ($f) => $f->atividade?->emiteCertificado())->count() : 0 }}</div>
+                            <div class="fs-2 fw-bold">{{ $participante ? $participante->frequencias->filter(fn ($f) => $f->atividade?->emiteCertificado())->count() + $certificadosDeEquipe->count() : $certificadosDeEquipe->count() }}</div>
                             <div class="small text-uppercase tracking-wide opacity-75">Certificados</div>
                         </div>
                     </div>
@@ -105,6 +105,21 @@
                     <a href="{{ route('profile.edit') }}" class="btn btn-dark fw-bold text-nowrap">Informar meu CPF</a>
                 </div>
             @endunless
+
+            @if($certificadosDeEquipe->isNotEmpty())
+                <div class="glass-card mb-4" id="certificados-equipe">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-award text-success me-2"></i> Meus certificados de ministrante e ajudante</h5>
+                    @foreach($certificadosDeEquipe as $c)
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 {{ $loop->last ? '' : 'border-bottom' }}">
+                            <div style="min-width:0">
+                                <div class="fw-bold texto-quebra">{{ $c->atividade->titulo }}</div>
+                                <div class="small text-muted texto-quebra">{{ $c->funcaoRotulo() }} · {{ $c->atividade->evento->titulo }} · {{ (float) $c->atividade->carga_horaria }}h</div>
+                            </div>
+                            <a href="{{ route('certificado.atividade.meu', $c) }}" target="_blank" class="btn btn-sm btn-warning fw-bold text-dark"><i class="fa-solid fa-download me-1"></i> Baixar certificado</a>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
             @if($eventosInscritos->isEmpty())
                 <div class="glass-card text-center py-5">

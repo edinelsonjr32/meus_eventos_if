@@ -123,20 +123,6 @@ it('admin adiciona pessoa de apoio como participante do evento, sem duplicar', f
     expect(fn () => $svc->adicionarApoioAoEvento($semCpf, $this->admin))->toThrow(DomainException::class);
 });
 
-it('certificado de ministrante só depois da atividade terminar', function () {
-    $svc = app(PropostaService::class);
-    $p = $svc->enviar($this->autor, $this->chamada, $this->dados);
-    $svc->decidir($p, $this->admin, 'aprovada', aprovacao());
-
-    expect(fn () => $svc->emitirCertificadoMinistrante($this->evento, $this->autor, $this->admin))->toThrow(DomainException::class);
-
-    Atividade::find($p->fresh()->atividade_id)->update(['data_inicio' => now()->subDays(2), 'data_fim' => now()->subDays(2)->addHours(4)]);
-    $eq = $svc->emitirCertificadoMinistrante($this->evento, $this->autor, $this->admin);
-
-    expect($eq->funcao)->toBe('Ministrante')->and($eq->carga_horaria_trabalho)->toBe(4)->and($eq->hash_validacao)->not->toBeNull();
-    $this->actingAs($this->autor)->get(route('propostas.certificado', $this->evento->id))->assertRedirect();
-});
-
 it('voluntário se inscreve, é aprovado, vinculado a demanda (sem choque de horário) e recebe certificado', function () {
     $ch = ChamadaVoluntario::create(['evento_id' => $this->evento->id, 'titulo' => 'Voluntários', 'ativa' => true, 'vagas' => 1]);
     $svc = app(VoluntarioService::class);

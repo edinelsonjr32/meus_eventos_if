@@ -89,6 +89,10 @@ Route::get('/certificado-equipe/validar/{hash}', [\App\Http\Controllers\Publico\
 });
 
 // Validação e Download de Certificados
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/certificado-atividade/validar/{hash}', [\App\Http\Controllers\Publico\CertificadoAtividadeController::class, 'validar'])->name('certificado.atividade.validar');
+    Route::get('/certificado-atividade/download/{hash}', [\App\Http\Controllers\Publico\CertificadoAtividadeController::class, 'download'])->name('certificado.atividade.download');
+});
 Route::get('/certificado/validar/{hash}', [CertificadoController::class, 'validar'])->name('certificado.validar');
 Route::get('/certificado/download/{hash}', [CertificadoController::class, 'download'])->name('certificado.download');
 
@@ -110,6 +114,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     // --- ÁREA DO INSCRITO (Minha Conta) ---
+    Route::get('/minha-area/certificado-atividade/{registro}', [\App\Http\Controllers\Publico\CertificadoAtividadeController::class, 'meu'])->name('certificado.atividade.meu');
+
     Route::prefix('minha-area')->name('inscrito.')->group(function () {
         Route::get('/', [AgendaController::class, 'index'])->name('dashboard');
         Route::post('/atividade/{atividade}/toggle', [AgendaController::class, 'toggleAtividade'])->name('atividade.toggle');
@@ -138,7 +144,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/propostas/{proposta}', [\App\Http\Controllers\PropostaController::class, 'update'])->name('propostas.update');
     Route::post('/propostas/{proposta}/retirar', [\App\Http\Controllers\PropostaController::class, 'retirar'])->name('propostas.retirar');
     Route::delete('/propostas/{proposta}', [\App\Http\Controllers\PropostaController::class, 'excluir'])->name('propostas.excluir');
-    Route::get('/propostas/evento/{evento}/certificado', [\App\Http\Controllers\PropostaController::class, 'certificado'])->name('propostas.certificado');
 
     // --- VOLUNTARIADO (voluntário) ---
     Route::get('/minha-area/voluntariado', [\App\Http\Controllers\VoluntarioController::class, 'meu'])->name('voluntariado.meu');
@@ -371,6 +376,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Busca de pessoas em tempo real (Select2) para equipe e papéis
     Route::get('eventos/{evento}/buscar-pessoas', \App\Http\Controllers\Admin\BuscaPessoaController::class)->middleware('throttle:60,1')->name('eventos.buscar-pessoas');
+    $eq = \App\Http\Controllers\Admin\AtividadeEquipeController::class;
+    Route::post('atividades/{atividade}/equipe', [$eq, 'presenca'])->name('atividades.equipe.presenca');
+    Route::post('atividades/{atividade}/equipe/{registro}/certificado', [$eq, 'certificado'])->name('atividades.equipe.certificado');
+    Route::delete('atividades/{atividade}/equipe/{registro}', [$eq, 'destroy'])->name('atividades.equipe.destroy');
     Route::get('eventos/{evento}/buscar-responsaveis', \App\Http\Controllers\Admin\BuscaResponsavelController::class)->middleware('throttle:120,1')->name('eventos.buscar-responsaveis');
 
     // --- Gestão de Equipe / Staff ---
@@ -385,7 +394,6 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::post('propostas/apoios/{apoio}/funcao', [$p, 'funcaoApoio'])->name('propostas.apoio-funcao');
         Route::get('propostas/{proposta}', [$p, 'show'])->name('propostas.show');
         Route::post('propostas/{proposta}/decisao', [$p, 'decisao'])->name('propostas.decisao');
-        Route::post('propostas/{proposta}/certificado', [$p, 'certificado'])->name('propostas.certificado');
 
         $m = \App\Http\Controllers\Admin\MinistranteEventoController::class;
         Route::get('ministrantes', [$m, 'index'])->name('ministrantes.index');

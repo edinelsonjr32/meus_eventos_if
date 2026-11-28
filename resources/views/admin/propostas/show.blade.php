@@ -52,13 +52,7 @@
                         <div>Capacidade: {{ $a->vagas }} · {{ $a->inscritos()->count() }} inscrito(s) · {{ $a->carga_horaria }} h</div>
                         @if($a->equipamentos)<div class="mt-1">Equipamentos: {{ $a->equipamentos }}</div>@endif
                     </div>
-                    @if($proposta->atividadeConcluida())
-                        <form action="{{ route('admin.propostas.certificado', [$evento->id, $proposta->id]) }}" method="POST" class="mt-3">@csrf
-                            <button class="btn btn-sm btn-primary-custom w-100"><i class="fa-solid fa-award"></i> Emitir certificado de ministrante</button>
-                        </form>
-                    @else
-                        <div class="small text-muted mt-2"><i class="fa-regular fa-clock me-1"></i> O certificado de ministrante fica disponível depois que a atividade terminar.</div>
-                    @endif
+                    <a href="{{ route('admin.atividades.edit', $a->id) }}#presenca-equipe" class="btn btn-sm btn-primary-custom w-100 mt-3"><i class="fa-solid fa-award"></i> Presença e certificados da equipe</a>
                 </div>
             @endif
 

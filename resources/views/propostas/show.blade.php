@@ -27,11 +27,8 @@
                     @if($at->equipamentos)<div class="col-12"><i class="fa-solid fa-screwdriver-wrench me-1 text-success"></i> Equipamentos: {{ $at->equipamentos }}</div>@endif
                 </div>
                 <div class="mt-3">
-                    @if($proposta->atividadeConcluida())
-                        <a href="{{ route('propostas.certificado', $proposta->evento_id) }}" class="btn btn-primary-custom"><i class="fa-solid fa-award"></i> Baixar certificado de ministrante</a>
-                    @else
-                        <span class="small text-muted"><i class="fa-regular fa-clock me-1"></i> O certificado de ministrante fica disponível depois que a atividade terminar ({{ $at->data_fim->format('d/m/Y H:i') }}).</span>
-                    @endif
+                    <span class="small text-muted"><i class="fa-solid fa-award me-1"></i> Depois que a organização lançar a sua presença, o certificado aparece em <a href="{{ route('inscrito.dashboard') }}">Minha Agenda</a>.</span>
+                    @if($certificado)<a href="{{ route('certificado.equipe.download', $certificado->hash_validacao) }}" class="btn btn-sm btn-outline-success fw-bold mt-2"><i class="fa-solid fa-download"></i> Certificado de ministrante já emitido</a>@endif
                 </div>
             </div>
         @endif

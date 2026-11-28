@@ -44,25 +44,6 @@ it('cada pessoa da proposta tem a atribuição de ministrante ou ajudante, e a o
     $this->post(route('admin.propostas.apoio-funcao', [$this->evento, $caio]), ['funcao' => 'chefe'])->assertSessionHasErrors('funcao');
 });
 
-it('emitir o certificado de ministrante inclui os demais ministrantes, não os ajudantes', function () {
-    $svc = app(PropostaService::class);
-    $p = $svc->enviar($this->autor, $this->chamada, $this->dados, $this->equipe);
-    $svc->decidir($p, $this->admin, 'aprovada', ['data_inicio' => now()->addDay()->setTime(8, 0), 'data_fim' => now()->addDay()->setTime(12, 0), 'local_id' => $this->local->id, 'vagas' => 20, 'carga_horaria' => 4]);
-    Atividade::find($p->fresh()->atividade_id)->update(['data_inicio' => now()->subDays(2), 'data_fim' => now()->subDays(2)->addHours(4)]);
-
-    $this->actingAs($this->admin)->post(route('admin.propostas.certificado', [$this->evento, $p]))->assertSessionHas('success', 'Certificado de ministrante emitido para o proponente e mais 1 ministrante(s).');
-
-    $nomes = Equipe::where('funcao', 'Ministrante')->get()->map(fn ($e) => $e->participante->nome_completo)->sort()->values()->all();
-    expect($nomes)->toBe(['Bia Co-ministrante', 'Prof. Autor']);
-
-    // a co-ministrante, com conta própria, vê e baixa o certificado dela
-    $bia = mkUser('user', 'bia@x.com');
-    Participante::where('cpf', '529.982.247-25')->update(['user_id' => $bia->id]);
-    $hash = Equipe::whereHas('participante', fn ($q) => $q->where('user_id', $bia->id))->value('hash_validacao');
-    $this->actingAs($bia)->get(route('propostas.minhas'))->assertOk()->assertSee('Meus certificados de ministrante')->assertSee($hash, false);
-    $this->get(route('propostas.certificado', $this->evento))->assertRedirect(route('certificado.equipe.download', $hash));
-});
-
 it('o trabalho pode ter mais de um apresentador, cada um com a opção no formulário', function () {
     Illuminate\Support\Facades\Storage::fake('trabalhos');
     $evento = mkEvento($this->admin);

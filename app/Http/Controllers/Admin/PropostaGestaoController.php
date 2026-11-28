@@ -138,24 +138,6 @@ class PropostaGestaoController extends Controller
         return back()->with('success', "{$apoio->nome} agora é {$apoio->funcaoRotulo()}.");
     }
 
-    /** Emite (ou atualiza) o certificado de ministrante do proponente, depois que a atividade terminou. */
-    public function certificado(Evento $evento, Proposta $proposta)
-    {
-        $this->authorize('gerenciar', $evento);
-        abort_unless($proposta->evento_id === $evento->id, 404);
-
-        try {
-            $this->service->emitirCertificadoMinistrante($evento, $proposta->proponente, auth()->user());
-        } catch (\DomainException $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
-        [$demais, $avisos] = $this->service->certificarCoministrantes($proposta, auth()->user());
-        $resposta = back()->with('success', 'Certificado de ministrante emitido' . ($demais ? " para o proponente e mais {$demais} ministrante(s)." : '.'));
-
-        return $avisos ? $resposta->with('error', 'Não emitido para: ' . implode(' | ', $avisos)) : $resposta;
-    }
-
     private function validarChamada(Request $request): array
     {
         $dados = $request->validate([
