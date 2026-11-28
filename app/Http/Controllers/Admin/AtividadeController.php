@@ -219,17 +219,20 @@ class AtividadeController extends Controller
     }
 
     /** PDF com uma página por atividade: cabeçalho do evento, QR Code de frequência, título e responsável. */
-    public function qrcodesPdf(Evento $evento)
+    public function qrcodesPdf(Request $request, Evento $evento)
     {
         $this->authorize('gerenciar', $evento);
 
-        $paginas = $evento->atividades()->orderBy('data_inicio')->get()->map(fn (Atividade $a) => [
+        // Sem seleção, saem todas; com seleção, só as marcadas (sempre deste evento)
+        $escolhidas = collect($request->validate(['atividades' => ['nullable', 'array', 'max:500'], 'atividades.*' => ['integer']])['atividades'] ?? []);
+
+        $paginas = $evento->atividades()->when($escolhidas->isNotEmpty(), fn ($q) => $q->whereIn('id', $escolhidas))->orderBy('data_inicio')->get()->map(fn (Atividade $a) => [
             'atividade' => $a,
             'qr' => 'data:image/svg+xml;base64,' . base64_encode((string) \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(360)->margin(0)->generate(route('frequencia.form', $a->token_frequencia))),
         ]);
 
         if ($paginas->isEmpty()) {
-            return back()->with('error', 'Este evento ainda não tem atividades para gerar QR Codes.');
+            return back()->with('error', $escolhidas->isEmpty() ? 'Este evento ainda não tem atividades para gerar QR Codes.' : 'Nenhuma das atividades selecionadas pertence a este evento.');
         }
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.atividades.qrcodes-pdf', ['evento' => $evento, 'paginas' => $paginas])

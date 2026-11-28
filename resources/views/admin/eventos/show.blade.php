@@ -197,7 +197,7 @@
                     <h5 class="fw-bold m-0">Programação Oficial</h5>
                     <div class="d-flex align-items-center gap-2">
                         @if($evento->atividades->isNotEmpty())
-                            <a href="{{ route('admin.eventos.atividades.qrcodes', $evento->id) }}" class="btn btn-sm btn-outline-danger fw-bold"><i class="fa-solid fa-file-pdf"></i> PDF dos QR Codes</a>
+                            <button type="button" class="btn btn-sm btn-outline-danger fw-bold" data-bs-toggle="modal" data-bs-target="#modalQrcodes"><i class="fa-solid fa-file-pdf"></i> PDF dos QR Codes</button>
                         @endif
                         <span class="badge bg-secondary">{{ $evento->atividades->count() }} Atividades</span>
                     </div>
@@ -347,4 +347,7 @@
             alert("Link copiado: " + copyText.value);
         }
     </script>
+    @if($evento->atividades->isNotEmpty())
+        @include('admin.atividades._selecionar-qrcodes')
+    @endif
 </x-app-layout>
