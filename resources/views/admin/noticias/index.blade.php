@@ -29,7 +29,7 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 py-3 border-bottom">
                     <div style="min-width:0">
                         <div class="fw-bold">@if($n->fixada)<i class="fa-solid fa-thumbtack me-1 text-success" title="Fixada"></i>@endif{{ $n->titulo }}</div>
-                        <div class="small text-secondary"><span class="badge {{ $classe }} me-2">{{ $rotulo }}</span>{{ $n->publicado_em->format('d/m/Y H:i') }}@if($n->notificado_em)<span class="ms-2"><i class="fa-solid fa-envelope-circle-check me-1"></i>{{ (int) $n->notificados_total }} avisado(s)</span>@elseif($n->notificar_inscritos)<span class="ms-2"><i class="fa-regular fa-envelope me-1"></i>aviso pendente</span>@endif</div>
+                        <div class="small text-secondary"><span class="badge {{ $classe }} me-2">{{ $rotulo }}</span>{{ $n->publicado_em->format('d/m/Y H:i') }}@if($n->notificado_em)<span class="ms-2"><i class="fa-solid fa-envelope-circle-check me-1"></i>{{ (int) $n->notificados_total }} avisado(s)</span>@elseif($n->notificar_inscritos)<span class="ms-2"><i class="fa-regular fa-envelope me-1"></i>aviso pendente</span>@else<span class="ms-2 text-warning-emphasis"><i class="fa-solid fa-bell-slash me-1"></i>sem aviso por e-mail</span>@endif</div>
                         <div class="small text-muted mt-1">{{ \Illuminate\Support\Str::limit(\App\Support\HtmlSeguro::paraTexto($n->conteudo), 140) }}</div>
                     </div>
                     <div class="d-flex gap-2">

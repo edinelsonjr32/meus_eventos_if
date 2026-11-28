@@ -118,3 +118,14 @@ it('notícia agendada avisa pelo agendador quando entra no ar', function () {
     $this->artisan('noticias:notificar');
     Illuminate\Support\Facades\Mail::assertQueued(App\Mail\NoticiaEventoMail::class, 1);
 });
+
+it('avisa na tela quando a notícia é salva sem notificar os inscritos', function () {
+    Illuminate\Support\Facades\Mail::fake();
+    $dono = mkUser('admin', 'chefe-aviso@ifpa.edu.br');
+    $evento = mkEvento($dono);
+
+    $this->actingAs($dono)->post(route('admin.noticias.store', $evento), ['titulo' => 'Sem aviso', 'conteudo' => '<p>Texto</p>', 'publicada' => 1])
+        ->assertSessionHas('success', fn (string $m) => str_contains($m, 'Nenhum e-mail foi enviado'));
+    $this->get(route('admin.noticias.index', $evento))->assertSee('sem aviso por e-mail');
+    Illuminate\Support\Facades\Mail::assertNothingOutgoing();
+});

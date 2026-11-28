@@ -61,8 +61,11 @@ class NoticiaEventoController extends Controller
     /** Envia o aviso (se marcado e a notícia já estiver no ar) e devolve a frase para a mensagem de sucesso. */
     private function avisar(NoticiaEvento $noticia): string
     {
-        if (!$noticia->notificar_inscritos || $noticia->notificado_em) {
+        if ($noticia->notificado_em) {
             return '';
+        }
+        if (!$noticia->notificar_inscritos) {
+            return ' Nenhum e-mail foi enviado: a opção "Avisar os inscritos por e-mail" está desligada. Para avisar, edite a notícia, ligue a opção e salve.';
         }
         if ($noticia->situacao() === 'agendada') {
             return ' Os inscritos serão avisados por e-mail quando ela entrar no ar.';
