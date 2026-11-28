@@ -22,7 +22,7 @@ class MinistrantesDoEvento
         foreach ($atividades as $atividade) {
             foreach ($this->nomes((string) $atividade->responsavel) as $nome) {
                 $chave = MinistranteEvento::chaveDe($nome);
-                $pessoas[$chave] ??= ['chave' => $chave, 'nome' => $this->capitalizar($nome), 'atividades' => []];
+                $pessoas[$chave] ??= ['chave' => $chave, 'nome' => self::capitalizar($nome), 'atividades' => []];
                 $pessoas[$chave]['atividades'][$atividade->id] = $atividade->titulo;
             }
         }
@@ -65,7 +65,7 @@ class MinistrantesDoEvento
     }
 
     /** Nomes digitados todos em maiúsculas ou minúsculas ganham a grafia usual. */
-    private function capitalizar(string $nome): string
+    public static function capitalizar(string $nome): string
     {
         if ($nome !== mb_strtoupper($nome) && $nome !== mb_strtolower($nome)) {
             return $nome;

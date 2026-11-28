@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Atividade;
 use App\Models\Local;
 use App\Services\LocalService;
+use App\Services\ResponsaveisDaAtividade;
 use App\Models\Evento;
 use App\Models\Frequencia;
 use App\Models\Inscricao;
@@ -35,6 +36,8 @@ class AtividadeController extends Controller
             'titulo' => 'required|string|max:255',
             'tipo' => 'required|string|min:2|max:80',
             'responsavel' => 'nullable|string|max:255',
+            'responsaveis' => 'nullable|array|max:15',
+            'responsaveis.*' => ['string', 'regex:/^[pu]:\d+$/'],
             'local_id' => ['nullable', 'integer', Rule::exists('locais', 'id')->where('evento_id', $evento->id)->where('ativo', true)],
             'ignorar_conflito' => 'nullable|boolean',
             'data_inicio' => 'required|date',
@@ -55,10 +58,12 @@ class AtividadeController extends Controller
             return back()->withInput()->withErrors(['local_id' => $erro]);
         }
 
-        $evento->atividades()->create([
+        [$vinculos, $texto] = $this->responsaveis($request, $evento, $validated['responsavel'] ?? null);
+
+        $atividade = $evento->atividades()->create([
             'titulo' => $validated['titulo'],
             'tipo' => trim($validated['tipo']),
-            'responsavel' => $validated['responsavel'] ?? null,
+            'responsavel' => $texto,
             'local_id' => $validated['local_id'] ?? null,
             'local' => null,
             'data_inicio' => $validated['data_inicio'],
@@ -69,8 +74,30 @@ class AtividadeController extends Controller
             'voluntarios_necessarios' => ($validated['voluntarios_necessarios'] ?? 2) ?: null,
             'token_frequencia' => Str::random(10),
         ]);
+        if ($vinculos) {
+            app(ResponsaveisDaAtividade::class)->gravar($atividade, $vinculos);
+        }
 
         return back()->with('success', 'Atividade adicionada com sucesso à programação!');
+    }
+
+    /**
+     * Pessoas vinculadas e o texto exibido. Sem o seletor no formulário, os vínculos ficam como estão (null).
+     *
+     * @return array{0: ?\Illuminate\Support\Collection, 1: ?string}
+     */
+    private function responsaveis(Request $request, Evento $evento, ?string $outros, ?Atividade $atividade = null): array
+    {
+        if (!$request->boolean('responsaveis_enviado')) {
+            return [null, $outros];
+        }
+        $vinculos = app(ResponsaveisDaAtividade::class)->resolver($request->user(), $evento, (array) $request->input('responsaveis', []), $atividade);
+        $texto = $vinculos->isEmpty() ? $outros : ResponsaveisDaAtividade::juntar($vinculos->pluck('nome'), preg_split('/[,;]+/', (string) $outros));
+        if (mb_strlen((string) $texto) > 255) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['responsavel' => 'Os nomes dos responsáveis somam mais de 255 caracteres. Reduza a quantidade de pessoas.']);
+        }
+
+        return [$vinculos, filled($texto) ? $texto : null];
     }
 
     /** Mensagem de erro se o local já está ocupado no horário ou não comporta as vagas (null = tudo certo ou conflito ignorado). */
@@ -96,8 +123,9 @@ class AtividadeController extends Controller
         $this->authorize('gerenciar', $atividade->evento);
 
         return view('admin.atividades.edit', [
-            'atividade' => $atividade,
+            'atividade' => $atividade->load('responsaveis'),
             'evento' => $atividade->evento,
+            'outrosNomes' => app(ResponsaveisDaAtividade::class)->outrosNomes($atividade),
             'tipos' => self::TIPOS,
             'demanda' => \App\Models\DemandaVoluntario::with('voluntarios.usuario')->where('atividade_id', $atividade->id)->first(),
             'aprovados' => \App\Models\Voluntario::with('usuario')->where('evento_id', $atividade->evento_id)->where('status', 'aprovado')->get()->sortBy(fn ($v) => $v->usuario->name)->values(),
@@ -116,6 +144,8 @@ class AtividadeController extends Controller
             'titulo' => 'required|string|max:255',
             'tipo' => 'required|string|min:2|max:80',
             'responsavel' => 'nullable|string|max:255',
+            'responsaveis' => 'nullable|array|max:15',
+            'responsaveis.*' => ['string', 'regex:/^[pu]:\d+$/'],
             'local_id' => ['nullable', 'integer', Rule::exists('locais', 'id')->where('evento_id', $atividade->evento_id)->where(fn ($q) => $q->where('ativo', true)->orWhere('id', $atividade->local_id))],
             'ignorar_conflito' => 'nullable|boolean',
             'data_inicio' => 'required|date',
@@ -137,10 +167,12 @@ class AtividadeController extends Controller
             return back()->withInput()->withErrors(['local_id' => $erro]);
         }
 
+        [$vinculos, $texto] = $this->responsaveis($request, $atividade->evento, $dados['responsavel'] ?? null, $atividade);
+
         $atividade->update([
             'titulo' => $dados['titulo'],
             'tipo' => trim($dados['tipo']),
-            'responsavel' => $dados['responsavel'] ?? null,
+            'responsavel' => $texto,
             'local_id' => $dados['local_id'] ?? null,
             'local' => null,
             'data_inicio' => $inicio,
@@ -151,6 +183,10 @@ class AtividadeController extends Controller
             'voluntarios_necessarios' => ($dados['voluntarios_necessarios'] ?? null) ?: null,
             'frequencia_fecha_em' => $dados['frequencia_fecha_em'] ?? null,
         ]);
+
+        if ($vinculos) {
+            app(ResponsaveisDaAtividade::class)->gravar($atividade, $vinculos);
+        }
 
         $aviso = '';
         if (!$atividade->emiteCertificado() && ($presencas = $atividade->frequencias()->count()) > 0) {

@@ -128,8 +128,11 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">RESPONSÁVEL / PALESTRANTE</label>
-                        <input type="text" name="responsavel" class="form-control" placeholder="Ex: Profa. Maria Silva" maxlength="255" list="equipe-nomes">
+                        @php
+                            $marcados = app(\App\Services\ResponsaveisDaAtividade::class)->resolver(auth()->user(), $evento, (array) old('responsaveis', []))
+                                ->map(fn ($v) => ['id' => $v['participante_id'] ? 'p:' . $v['participante_id'] : 'u:' . $v['user_id'], 'nome' => $v['nome']]);
+                        @endphp
+                        <x-vincular-responsaveis :evento="$evento" id="resp-nova" :selecionados="$marcados" :outros="old('responsavel')" list="equipe-nomes" />
                         <datalist id="equipe-nomes">@foreach($evento->equipe()->with('participante')->get() as $mb)<option value="{{ $mb->participante->nome_completo }}">@endforeach</datalist>
                     </div>
 

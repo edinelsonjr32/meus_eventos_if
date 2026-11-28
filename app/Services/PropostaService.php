@@ -186,7 +186,7 @@ class PropostaService
         }
 
         $campos = [
-            'titulo' => $proposta->titulo, 'descricao' => HtmlSeguro::paraTexto($proposta->resumo), 'tipo' => $proposta->tipo, 'responsavel' => \Illuminate\Support\Str::limit($proposta->nomesDosMinistrantes(), 250),
+            'titulo' => $proposta->titulo, 'descricao' => HtmlSeguro::paraTexto($proposta->resumo), 'tipo' => $proposta->tipo, 'responsavel' => $this->responsavelDaAtividade($proposta),
             'local_id' => $local->id, 'local' => $local->rotulo(), 'espaco' => null, 'equipamentos' => $d['equipamentos'] ?? null, 'observacoes_organizacao' => $d['observacoes_organizacao'] ?? null,
             'carga_horaria' => (int) $d['carga_horaria'], 'vagas' => (int) $d['vagas'], 'data_inicio' => $inicio, 'data_fim' => $fim, 'proposta_id' => $proposta->id,
         ];
@@ -252,7 +252,7 @@ class PropostaService
         $apoio->update(['funcao' => $funcao]);
         $proposta = $apoio->proposta;
         if ($proposta->atividade) {
-            $proposta->atividade->update(['responsavel' => \Illuminate\Support\Str::limit($proposta->nomesDosMinistrantes(), 250)]);
+            $proposta->atividade->update(['responsavel' => $this->responsavelDaAtividade($proposta)]);
         }
     }
 
@@ -312,6 +312,14 @@ class PropostaService
         }
 
         return [$emitidos, $avisos];
+    }
+
+    /** Ministrantes da proposta mais as pessoas que a organização vinculou à atividade. */
+    private function responsavelDaAtividade(Proposta $proposta): string
+    {
+        $vinculados = $proposta->atividade_id ? \App\Models\AtividadeResponsavel::where('atividade_id', $proposta->atividade_id)->orderBy('id')->pluck('nome') : [];
+
+        return \Illuminate\Support\Str::limit(ResponsaveisDaAtividade::juntar(explode(', ', $proposta->nomesDosMinistrantes()), $vinculados), 250);
     }
 
     private function avisar(Proposta $proposta): void

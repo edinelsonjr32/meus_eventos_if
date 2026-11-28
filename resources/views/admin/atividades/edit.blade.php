@@ -27,9 +27,14 @@
                         <label class="small fw-bold text-secondary" for="inicio">Data e hora de início *</label>
                         <input id="inicio" type="datetime-local" name="data_inicio" class="form-control" required value="{{ old('data_inicio', $atividade->data_inicio?->format('Y-m-d\TH:i')) }}">
                     </div>
-                    <div class="col-md-6">
-                        <label class="small fw-bold text-secondary" for="resp">Responsável / palestrante</label>
-                        <input id="resp" name="responsavel" class="form-control" maxlength="255" list="equipe-nomes" value="{{ old('responsavel', $atividade->responsavel) }}">
+                    <div class="col-12">
+                        @php
+                            $marcados = old('responsaveis_enviado')
+                                ? app(\App\Services\ResponsaveisDaAtividade::class)->resolver(auth()->user(), $evento, (array) old('responsaveis', []), $atividade)
+                                    ->map(fn ($v) => ['id' => $v['participante_id'] ? 'p:' . $v['participante_id'] : 'u:' . $v['user_id'], 'nome' => $v['nome']])
+                                : $atividade->responsaveis->map(fn ($r) => ['id' => $r->referencia(), 'nome' => $r->nome]);
+                        @endphp
+                        <x-vincular-responsaveis :evento="$evento" :selecionados="$marcados" :outros="old('responsaveis_enviado') ? old('responsavel') : $outrosNomes" list="equipe-nomes" />
                         <datalist id="equipe-nomes">@foreach($equipe as $nome)<option value="{{ $nome }}">@endforeach</datalist>
                     </div>
                     <div class="col-md-6">

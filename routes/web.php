@@ -371,6 +371,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Busca de pessoas em tempo real (Select2) para equipe e papéis
     Route::get('eventos/{evento}/buscar-pessoas', \App\Http\Controllers\Admin\BuscaPessoaController::class)->middleware('throttle:60,1')->name('eventos.buscar-pessoas');
+    Route::get('eventos/{evento}/buscar-responsaveis', \App\Http\Controllers\Admin\BuscaResponsavelController::class)->middleware('throttle:120,1')->name('eventos.buscar-responsaveis');
 
     // --- Gestão de Equipe / Staff ---
     // Propostas de minicurso/oficina e voluntários (por evento)

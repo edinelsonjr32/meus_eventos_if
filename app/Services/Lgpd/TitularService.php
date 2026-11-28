@@ -126,6 +126,8 @@ class TitularService
                 $resumo['autorias']++;
             }
 
+            $this->retirarDaProgramacao($alvo);
+
             foreach ($alvo['participantes'] as $p) {
                 // CPF é único e obrigatório: recebe um marcador exclusivo (14 caracteres)
                 $p->update([
@@ -146,6 +148,33 @@ class TitularService
         $this->registrar($acao, $identificador, $executor, $resumo);
 
         return $resumo;
+    }
+
+    /** Vínculos como responsável de atividade, o nome na programação e a foto de ministrante no site. */
+    private function retirarDaProgramacao(array $alvo): void
+    {
+        $vinculos = \App\Models\AtividadeResponsavel::with('atividade')
+            ->whereIn('participante_id', $alvo['participantes']->pluck('id'))
+            ->orWhereIn('user_id', $alvo['usuarios']->pluck('id'))->get();
+
+        $chaves = $vinculos->pluck('nome')->merge($alvo['participantes']->pluck('nome_completo'))->merge($alvo['usuarios']->pluck('name'))
+            ->filter()->map(fn ($n) => \App\Models\MinistranteEvento::chaveDe($n))->unique()->all();
+
+        foreach ($vinculos as $v) {
+            if ($atividade = $v->atividade) {
+                $restantes = collect(preg_split('/[,;]+/', (string) $atividade->responsavel))->map(fn ($n) => trim($n))->filter()
+                    ->reject(fn ($n) => \App\Models\MinistranteEvento::chaveDe($n) === \App\Models\MinistranteEvento::chaveDe($v->nome));
+                $atividade->update(['responsavel' => $restantes->implode(', ') ?: null]);
+            }
+            $v->delete();
+        }
+
+        foreach (\App\Models\MinistranteEvento::whereIn('chave', $chaves)->get() as $ministrante) {
+            if ($ministrante->caminho_foto) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($ministrante->caminho_foto);
+            }
+            $ministrante->delete();
+        }
     }
 
     /** A conta tem registros que impedem a exclusão física (trabalhos, avaliações, eventos, arquivos...)? */

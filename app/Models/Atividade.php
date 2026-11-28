@@ -38,6 +38,12 @@ class Atividade extends Model
         });
     }
 
+    /** Pessoas cadastradas vinculadas como responsáveis. */
+    public function responsaveis(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AtividadeResponsavel::class)->orderBy('id');
+    }
+
     public function localCadastrado(): BelongsTo
     {
         return $this->belongsTo(Local::class, 'local_id');
