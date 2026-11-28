@@ -81,6 +81,18 @@
                 </div>
             </form>
 
+            {{-- Equipe indicada na proposta que originou a atividade --}}
+            @if($proposta)
+                @if(session('success'))<div class="alert alert-success small mt-4 mb-0">{{ session('success') }}</div>@endif
+                @if(session('error'))<div class="alert alert-danger small mt-4 mb-0">{{ session('error') }}</div>@endif
+                <div class="small text-muted mt-4 mb-2">
+                    Atividade criada da proposta de <strong>{{ $proposta->participante?->nome_completo ?: $proposta->proponente?->name }}</strong>
+                    (<a href="{{ route('admin.propostas.show', [$evento->id, $proposta->id]) }}">ver proposta</a>).
+                    Confira a atribuição de cada pessoa: <strong>Ministrante</strong> aparece como responsável na programação e no site; <strong>Ajudante</strong> aparece só no painel.
+                </div>
+                @include('admin.propostas._equipe', ['classe' => 'bg-white'])
+            @endif
+
             {{-- Voluntários desta atividade --}}
             <div class="glass-card bg-white mt-4">
                 <h6 class="fw-bold text-success mb-1"><i class="fa-solid fa-hand-holding-heart me-1"></i> Voluntários da atividade</h6>

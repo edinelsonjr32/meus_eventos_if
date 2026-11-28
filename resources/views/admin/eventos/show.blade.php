@@ -213,6 +213,12 @@
                     </div>
                 @else
                     <div class="list-group list-group-flush">
+                        @php
+                            $ajudantes = \App\Models\PropostaApoio::query()->where('funcao', 'ajudante')
+                                ->join('propostas', 'propostas.id', '=', 'proposta_apoios.proposta_id')
+                                ->whereIn('propostas.atividade_id', $evento->atividades->pluck('id'))
+                                ->orderBy('proposta_apoios.id')->get(['proposta_apoios.nome', 'propostas.atividade_id'])->groupBy('atividade_id');
+                        @endphp
                         @foreach($evento->atividades as $atividade)
                             @php
                                 // Cálculo de lotação e Link QR Code
@@ -249,6 +255,7 @@
 
                                     <h6 class="fw-bold mb-2 text-dark fs-5">{{ $atividade->titulo }}</h6>
                                     @if($atividade->responsavel || $atividade->local)<div class="small text-secondary mb-2 d-flex flex-wrap gap-3">@if($atividade->responsavel)<span><i class="fa-solid fa-user-tie me-1"></i> {{ $atividade->responsavel }}</span>@endif @if($atividade->local)<span><i class="fa-solid fa-location-dot me-1"></i> {{ $atividade->local }}</span>@endif</div>@endif
+                                    @if($ajudantes->has($atividade->id))<div class="small text-secondary mb-2"><i class="fa-solid fa-hands-helping me-1"></i> Ajudantes: {{ $ajudantes[$atividade->id]->pluck('nome')->implode(', ') }} · <a href="{{ route('admin.atividades.edit', $atividade->id) }}#equipe-proposta">conferir atribuição</a></div>@endif
 
                                     <div class="d-flex align-items-center gap-3 text-secondary small">
                                         <span>

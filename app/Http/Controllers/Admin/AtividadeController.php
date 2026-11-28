@@ -125,6 +125,7 @@ class AtividadeController extends Controller
         return view('admin.atividades.edit', [
             'atividade' => $atividade->load('responsaveis'),
             'evento' => $atividade->evento,
+            'proposta' => \App\Models\Proposta::with(['apoios', 'participante', 'proponente'])->where('atividade_id', $atividade->id)->first(),
             'outrosNomes' => app(ResponsaveisDaAtividade::class)->outrosNomes($atividade),
             'tipos' => self::TIPOS,
             'demanda' => \App\Models\DemandaVoluntario::with('voluntarios.usuario')->where('atividade_id', $atividade->id)->first(),

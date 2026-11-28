@@ -251,8 +251,13 @@ class PropostaService
     {
         $apoio->update(['funcao' => $funcao]);
         $proposta = $apoio->proposta;
-        if ($proposta->atividade) {
-            $proposta->atividade->update(['responsavel' => $this->responsavelDaAtividade($proposta)]);
+        if ($atividade = $proposta->atividade) {
+            $nomes = collect(preg_split('/[,;]+/', (string) $atividade->responsavel))->map(fn ($n) => trim($n))->filter();
+            $chave = \App\Models\MinistranteEvento::chaveDe($apoio->nome);
+            $nomes = $funcao === 'ministrante'
+                ? $nomes->push($apoio->nome)
+                : $nomes->reject(fn ($n) => \App\Models\MinistranteEvento::chaveDe($n) === $chave);
+            $atividade->update(['responsavel' => \Illuminate\Support\Str::limit(ResponsaveisDaAtividade::juntar($nomes), 250) ?: null]);
         }
     }
 

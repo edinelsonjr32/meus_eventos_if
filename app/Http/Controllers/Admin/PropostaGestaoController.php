@@ -113,7 +113,7 @@ class PropostaGestaoController extends Controller
 
         // CPF/e-mail podem ser completados na hora
         if ($request->filled('cpf') || $request->filled('email')) {
-            $request->validate(['cpf' => ['nullable', 'string', 'size:14', new \App\Rules\Cpf], 'email' => 'nullable|email|max:255']);
+            $request->validate(['cpf' => ['nullable', 'string', 'size:14', new \App\Rules\Cpf], 'email' => ['nullable', 'email', new \App\Rules\EmailSemAcento, 'max:255']]);
             $apoio->update(array_filter(['cpf' => \App\Rules\Cpf::formatar((string) $request->cpf) ?: null, 'email' => $request->email ? mb_strtolower($request->email) : null]));
         }
 
