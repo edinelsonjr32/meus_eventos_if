@@ -600,11 +600,14 @@ class TrabalhoWorkflow
         }
 
         $trabalho = $avaliacao->trabalho;
-        $nome = $avaliacao->avaliador->name;
+        $avaliador = $avaliacao->avaliador;
+        $nome = $avaliador->name;
 
         DB::transaction(function () use ($avaliacao, $trabalho, $gestor, $nome) {
             $avaliacao->delete();
             $this->registrar($trabalho, $gestor, $trabalho->status, $trabalho->status, "Avaliador removido: {$nome}");
         });
+
+        Notificacoes::avaliador($trabalho, $avaliador, 'escrita', 'Você não precisa mais avaliar este trabalho', 'A organização removeu a sua designação. Nada mais precisa ser feito.', 'alerta');
     }
 }

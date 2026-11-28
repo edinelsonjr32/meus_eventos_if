@@ -124,8 +124,11 @@ class AvaliacaoApresentacaoService
             throw new \DomainException('Esta avaliação já foi concluída e não pode ser removida.');
         }
         $trabalho = $avaliacao->trabalho;
+        $avaliador = $avaliacao->avaliador;
         $avaliacao->delete();
         $this->recalcular($trabalho);
+
+        Notificacoes::avaliador($trabalho, $avaliador, 'apresentacao', 'Você não precisa mais avaliar esta apresentação', 'A organização removeu a sua designação. Nada mais precisa ser feito.', 'alerta');
     }
 
     // ------------------------------------------------------------------ avaliador
@@ -190,6 +193,11 @@ class AvaliacaoApresentacaoService
             $this->recalcular($trabalho->fresh());
         });
 
+        $trabalho = $avaliacao->trabalho->fresh();
+        if (!$trabalho->avaliacoesApresentacao()->whereIn('status', ['pendente', 'em_andamento'])->exists()) {
+            Notificacoes::gestaoDoTrabalho($trabalho, 'apresentacao', 'Avaliações da apresentação concluídas', 'Todas as avaliações da apresentação deste trabalho foram concluídas. Confira o resultado.');
+        }
+
         return $avaliacao->fresh();
     }
 
@@ -201,6 +209,9 @@ class AvaliacaoApresentacaoService
         }
         $avaliacao->update(['status' => 'recusada', 'parecer_confidencial' => trim($motivo)]);
         $this->recalcular($avaliacao->trabalho);
+
+        Notificacoes::gestaoDoTrabalho($avaliacao->trabalho->fresh(), 'apresentacao', 'Avaliador recusou uma apresentação',
+            "{$avaliacao->avaliador->name} recusou a avaliação. Designe outra pessoa.", 'alerta', trim($motivo));
     }
 
     private function garantirEditavel(ApresentacaoAvaliacao $avaliacao): void

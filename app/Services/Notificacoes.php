@@ -44,6 +44,43 @@ class Notificacoes
         ]);
     }
 
+    // ---------- Avaliadores e gestão de trabalhos ----------
+
+    /** Aviso a quem avalia. Não leva nomes de autores (avaliação às cegas). */
+    public static function avaliador(Trabalho $trabalho, ?\App\Models\User $avaliador, string $fase, string $titulo, string $mensagem, string $tipo = 'info'): void
+    {
+        if (!$avaliador) {
+            return;
+        }
+        $trabalho->loadMissing('evento');
+        $lista = route($fase === 'apresentacao' ? 'avaliador.apresentacoes.index' : 'avaliador.avaliacoes.index');
+        self::enviar($avaliador->email, [
+            'assunto' => "{$titulo} — {$trabalho->codigo}", 'titulo' => $titulo, 'evento' => $trabalho->evento->titulo,
+            'item_rotulo' => 'Trabalho', 'item' => $trabalho->titulo, 'situacao' => null,
+            'detalhes' => ['Protocolo' => $trabalho->codigo, 'Fase' => self::fase($fase)], 'tipo' => $tipo, 'mensagem' => $mensagem, 'citacao' => null,
+            'botao' => 'Ver minhas avaliações', 'href' => $lista, 'area' => 'Minhas avaliações', 'area_href' => $lista,
+        ]);
+    }
+
+    /** Aviso à gestão dos trabalhos do evento (dono, co-administradores e gestores de trabalhos). */
+    public static function gestaoDoTrabalho(Trabalho $trabalho, string $fase, string $titulo, string $mensagem, string $tipo = 'info', ?string $citacao = null, array $detalhes = []): void
+    {
+        $trabalho->loadMissing('evento');
+        self::enviar($trabalho->evento->usuariosDaGestaoDeTrabalhos()->pluck('email')->all(), [
+            'assunto' => "{$titulo} — {$trabalho->codigo}", 'titulo' => $titulo, 'evento' => $trabalho->evento->titulo,
+            'item_rotulo' => 'Trabalho', 'item' => $trabalho->titulo, 'situacao' => $trabalho->statusRotulo(),
+            'detalhes' => ['Protocolo' => $trabalho->codigo, 'Fase' => self::fase($fase)] + $detalhes, 'tipo' => $tipo, 'mensagem' => $mensagem,
+            'citacao' => $citacao, 'citacao_titulo' => 'Motivo informado',
+            'botao' => 'Abrir o trabalho', 'href' => route('gestao.trabalhos.show', $trabalho),
+            'area' => 'Trabalhos', 'area_href' => route('gestao.trabalhos.index', $trabalho->evento),
+        ]);
+    }
+
+    private static function fase(string $fase): string
+    {
+        return $fase === 'apresentacao' ? 'Avaliação da apresentação' : 'Avaliação escrita';
+    }
+
     // ---------- Propostas de minicurso/oficina ----------
 
     public static function proposta(Proposta $proposta, string $titulo, string $mensagem, string $tipo = 'info', ?string $citacao = null, array $detalhes = []): void

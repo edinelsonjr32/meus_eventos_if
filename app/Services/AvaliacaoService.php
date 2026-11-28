@@ -148,6 +148,9 @@ class AvaliacaoService
             $this->workflow->registrar($trabalho, $avaliador, $trabalho->status, $trabalho->status, 'Avaliação recusada: ' . trim($motivo));
             $this->atualizarTrabalho($trabalho);
         });
+
+        \App\Services\Notificacoes::gestaoDoTrabalho($avaliacao->trabalho->fresh(), 'escrita', 'Avaliador recusou um trabalho',
+            "{$avaliador->name} recusou a avaliação. Designe outra pessoa.", 'alerta', trim($motivo));
     }
 
     private function garantirEditavel(TrabalhoAvaliacao $avaliacao): void
@@ -209,6 +212,7 @@ class AvaliacaoService
                 $this->workflow->registrar($trabalho, null, 'em_avaliacao', 'avaliado', 'Todas as avaliações foram concluídas');
                 $trabalho->status = 'avaliado';
                 $trabalho->save();
+                \App\Services\Notificacoes::gestaoDoTrabalho($trabalho, 'escrita', 'Avaliações concluídas: aguardando decisão', 'Todas as avaliações deste trabalho foram concluídas. Registre a decisão.');
                 \App\Services\Notificacoes::trabalho($trabalho, 'Avaliação do seu trabalho concluída', 'Todas as avaliações foram concluídas. A gestão fará a análise final e você receberá a decisão por e-mail.', 'info');
             }
         }
@@ -331,6 +335,13 @@ class AvaliacaoService
         $emails = $trabalho->autores->pluck('email')->filter()->push($trabalho->submetente->email)->map(fn ($e) => mb_strtolower($e))->unique();
         foreach ($emails as $email) {
             Mail::to($email)->queue(new TrabalhoDecisaoMail($trabalho, $decisao));
+        }
+
+        // Voltou para correção: quem avaliou nesta rodada fica sabendo
+        if ($decisao === 'aprovado_com_ressalvas') {
+            $trabalho->avaliacoes()->with('avaliador')->where('rodada', $trabalho->rodadaAtual())->where('status', 'concluida')->get()
+                ->each(fn ($av) => \App\Services\Notificacoes::avaliador($trabalho, $av->avaliador, 'escrita', 'Trabalho voltou ao autor para correção',
+                    'O trabalho que você avaliou foi aprovado com ressalvas e voltou ao autor para correção. Se houver nova rodada com você, chegará outro aviso.'));
         }
 
         return $trabalho->fresh();
