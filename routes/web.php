@@ -412,6 +412,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         Route::get('noticias/{noticia}/editar', [$n, 'edit'])->name('noticias.edit');
         Route::put('noticias/{noticia}', [$n, 'update'])->name('noticias.update');
         Route::delete('noticias/{noticia}', [$n, 'destroy'])->name('noticias.destroy');
+        Route::post('noticias/{noticia}/avisar', [$n, 'avisarDeNovo'])->name('noticias.avisar');
 
         $v = \App\Http\Controllers\Admin\VoluntarioGestaoController::class;
         Route::get('voluntarios', [$v, 'index'])->name('voluntarios.index');

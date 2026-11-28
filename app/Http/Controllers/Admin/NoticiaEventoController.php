@@ -50,6 +50,21 @@ class NoticiaEventoController extends Controller
         return redirect()->route('admin.noticias.index', $evento)->with('success', 'Notícia atualizada.' . $this->avisar($noticia));
     }
 
+    /** Botão "Reenviar aviso". */
+    public function avisarDeNovo(Evento $evento, NoticiaEvento $noticia, NotificadorDeNoticias $notificador)
+    {
+        $this->conferir($evento, $noticia);
+
+        try {
+            $n = $notificador->reenviar($noticia);
+        } catch (\DomainException $e) {
+            return redirect()->route('admin.noticias.index', $evento)->withErrors(['aviso' => $e->getMessage()]);
+        }
+
+        return redirect()->route('admin.noticias.index', $evento)
+            ->with('success', $n ? "{$n} e-mail(s) aos inscritos colocado(s) na fila de envio." : 'Não há inscritos com e-mail para avisar.');
+    }
+
     public function destroy(Evento $evento, NoticiaEvento $noticia)
     {
         $this->conferir($evento, $noticia);

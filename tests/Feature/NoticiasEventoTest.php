@@ -129,3 +129,31 @@ it('avisa na tela quando a notícia é salva sem notificar os inscritos', functi
     $this->get(route('admin.noticias.index', $evento))->assertSee('sem aviso por e-mail');
     Illuminate\Support\Facades\Mail::assertNothingOutgoing();
 });
+
+it('reenvia o aviso pelo botão, só depois da espera e só de notícia no ar', function () {
+    Illuminate\Support\Facades\Mail::fake();
+    $dono = mkUser('admin', 'chefe-reenvio@ifpa.edu.br');
+    $evento = mkEvento($dono);
+    $p = App\Models\Participante::create(['nome_completo' => 'Inscrito', 'cpf' => '111.444.777-35', 'email' => 'inscrito@gmail.com', 'tipo_vinculo' => 'externo']);
+    App\Models\Inscricao::create(['evento_id' => $evento->id, 'participante_id' => $p->id, 'data_inscricao' => now()]);
+    $n = $evento->noticias()->create(['titulo' => 'Aviso', 'conteudo' => '<p>x</p>', 'publicada' => true, 'publicado_em' => now()->subMinute(), 'criado_por' => $dono->id]);
+    $url = route('admin.noticias.avisar', [$evento, $n]);
+
+    $this->actingAs($dono)->get(route('admin.noticias.index', $evento))->assertSee('Enviar aviso');
+    $this->post($url)->assertSessionHas('success', '1 e-mail(s) aos inscritos colocado(s) na fila de envio.');
+
+    $this->get(route('admin.noticias.index', $evento))->assertSee('Reenviar às');
+    $this->post($url)->assertSessionHasErrors('aviso');
+    Illuminate\Support\Facades\Mail::assertQueuedCount(1);
+
+    $this->travel(16)->minutes();
+    $this->get(route('admin.noticias.index', $evento))->assertSee('Reenviar aviso');
+    $this->post($url)->assertSessionHas('success');
+    Illuminate\Support\Facades\Mail::assertQueuedCount(2);
+
+    $n->update(['publicada' => false]);
+    $this->travel(16)->minutes();
+    $this->post($url)->assertSessionHasErrors('aviso');
+    $this->actingAs(mkUser('user', 'curioso@gmail.com'))->post($url)->assertRedirect();
+    Illuminate\Support\Facades\Mail::assertQueuedCount(2);
+});

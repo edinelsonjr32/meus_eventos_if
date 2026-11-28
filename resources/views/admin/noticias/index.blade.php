@@ -33,6 +33,17 @@
                         <div class="small text-muted mt-1">{{ \Illuminate\Support\Str::limit(\App\Support\HtmlSeguro::paraTexto($n->conteudo), 140) }}</div>
                     </div>
                     <div class="d-flex gap-2">
+                        @if($n->situacao() === 'no_ar')
+                            @php $libera = app(\App\Services\NotificadorDeNoticias::class)->reenvioLiberadoEm($n); @endphp
+                            @if($libera)
+                                <button type="button" class="btn btn-sm btn-outline-success" disabled title="O último aviso ainda está sendo entregue. Libera em {{ $libera->format('d/m H:i') }}."><i class="fa-regular fa-clock me-1"></i> Reenviar às {{ $libera->format('H:i') }}</button>
+                            @else
+                                <form method="POST" action="{{ route('admin.noticias.avisar', [$evento, $n]) }}" onsubmit="if (!confirm('Enviar o aviso desta notícia por e-mail para {{ $totalDestinatarios }} inscrito(s)?')) return false; this.querySelector('button').disabled = true;">
+                                    @csrf
+                                    <button class="btn btn-sm btn-outline-success" @disabled($totalDestinatarios === 0)><i class="fa-solid fa-envelope me-1"></i> {{ $n->notificado_em ? 'Reenviar aviso' : 'Enviar aviso' }}</button>
+                                </form>
+                            @endif
+                        @endif
                         <a href="{{ route('admin.noticias.edit', [$evento, $n]) }}" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-pen me-1"></i> Editar</a>
                         <form method="POST" action="{{ route('admin.noticias.destroy', [$evento, $n]) }}" onsubmit="return confirm('Excluir esta notícia? Esta ação não pode ser desfeita.')">
                             @csrf @method('DELETE')
