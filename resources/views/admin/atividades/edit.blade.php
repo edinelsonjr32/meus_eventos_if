@@ -57,6 +57,14 @@
                         <div class="form-text small">Opcional. Depois desse horário o QR Code não registra mais presença. Você também pode encerrar ou reabrir à mão na lista de presença.</div>
                     </div>
                     <div class="col-12">
+                        <input type="hidden" name="sessao_trabalhos" value="0">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" name="sessao_trabalhos" value="1" id="st" @checked(old('sessao_trabalhos', $atividade->sessao_trabalhos ? 1 : 0))>
+                            <label class="form-check-label small fw-bold text-secondary" for="st">Sessão de apresentação de trabalhos</label>
+                        </div>
+                        <div class="form-text small">Marque somente nas sessões em que trabalhos são apresentados. Oficinas e palestras ficam desmarcadas e não aparecem na escolha de sessão.</div>
+                    </div>
+                    <div class="col-12">
                         <input type="hidden" name="gera_certificado" value="0">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" name="gera_certificado" value="1" id="gc" @checked(old('gera_certificado', $atividade->emiteCertificado() ? 1 : 0))>

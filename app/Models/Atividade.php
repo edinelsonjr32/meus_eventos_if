@@ -38,6 +38,12 @@ class Atividade extends Model
         });
     }
 
+    /** Atividades que servem de sessão de apresentação de trabalhos. */
+    public function scopeSessoesDeTrabalhos($query)
+    {
+        return $query->where('sessao_trabalhos', true);
+    }
+
     /** Presença e certificado de ministrantes e ajudantes. */
     public function equipeCertificada(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -62,6 +68,7 @@ class Atividade extends Model
         'descricao',
         'tipo',
         'responsavel',
+        'sessao_trabalhos',
         'local',
         'local_id',
         'espaco',
@@ -85,6 +92,7 @@ class Atividade extends Model
         'frequencia_encerrada_em' => 'datetime',
         'frequencia_fecha_em' => 'datetime',
         'gera_certificado' => 'boolean',
+        'sessao_trabalhos' => 'boolean',
     ];
 
     /** Sugestões de tipo (o campo é livre: qualquer outro texto também vale). */

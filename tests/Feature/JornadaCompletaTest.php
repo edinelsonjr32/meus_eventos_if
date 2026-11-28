@@ -42,7 +42,7 @@ it('percorre toda a jornada de um trabalho, da chamada ao certificado e aos Trab
         'local' => 'IFPA Campus Óbidos', 'criado_por' => $dono->id, 'latitude' => '-2.457763', 'longitude' => '-54.743856', 'raio_permitido' => 500,
     ]);
     $sessao = Atividade::create([
-        'evento_id' => $evento->id, 'titulo' => 'Sessão de Pôsteres', 'tipo' => 'outro', 'data_inicio' => now()->addDays(10), 'data_fim' => now()->addDays(10)->addHours(3),
+        'evento_id' => $evento->id, 'titulo' => 'Sessão de Pôsteres', 'tipo' => 'outro', 'sessao_trabalhos' => true, 'data_inicio' => now()->addDays(10), 'data_fim' => now()->addDays(10)->addHours(3),
         'carga_horaria' => 3, 'vagas' => 100, 'token_frequencia' => 'SESSAO-JORNADA',
     ]);
 

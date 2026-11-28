@@ -366,6 +366,7 @@
                 </select>
                 <button name="acao" value="sessao" class="btn btn-sm fw-bold btn-outline-success"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
             </div>
+            @if(collect($certificacao['atividades'])->isEmpty())<div class="form-text">Nenhuma sessão ainda: marque "Sessão de apresentação de trabalhos" na edição da atividade.</div>@endif
             <div class="form-text">Com sessão definida, a presença do autor apresentador na atividade confirma a apresentação automaticamente.</div>
         </form>
 

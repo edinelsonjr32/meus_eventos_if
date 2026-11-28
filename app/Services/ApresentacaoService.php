@@ -29,6 +29,9 @@ class ApresentacaoService
         if ($atividade && $atividade->evento_id !== $trabalho->evento_id) {
             throw new \DomainException('A sessão deve ser uma atividade do mesmo evento.');
         }
+        if ($atividade && !$atividade->sessao_trabalhos && $atividade->id !== $trabalho->atividade_id) {
+            throw new \DomainException("\"{$atividade->titulo}\" não é uma sessão de apresentação de trabalhos. Marque essa opção na edição da atividade.");
+        }
 
         $trabalho->update(['atividade_id' => $atividade?->id]);
 

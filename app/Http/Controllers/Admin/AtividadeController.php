@@ -43,6 +43,7 @@ class AtividadeController extends Controller
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
             'gera_certificado' => 'nullable|boolean',
+            'sessao_trabalhos' => 'nullable|boolean',
             'vagas' => 'nullable|integer|min:0',
             'voluntarios_necessarios' => 'nullable|integer|min:0|max:200',
         ], ['local_id.exists' => 'Escolha um local ativo cadastrado neste evento.']);
@@ -70,6 +71,7 @@ class AtividadeController extends Controller
             'data_fim' => $fim, // Agora o Model aceitará este campo
             'carga_horaria' => $horas,
             'gera_certificado' => $request->boolean('gera_certificado', true),
+            'sessao_trabalhos' => $request->boolean('sessao_trabalhos'),
             'vagas' => $validated['vagas'] ?? null,
             'voluntarios_necessarios' => ($validated['voluntarios_necessarios'] ?? 2) ?: null,
             'token_frequencia' => Str::random(10),
@@ -153,6 +155,7 @@ class AtividadeController extends Controller
             'data_inicio' => 'required|date',
             'carga_horaria' => 'required|integer|min:1|max:1000',
             'gera_certificado' => 'nullable|boolean',
+            'sessao_trabalhos' => 'nullable|boolean',
             'vagas' => 'nullable|integer|min:0',
             'voluntarios_necessarios' => 'nullable|integer|min:0|max:200',
             'frequencia_fecha_em' => 'nullable|date',
@@ -161,6 +164,12 @@ class AtividadeController extends Controller
         $inscritos = $atividade->inscritos()->count();
         if (!empty($dados['vagas']) && $dados['vagas'] < $inscritos) {
             return back()->withInput()->withErrors(['vagas' => "Já existem {$inscritos} inscrito(s): as vagas não podem ser menores que isso (use 0 para ilimitado)."]);
+        }
+
+        // (campo ausente = mantém como está)
+        $sessao = $request->has('sessao_trabalhos') ? $request->boolean('sessao_trabalhos') : (bool) $atividade->sessao_trabalhos;
+        if (!$sessao && $atividade->sessao_trabalhos && ($n = \App\Models\Trabalho::where('atividade_id', $atividade->id)->count())) {
+            return back()->withInput()->withErrors(['sessao_trabalhos' => "Há {$n} trabalho(s) nesta sessão: mude a sessão deles antes de desmarcar."]);
         }
 
         $inicio = Carbon::parse($dados['data_inicio']);
@@ -181,6 +190,7 @@ class AtividadeController extends Controller
             'data_fim' => $inicio->copy()->addHours((int) $dados['carga_horaria']),
             'carga_horaria' => (int) $dados['carga_horaria'],
             'gera_certificado' => $request->boolean('gera_certificado', true),
+            'sessao_trabalhos' => $sessao,
             'vagas' => $dados['vagas'] ?? null,
             'voluntarios_necessarios' => ($dados['voluntarios_necessarios'] ?? null) ?: null,
             'frequencia_fecha_em' => $dados['frequencia_fecha_em'] ?? null,

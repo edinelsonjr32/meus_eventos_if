@@ -59,6 +59,7 @@
                             <option value="">— sem sessão —</option>
                             @foreach($atividades as $at) <option value="{{ $at->id }}">{{ $at->titulo }} ({{ $at->data_inicio->format('d/m H:i') }})</option> @endforeach
                         </select>
+            @if(collect($atividades)->isEmpty())<div class="form-text">Nenhuma sessão ainda: marque "Sessão de apresentação de trabalhos" na edição da atividade.</div>@endif
                     </div>
                     <div class="col-md-5 d-flex gap-2 flex-wrap">
                         <button class="btn btn-sm fw-bold btn-success"><i class="fa-solid fa-check"></i> Aplicar</button>

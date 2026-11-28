@@ -165,6 +165,14 @@
                     </div>
 
                     <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" name="sessao_trabalhos" value="1" id="st-n" @checked(old('sessao_trabalhos'))>
+                            <label class="form-check-label small fw-bold text-secondary" for="st-n">SESSÃO DE APRESENTAÇÃO DE TRABALHOS</label>
+                        </div>
+                        <div class="form-text small">Só para sessões em que trabalhos são apresentados (não para oficinas e palestras).</div>
+                    </div>
+
+                    <div class="mb-3">
                         <input type="hidden" name="gera_certificado" value="0">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" name="gera_certificado" value="1" id="gc-n" checked>
@@ -248,6 +256,7 @@
                                         @unless($atividade->frequenciaAberta())
                                             <span class="badge rounded-pill bg-secondary" title="O QR Code não registra mais presença"><i class="fa-solid fa-lock me-1"></i> Frequência encerrada</span>
                                         @endunless
+                                        @if($atividade->sessao_trabalhos)<span class="badge rounded-pill bg-info bg-opacity-10 text-info-emphasis border border-info border-opacity-25"><i class="fa-solid fa-file-lines me-1"></i> Sessão de trabalhos</span>@endif
                                         @unless($atividade->emiteCertificado())
                                             <span class="badge rounded-pill bg-light text-secondary border" title="A frequência é registrada, mas nenhum certificado é emitido"><i class="fa-solid fa-ban me-1"></i> Sem certificado</span>
                                         @endunless

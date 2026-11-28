@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\RateLimiter;
 function mkAtividade(Evento $e, string $titulo = 'Sessão de Pôsteres'): Atividade
 {
     return Atividade::create([
-        'evento_id' => $e->id, 'titulo' => $titulo, 'tipo' => 'outro', 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDay()->addHours(2),
+        'evento_id' => $e->id, 'titulo' => $titulo, 'tipo' => 'outro', 'sessao_trabalhos' => true, 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDay()->addHours(2),
         'carga_horaria' => 2, 'vagas' => 50, 'token_frequencia' => uniqid(),
     ]);
 }

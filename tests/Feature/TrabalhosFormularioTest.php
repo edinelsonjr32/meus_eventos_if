@@ -312,7 +312,7 @@ it('conflito de interesse e confirmação por frequência toleram autores sem CP
     expect(app(TrabalhoWorkflow::class)->conflitoDeInteresse($t, $av))->toBeNull();
 
     // apresentador sem CPF é reconhecido pelo e-mail da presença
-    $sessao = Atividade::create(['evento_id' => $this->evento->id, 'titulo' => 'Sessão', 'tipo' => 'outro', 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDay()->addHours(2), 'carga_horaria' => 2, 'vagas' => 10, 'token_frequencia' => uniqid()]);
+    $sessao = Atividade::create(['evento_id' => $this->evento->id, 'titulo' => 'Sessão', 'tipo' => 'outro', 'sessao_trabalhos' => true, 'data_inicio' => now()->addDay(), 'data_fim' => now()->addDay()->addHours(2), 'carga_horaria' => 2, 'vagas' => 10, 'token_frequencia' => uniqid()]);
     $t->update(['apresentado' => false]);
     app(ApresentacaoService::class)->definirSessao($t->fresh(), $sessao);
     $p = Participante::create(['nome_completo' => 'Ana', 'cpf' => '111.444.777-35', 'email' => 'ana@ifpa.edu.br', 'tipo_vinculo' => 'aluno']);

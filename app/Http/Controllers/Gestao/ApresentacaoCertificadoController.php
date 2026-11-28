@@ -44,7 +44,7 @@ class ApresentacaoCertificadoController extends Controller
         return view('gestao.trabalhos.certificados', [
             'evento' => $evento,
             'trabalhos' => $trabalhos,
-            'atividades' => $evento->atividades()->orderBy('data_inicio')->get(),
+            'atividades' => $evento->atividades()->sessoesDeTrabalhos()->orderBy('data_inicio')->get(),
             'config' => $evento->trabalhoConfig,
             'aprovados' => (int) $totais->aprovados,
             'apresentados' => (int) $totais->apresentados,

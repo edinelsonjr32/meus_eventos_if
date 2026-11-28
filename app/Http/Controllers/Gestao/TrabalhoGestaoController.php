@@ -170,7 +170,7 @@ class TrabalhoGestaoController extends Controller
 
         $trabalho->load(['avaliacoes.notas.criterio', 'certificados.autor', 'sessao']);
         $certificacao = [
-            'atividades' => $trabalho->evento->atividades()->orderBy('data_inicio')->get(),
+            'atividades' => $trabalho->evento->atividades()->where(fn ($q) => $q->where('sessao_trabalhos', true)->orWhere('id', $trabalho->atividade_id))->orderBy('data_inicio')->get(),
             'motivo' => $this->certificados->motivoInelegivel($trabalho),
             'exigeApresentacao' => $trabalho->evento->trabalhoConfig?->exige_apresentacao_para_certificado ?? true,
         ];

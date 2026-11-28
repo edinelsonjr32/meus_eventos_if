@@ -42,7 +42,7 @@ class ApresentacaoAvaliacaoGestaoController extends Controller
             'restricoes' => $this->workflow->restricoesAvaliadores($trabalhos->load('avaliacoesApresentacao'), $avaliadores, 'apresentacao'),
             'config' => $config,
             'trabalhos' => $trabalhos,
-            'atividades' => $evento->atividades()->orderBy('data_inicio')->get(),
+            'atividades' => $evento->atividades()->sessoesDeTrabalhos()->orderBy('data_inicio')->get(),
             'atividadeId' => $atividadeId,
             'criterios' => $criterios,
             'criteriosUsados' => ApresentacaoAvaliacaoNota::whereIn('criterio_id', $criterios->pluck('id'))->pluck('criterio_id')->unique()->values()->all(),
